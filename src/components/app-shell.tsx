@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import {
-  Bell, BarChart3, Briefcase, CalendarCheck, ClipboardList, Handshake, LayoutDashboard, Menu, Users, UserCog, X, LogOut, FlaskConical, ListTodo, History,
+  Bell, BarChart3, Briefcase, CalendarCheck, ClipboardList, Handshake, LayoutDashboard, Menu, Users, UserCog, X, LogOut, FlaskConical, ListTodo, History, FolderOpen,
 } from "lucide-react";
 import { Logo } from "@/components/brand";
 import { useData, usePaths } from "@/lib/data/context";
@@ -22,6 +22,7 @@ export function AppShell({ children, footer }: { children: ReactNode; footer?: R
     { to: p.requests, label: "الطلبات", icon: ClipboardList },
     { to: p.bookings, label: "الحجوزات", icon: CalendarCheck },
     { to: p.tasks, label: "المهام", icon: ListTodo },
+    { to: p.documents, label: "المستندات", icon: FolderOpen },
     { to: p.services, label: "الخدمات", icon: Briefcase },
     { to: p.partners, label: "المكاتب الشريكة", icon: Handshake },
     { to: p.notifications, label: "الإشعارات", icon: Bell },
