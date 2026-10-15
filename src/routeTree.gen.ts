@@ -18,6 +18,7 @@ import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/ap
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as DemoIndexRouteImport } from './routes/demo.index'
 import { Route as DemoActivityRouteImport } from './routes/demo.activity'
+import { Route as DemoDocumentsRouteImport } from './routes/demo.documents'
 import { Route as DemoNotificationsRouteImport } from './routes/demo.notifications'
 import { Route as DemoPartnersRouteImport } from './routes/demo.partners'
 import { Route as DemoReportsRouteImport } from './routes/demo.reports'
@@ -26,6 +27,7 @@ import { Route as DemoServicesRouteImport } from './routes/demo.services'
 import { Route as DemoTasksRouteImport } from './routes/demo.tasks'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAppActivityRouteImport } from './routes/_authenticated/app.activity'
+import { Route as AuthenticatedAppDocumentsRouteImport } from './routes/_authenticated/app.documents'
 import { Route as AuthenticatedAppNotificationsRouteImport } from './routes/_authenticated/app.notifications'
 import { Route as AuthenticatedAppPartnersRouteImport } from './routes/_authenticated/app.partners'
 import { Route as AuthenticatedAppReportsRouteImport } from './routes/_authenticated/app.reports'
@@ -86,6 +88,11 @@ const DemoActivityRoute = DemoActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => DemoRoute,
 } as any)
+const DemoDocumentsRoute = DemoDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => DemoRoute,
+} as any)
 const DemoNotificationsRoute = DemoNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
@@ -125,6 +132,12 @@ const AuthenticatedAppActivityRoute =
   AuthenticatedAppActivityRouteImport.update({
     id: '/activity',
     path: '/activity',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
+const AuthenticatedAppDocumentsRoute =
+  AuthenticatedAppDocumentsRouteImport.update({
+    id: '/documents',
+    path: '/documents',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
 const AuthenticatedAppNotificationsRoute =
@@ -219,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AuthenticatedAppRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/demo/activity': typeof DemoActivityRoute
+  '/demo/documents': typeof DemoDocumentsRoute
   '/demo/notifications': typeof DemoNotificationsRoute
   '/demo/partners': typeof DemoPartnersRoute
   '/demo/reports': typeof DemoReportsRoute
@@ -227,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/demo/tasks': typeof DemoTasksRoute
   '/demo/': typeof DemoIndexRoute
   '/app/activity': typeof AuthenticatedAppActivityRoute
+  '/app/documents': typeof AuthenticatedAppDocumentsRoute
   '/app/notifications': typeof AuthenticatedAppNotificationsRoute
   '/app/partners': typeof AuthenticatedAppPartnersRoute
   '/app/reports': typeof AuthenticatedAppReportsRoute
@@ -250,6 +265,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/demo/activity': typeof DemoActivityRoute
+  '/demo/documents': typeof DemoDocumentsRoute
   '/demo/notifications': typeof DemoNotificationsRoute
   '/demo/partners': typeof DemoPartnersRoute
   '/demo/reports': typeof DemoReportsRoute
@@ -258,6 +274,7 @@ export interface FileRoutesByTo {
   '/demo/tasks': typeof DemoTasksRoute
   '/demo': typeof DemoIndexRoute
   '/app/activity': typeof AuthenticatedAppActivityRoute
+  '/app/documents': typeof AuthenticatedAppDocumentsRoute
   '/app/notifications': typeof AuthenticatedAppNotificationsRoute
   '/app/partners': typeof AuthenticatedAppPartnersRoute
   '/app/reports': typeof AuthenticatedAppReportsRoute
@@ -285,6 +302,7 @@ export interface FileRoutesById {
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/demo/activity': typeof DemoActivityRoute
+  '/demo/documents': typeof DemoDocumentsRoute
   '/demo/notifications': typeof DemoNotificationsRoute
   '/demo/partners': typeof DemoPartnersRoute
   '/demo/reports': typeof DemoReportsRoute
@@ -293,6 +311,7 @@ export interface FileRoutesById {
   '/demo/tasks': typeof DemoTasksRoute
   '/demo/': typeof DemoIndexRoute
   '/_authenticated/app/activity': typeof AuthenticatedAppActivityRoute
+  '/_authenticated/app/documents': typeof AuthenticatedAppDocumentsRoute
   '/_authenticated/app/notifications': typeof AuthenticatedAppNotificationsRoute
   '/_authenticated/app/partners': typeof AuthenticatedAppPartnersRoute
   '/_authenticated/app/reports': typeof AuthenticatedAppReportsRoute
@@ -320,6 +339,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/onboarding'
     | '/demo/activity'
+    | '/demo/documents'
     | '/demo/notifications'
     | '/demo/partners'
     | '/demo/reports'
@@ -328,6 +348,7 @@ export interface FileRouteTypes {
     | '/demo/tasks'
     | '/demo/'
     | '/app/activity'
+    | '/app/documents'
     | '/app/notifications'
     | '/app/partners'
     | '/app/reports'
@@ -351,6 +372,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/onboarding'
     | '/demo/activity'
+    | '/demo/documents'
     | '/demo/notifications'
     | '/demo/partners'
     | '/demo/reports'
@@ -359,6 +381,7 @@ export interface FileRouteTypes {
     | '/demo/tasks'
     | '/demo'
     | '/app/activity'
+    | '/app/documents'
     | '/app/notifications'
     | '/app/partners'
     | '/app/reports'
@@ -385,6 +408,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app'
     | '/_authenticated/onboarding'
     | '/demo/activity'
+    | '/demo/documents'
     | '/demo/notifications'
     | '/demo/partners'
     | '/demo/reports'
@@ -393,6 +417,7 @@ export interface FileRouteTypes {
     | '/demo/tasks'
     | '/demo/'
     | '/_authenticated/app/activity'
+    | '/_authenticated/app/documents'
     | '/_authenticated/app/notifications'
     | '/_authenticated/app/partners'
     | '/_authenticated/app/reports'
@@ -484,6 +509,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoActivityRouteImport
       parentRoute: typeof DemoRoute
     }
+    '/demo/documents': {
+      id: '/demo/documents'
+      path: '/documents'
+      fullPath: '/demo/documents'
+      preLoaderRoute: typeof DemoDocumentsRouteImport
+      parentRoute: typeof DemoRoute
+    }
     '/demo/notifications': {
       id: '/demo/notifications'
       path: '/notifications'
@@ -538,6 +570,13 @@ declare module '@tanstack/react-router' {
       path: '/activity'
       fullPath: '/app/activity'
       preLoaderRoute: typeof AuthenticatedAppActivityRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/documents': {
+      id: '/_authenticated/app/documents'
+      path: '/documents'
+      fullPath: '/app/documents'
+      preLoaderRoute: typeof AuthenticatedAppDocumentsRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/notifications': {
@@ -650,6 +689,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAppRouteChildren {
   AuthenticatedAppActivityRoute: typeof AuthenticatedAppActivityRoute
+  AuthenticatedAppDocumentsRoute: typeof AuthenticatedAppDocumentsRoute
   AuthenticatedAppNotificationsRoute: typeof AuthenticatedAppNotificationsRoute
   AuthenticatedAppPartnersRoute: typeof AuthenticatedAppPartnersRoute
   AuthenticatedAppReportsRoute: typeof AuthenticatedAppReportsRoute
@@ -666,6 +706,7 @@ interface AuthenticatedAppRouteChildren {
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppActivityRoute: AuthenticatedAppActivityRoute,
+  AuthenticatedAppDocumentsRoute: AuthenticatedAppDocumentsRoute,
   AuthenticatedAppNotificationsRoute: AuthenticatedAppNotificationsRoute,
   AuthenticatedAppPartnersRoute: AuthenticatedAppPartnersRoute,
   AuthenticatedAppReportsRoute: AuthenticatedAppReportsRoute,
@@ -698,6 +739,7 @@ const AuthenticatedRouteRouteWithChildren =
 
 interface DemoRouteChildren {
   DemoActivityRoute: typeof DemoActivityRoute
+  DemoDocumentsRoute: typeof DemoDocumentsRoute
   DemoNotificationsRoute: typeof DemoNotificationsRoute
   DemoPartnersRoute: typeof DemoPartnersRoute
   DemoReportsRoute: typeof DemoReportsRoute
@@ -713,6 +755,7 @@ interface DemoRouteChildren {
 
 const DemoRouteChildren: DemoRouteChildren = {
   DemoActivityRoute: DemoActivityRoute,
+  DemoDocumentsRoute: DemoDocumentsRoute,
   DemoNotificationsRoute: DemoNotificationsRoute,
   DemoPartnersRoute: DemoPartnersRoute,
   DemoReportsRoute: DemoReportsRoute,
