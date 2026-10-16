@@ -66,10 +66,19 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
     listDocuments: async () =>
       must(await supabase.from("documents").select("*").eq("office_id", officeId).order("created_at", { ascending: false })),
     uploadDocument: async (file, links) => {
+      const MAX = 20 * 1024 * 1024;
+      if (file.size > MAX) throw new Error(`حجم الملف ${(file.size / 1024 / 1024).toFixed(1)}MB يتجاوز الحد المسموح (20MB). اضغط الملف أو قسّمه ثم أعد المحاولة.`);
+      if (file.size === 0) throw new Error("الملف فارغ، اختر ملفًا آخر.");
       const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(-80);
       const path = `${officeId}/${crypto.randomUUID()}-${safe}`;
       const up = await supabase.storage.from("documents").upload(path, file, file.type ? { contentType: file.type } : {});
-      if (up.error) throw new Error(up.error.message);
+      if (up.error) {
+        const m = up.error.message.toLowerCase();
+        if (m.includes("maximum allowed size") || m.includes("too large")) throw new Error("حجم الملف يتجاوز الحد المسموح (20MB).");
+        if (m.includes("row-level security") || m.includes("unauthorized")) throw new Error("ليست لديك صلاحية رفع ملفات لهذا المكتب.");
+        if (m.includes("jwt") || m.includes("exp")) throw new Error("انتهت جلستك، سجّل الدخول من جديد ثم أعد المحاولة.");
+        throw new Error(up.error.message);
+      }
       const res = await supabase.from("documents").insert({
         office_id: officeId, storage_path: path, file_name: file.name, size_bytes: file.size, mime_type: file.type || null,
         uploaded_by: userId, customer_id: links.customer_id ?? null, booking_id: links.booking_id ?? null, request_id: links.request_id ?? null,
