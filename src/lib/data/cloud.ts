@@ -76,7 +76,7 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
         const m = up.error.message.toLowerCase();
         if (m.includes("maximum allowed size") || m.includes("too large")) throw new Error("حجم الملف يتجاوز الحد المسموح (20MB).");
         if (m.includes("row-level security") || m.includes("unauthorized")) throw new Error("ليست لديك صلاحية رفع ملفات لهذا المكتب.");
-        if (m.includes("jwt") || m.includes("exp")) throw new Error("انتهت جلستك، سجّل الدخول من جديد ثم أعد المحاولة.");
+        if (m.includes("jwt") || m.includes("exp claim")) throw new Error("انتهت جلستك، سجّل الدخول من جديد ثم أعد المحاولة.");
         throw new Error(up.error.message);
       }
       const res = await supabase.from("documents").insert({
