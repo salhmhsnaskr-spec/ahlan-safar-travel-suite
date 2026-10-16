@@ -69,14 +69,29 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
       const MAX = 20 * 1024 * 1024;
       if (file.size > MAX) throw new Error(`حجم الملف ${(file.size / 1024 / 1024).toFixed(1)}MB يتجاوز الحد المسموح (20MB). اضغط الملف أو قسّمه ثم أعد المحاولة.`);
       if (file.size === 0) throw new Error("الملف فارغ، اختر ملفًا آخر.");
-      const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(-80);
-      const path = `${officeId}/${crypto.randomUUID()}-${safe}`;
-      const up = await supabase.storage.from("documents").upload(path, file, file.type ? { contentType: file.type } : {});
+      const ext = (file.name.match(/\.[A-Za-z0-9]{1,8}$/)?.[0] ?? "").toLowerCase();
+      const base = file.name.slice(0, file.name.length - ext.length).replace(/[^\w\-]+/g, "_").replace(/^_+|_+$/g, "").slice(-60);
+      const path = `${officeId}/${crypto.randomUUID()}-${base || "file"}${ext}`;
+      // Read the file into memory first: phone browsers (gallery/cloud files) can hand over a File that
+      // fails mid-stream, which surfaces only as "Failed to fetch". A plain in-memory Blob uploads reliably.
+      let body: Blob;
+      try {
+        body = new Blob([await file.arrayBuffer()], { type: file.type || "application/octet-stream" });
+      } catch {
+        throw new Error("تعذّرت قراءة الملف من جهازك. إن كان من معرض الصور أو التخزين السحابي، احفظه على الجهاز أولًا ثم أعد المحاولة.");
+      }
+      const opts = { contentType: body.type, upsert: false };
+      let up = await supabase.storage.from("documents").upload(path, body, opts);
+      if (up.error && /failed to fetch|network|load failed/i.test(up.error.message)) {
+        await new Promise((r) => setTimeout(r, 1200));
+        up = await supabase.storage.from("documents").upload(path, body, opts);
+      }
       if (up.error) {
         const m = up.error.message.toLowerCase();
         if (m.includes("maximum allowed size") || m.includes("too large")) throw new Error("حجم الملف يتجاوز الحد المسموح (20MB).");
         if (m.includes("row-level security") || m.includes("unauthorized")) throw new Error("ليست لديك صلاحية رفع ملفات لهذا المكتب.");
         if (m.includes("jwt") || m.includes("exp claim")) throw new Error("انتهت جلستك، سجّل الدخول من جديد ثم أعد المحاولة.");
+        if (/failed to fetch|network|load failed/.test(m)) throw new Error("انقطع الاتصال أثناء رفع الملف. تحقّق من الإنترنت ثم أعد المحاولة.");
         throw new Error(up.error.message);
       }
       const res = await supabase.from("documents").insert({
