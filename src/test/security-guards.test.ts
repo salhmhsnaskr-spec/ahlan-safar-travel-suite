@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 // Execute the production migration on an isolated PostgreSQL engine. No cloud
 // fixtures or application data are created by these regression tests.
-const migration = readFileSync(new URL("../../drizzle/migrations/0000_harden_office_admin_and_task_guards.sql", import.meta.url), "utf8");
+const migration = readFileSync("drizzle/migrations/0000_harden_office_admin_and_task_guards.sql", "utf8");
 const officeA = "00000000-0000-0000-0000-000000000001";
 const officeB = "00000000-0000-0000-0000-000000000002";
 const admin = "00000000-0000-0000-0000-000000000011";
@@ -28,8 +28,7 @@ beforeAll(async () => {
     CREATE TABLE public.tasks (id uuid PRIMARY KEY, office_id uuid NOT NULL, assigned_to uuid, created_by uuid, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), title text, status text, notes text, future_field text);
     CREATE FUNCTION public.set_updated_at() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN NEW.updated_at := now(); RETURN NEW; END $$;
     CREATE TRIGGER tasks_updated BEFORE UPDATE ON public.tasks FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
-    CREATE TRIGGER tasks_guard BEFORE UPDATE ON public.tasks FOR EACH ROW EXECUTE FUNCTION public.guard_task_employee_update_placeholder();
-  `.replace("CREATE TRIGGER tasks_guard BEFORE UPDATE ON public.tasks FOR EACH ROW EXECUTE FUNCTION public.guard_task_employee_update_placeholder();", ""));
+  `);
   await db.exec(migration);
   await db.exec(`
     CREATE TRIGGER tasks_guard BEFORE UPDATE ON public.tasks FOR EACH ROW EXECUTE FUNCTION public.guard_task_employee_update();
