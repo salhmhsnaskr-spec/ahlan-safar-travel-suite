@@ -3,9 +3,9 @@ import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-// Execute the production migration on an isolated PostgreSQL engine. No cloud
+// Execute the preserved security SQL on an isolated PostgreSQL engine. No cloud
 // fixtures or application data are created by these regression tests.
-const migration = readFileSync("drizzle/migrations/0000_harden_office_admin_and_task_guards.sql", "utf8");
+const migration = readFileSync("src/test/fixtures/office-security-guards.sql", "utf8");
 const officeA = "00000000-0000-0000-0000-000000000001";
 const officeB = "00000000-0000-0000-0000-000000000002";
 const admin = "00000000-0000-0000-0000-000000000011";
