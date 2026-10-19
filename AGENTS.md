@@ -17,4 +17,5 @@
 - Legacy `requests.booking_ref/booked_at` are deprecated and only read once to backfill `bookings`; new code must use `bookings` so there is one source of truth.
 - Membership removal and demotion must preserve an office administrator through a database trigger that locks the office and a remaining administrator row; this prevents orphaned offices across direct updates and RPC upserts.
 - Employee task guards use an allowlist comparison across the whole row, with timestamps maintained by the database; newly added columns remain protected by default.
-- Security trigger regression tests execute the production migration in isolated PGlite transactions; this verifies database behavior without modifying cloud records, but does not replace live RLS or concurrency tests.
+- Security trigger regression tests execute preserved security SQL fixtures in isolated PGlite transactions; this retains coverage when remix migration history is cleared without modifying cloud records, but does not replace live RLS or concurrency tests.
+- Remixed migration sets start empty; let the migration tool generate journal and snapshots on the first new schema change rather than replay copied migrations against inherited tables.
