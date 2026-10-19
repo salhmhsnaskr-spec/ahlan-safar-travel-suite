@@ -1,13 +1,5 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1792288617648,
-      "tag": "0000_harden_office_admin_and_task_guards",
-      "breakpoints": true
-    }
-  ]
+  "entries": []
 }
