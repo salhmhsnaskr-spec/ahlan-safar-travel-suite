@@ -109,10 +109,12 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
       return r.data.signedUrl;
     },
     deleteDocument: async (doc) => {
+      // Delete the record first so a failure never leaves a record pointing to a missing file.
+      const del = await supabase.from("documents").delete().eq("id", doc.id).select("id");
+      if (del.error) throw new Error(del.error.message);
+      if (!del.data?.length) throw new Error("ليست لديك صلاحية حذف هذه الوثيقة");
       const rm = await supabase.storage.from("documents").remove([doc.storage_path]);
-      if (rm.error) throw new Error(rm.error.message);
-      if (!rm.data?.length) throw new Error("ليست لديك صلاحية حذف هذه الوثيقة");
-      must(await supabase.from("documents").delete().eq("id", doc.id));
+      if (rm.error) console.warn("تعذر حذف الملف من التخزين:", rm.error.message);
     },
     listActivity: async () =>
       must(await supabase.from("activity_log").select("*").eq("office_id", officeId).order("created_at", { ascending: false }).limit(200)),
