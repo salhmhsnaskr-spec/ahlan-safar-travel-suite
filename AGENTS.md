@@ -19,3 +19,4 @@
 - Employee task guards use an allowlist comparison across the whole row, with timestamps maintained by the database; newly added columns remain protected by default.
 - Security trigger regression tests execute preserved security SQL fixtures in isolated PGlite transactions; this retains coverage when remix migration history is cleared without modifying cloud records, but does not replace live RLS or concurrency tests.
 - Remixed migration sets start empty; let the migration tool generate journal and snapshots on the first new schema change rather than replay copied migrations against inherited tables.
+- A "transaction" is a `requests` row; service-specific fields live in `requests.service_details` (jsonb) defined per service code in src/lib/transaction.ts — avoids a parallel transactions table and keeps bookings/tasks/documents linked via request_id.
