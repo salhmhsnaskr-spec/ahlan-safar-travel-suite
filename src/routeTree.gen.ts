@@ -39,10 +39,14 @@ import { Route as DemoBookingsIndexRouteImport } from './routes/demo.bookings.in
 import { Route as DemoBookingsIdRouteImport } from './routes/demo.bookings.$id'
 import { Route as DemoCustomersIndexRouteImport } from './routes/demo.customers.index'
 import { Route as DemoCustomersIdRouteImport } from './routes/demo.customers.$id'
+import { Route as DemoTransactionsIdRouteImport } from './routes/demo.transactions.$id'
+import { Route as DemoTransactionsNewRouteImport } from './routes/demo.transactions.new'
 import { Route as AuthenticatedAppBookingsIndexRouteImport } from './routes/_authenticated/app.bookings.index'
 import { Route as AuthenticatedAppBookingsIdRouteImport } from './routes/_authenticated/app.bookings.$id'
 import { Route as AuthenticatedAppCustomersIndexRouteImport } from './routes/_authenticated/app.customers.index'
 import { Route as AuthenticatedAppCustomersIdRouteImport } from './routes/_authenticated/app.customers.$id'
+import { Route as AuthenticatedAppTransactionsIdRouteImport } from './routes/_authenticated/app.transactions.$id'
+import { Route as AuthenticatedAppTransactionsNewRouteImport } from './routes/_authenticated/app.transactions.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -199,6 +203,16 @@ const DemoCustomersIdRoute = DemoCustomersIdRouteImport.update({
   path: '/customers/$id',
   getParentRoute: () => DemoRoute,
 } as any)
+const DemoTransactionsIdRoute = DemoTransactionsIdRouteImport.update({
+  id: '/transactions/$id',
+  path: '/transactions/$id',
+  getParentRoute: () => DemoRoute,
+} as any)
+const DemoTransactionsNewRoute = DemoTransactionsNewRouteImport.update({
+  id: '/transactions/new',
+  path: '/transactions/new',
+  getParentRoute: () => DemoRoute,
+} as any)
 const AuthenticatedAppBookingsIndexRoute =
   AuthenticatedAppBookingsIndexRouteImport.update({
     id: '/bookings/',
@@ -221,6 +235,18 @@ const AuthenticatedAppCustomersIdRoute =
   AuthenticatedAppCustomersIdRouteImport.update({
     id: '/customers/$id',
     path: '/customers/$id',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
+const AuthenticatedAppTransactionsIdRoute =
+  AuthenticatedAppTransactionsIdRouteImport.update({
+    id: '/transactions/$id',
+    path: '/transactions/$id',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
+const AuthenticatedAppTransactionsNewRoute =
+  AuthenticatedAppTransactionsNewRouteImport.update({
+    id: '/transactions/new',
+    path: '/transactions/new',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
 
@@ -251,11 +277,15 @@ export interface FileRoutesByFullPath {
   '/app/team': typeof AuthenticatedAppTeamRoute
   '/demo/bookings/$id': typeof DemoBookingsIdRoute
   '/demo/customers/$id': typeof DemoCustomersIdRoute
+  '/demo/transactions/$id': typeof DemoTransactionsIdRoute
+  '/demo/transactions/new': typeof DemoTransactionsNewRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/demo/bookings/': typeof DemoBookingsIndexRoute
   '/demo/customers/': typeof DemoCustomersIndexRoute
   '/app/bookings/$id': typeof AuthenticatedAppBookingsIdRoute
   '/app/customers/$id': typeof AuthenticatedAppCustomersIdRoute
+  '/app/transactions/$id': typeof AuthenticatedAppTransactionsIdRoute
+  '/app/transactions/new': typeof AuthenticatedAppTransactionsNewRoute
   '/app/bookings/': typeof AuthenticatedAppBookingsIndexRoute
   '/app/customers/': typeof AuthenticatedAppCustomersIndexRoute
 }
@@ -284,11 +314,15 @@ export interface FileRoutesByTo {
   '/app/team': typeof AuthenticatedAppTeamRoute
   '/demo/bookings/$id': typeof DemoBookingsIdRoute
   '/demo/customers/$id': typeof DemoCustomersIdRoute
+  '/demo/transactions/$id': typeof DemoTransactionsIdRoute
+  '/demo/transactions/new': typeof DemoTransactionsNewRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/demo/bookings': typeof DemoBookingsIndexRoute
   '/demo/customers': typeof DemoCustomersIndexRoute
   '/app/bookings/$id': typeof AuthenticatedAppBookingsIdRoute
   '/app/customers/$id': typeof AuthenticatedAppCustomersIdRoute
+  '/app/transactions/$id': typeof AuthenticatedAppTransactionsIdRoute
+  '/app/transactions/new': typeof AuthenticatedAppTransactionsNewRoute
   '/app/bookings': typeof AuthenticatedAppBookingsIndexRoute
   '/app/customers': typeof AuthenticatedAppCustomersIndexRoute
 }
@@ -321,11 +355,15 @@ export interface FileRoutesById {
   '/_authenticated/app/team': typeof AuthenticatedAppTeamRoute
   '/demo/bookings/$id': typeof DemoBookingsIdRoute
   '/demo/customers/$id': typeof DemoCustomersIdRoute
+  '/demo/transactions/$id': typeof DemoTransactionsIdRoute
+  '/demo/transactions/new': typeof DemoTransactionsNewRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/demo/bookings/': typeof DemoBookingsIndexRoute
   '/demo/customers/': typeof DemoCustomersIndexRoute
   '/_authenticated/app/bookings/$id': typeof AuthenticatedAppBookingsIdRoute
   '/_authenticated/app/customers/$id': typeof AuthenticatedAppCustomersIdRoute
+  '/_authenticated/app/transactions/$id': typeof AuthenticatedAppTransactionsIdRoute
+  '/_authenticated/app/transactions/new': typeof AuthenticatedAppTransactionsNewRoute
   '/_authenticated/app/bookings/': typeof AuthenticatedAppBookingsIndexRoute
   '/_authenticated/app/customers/': typeof AuthenticatedAppCustomersIndexRoute
 }
@@ -358,11 +396,15 @@ export interface FileRouteTypes {
     | '/app/team'
     | '/demo/bookings/$id'
     | '/demo/customers/$id'
+    | '/demo/transactions/$id'
+    | '/demo/transactions/new'
     | '/app/'
     | '/demo/bookings/'
     | '/demo/customers/'
     | '/app/bookings/$id'
     | '/app/customers/$id'
+    | '/app/transactions/$id'
+    | '/app/transactions/new'
     | '/app/bookings/'
     | '/app/customers/'
   fileRoutesByTo: FileRoutesByTo
@@ -391,11 +433,15 @@ export interface FileRouteTypes {
     | '/app/team'
     | '/demo/bookings/$id'
     | '/demo/customers/$id'
+    | '/demo/transactions/$id'
+    | '/demo/transactions/new'
     | '/app'
     | '/demo/bookings'
     | '/demo/customers'
     | '/app/bookings/$id'
     | '/app/customers/$id'
+    | '/app/transactions/$id'
+    | '/app/transactions/new'
     | '/app/bookings'
     | '/app/customers'
   id:
@@ -427,11 +473,15 @@ export interface FileRouteTypes {
     | '/_authenticated/app/team'
     | '/demo/bookings/$id'
     | '/demo/customers/$id'
+    | '/demo/transactions/$id'
+    | '/demo/transactions/new'
     | '/_authenticated/app/'
     | '/demo/bookings/'
     | '/demo/customers/'
     | '/_authenticated/app/bookings/$id'
     | '/_authenticated/app/customers/$id'
+    | '/_authenticated/app/transactions/$id'
+    | '/_authenticated/app/transactions/new'
     | '/_authenticated/app/bookings/'
     | '/_authenticated/app/customers/'
   fileRoutesById: FileRoutesById
@@ -656,6 +706,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoCustomersIdRouteImport
       parentRoute: typeof DemoRoute
     }
+    '/demo/transactions/$id': {
+      id: '/demo/transactions/$id'
+      path: '/transactions/$id'
+      fullPath: '/demo/transactions/$id'
+      preLoaderRoute: typeof DemoTransactionsIdRouteImport
+      parentRoute: typeof DemoRoute
+    }
+    '/demo/transactions/new': {
+      id: '/demo/transactions/new'
+      path: '/transactions/new'
+      fullPath: '/demo/transactions/new'
+      preLoaderRoute: typeof DemoTransactionsNewRouteImport
+      parentRoute: typeof DemoRoute
+    }
     '/_authenticated/app/bookings/': {
       id: '/_authenticated/app/bookings/'
       path: '/bookings'
@@ -684,6 +748,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppCustomersIdRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/transactions/$id': {
+      id: '/_authenticated/app/transactions/$id'
+      path: '/transactions/$id'
+      fullPath: '/app/transactions/$id'
+      preLoaderRoute: typeof AuthenticatedAppTransactionsIdRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/transactions/new': {
+      id: '/_authenticated/app/transactions/new'
+      path: '/transactions/new'
+      fullPath: '/app/transactions/new'
+      preLoaderRoute: typeof AuthenticatedAppTransactionsNewRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
   }
 }
 
@@ -700,6 +778,8 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppBookingsIdRoute: typeof AuthenticatedAppBookingsIdRoute
   AuthenticatedAppCustomersIdRoute: typeof AuthenticatedAppCustomersIdRoute
+  AuthenticatedAppTransactionsIdRoute: typeof AuthenticatedAppTransactionsIdRoute
+  AuthenticatedAppTransactionsNewRoute: typeof AuthenticatedAppTransactionsNewRoute
   AuthenticatedAppBookingsIndexRoute: typeof AuthenticatedAppBookingsIndexRoute
   AuthenticatedAppCustomersIndexRoute: typeof AuthenticatedAppCustomersIndexRoute
 }
@@ -717,6 +797,8 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppBookingsIdRoute: AuthenticatedAppBookingsIdRoute,
   AuthenticatedAppCustomersIdRoute: AuthenticatedAppCustomersIdRoute,
+  AuthenticatedAppTransactionsIdRoute: AuthenticatedAppTransactionsIdRoute,
+  AuthenticatedAppTransactionsNewRoute: AuthenticatedAppTransactionsNewRoute,
   AuthenticatedAppBookingsIndexRoute: AuthenticatedAppBookingsIndexRoute,
   AuthenticatedAppCustomersIndexRoute: AuthenticatedAppCustomersIndexRoute,
 }
@@ -749,6 +831,8 @@ interface DemoRouteChildren {
   DemoIndexRoute: typeof DemoIndexRoute
   DemoBookingsIdRoute: typeof DemoBookingsIdRoute
   DemoCustomersIdRoute: typeof DemoCustomersIdRoute
+  DemoTransactionsIdRoute: typeof DemoTransactionsIdRoute
+  DemoTransactionsNewRoute: typeof DemoTransactionsNewRoute
   DemoBookingsIndexRoute: typeof DemoBookingsIndexRoute
   DemoCustomersIndexRoute: typeof DemoCustomersIndexRoute
 }
@@ -765,6 +849,8 @@ const DemoRouteChildren: DemoRouteChildren = {
   DemoIndexRoute: DemoIndexRoute,
   DemoBookingsIdRoute: DemoBookingsIdRoute,
   DemoCustomersIdRoute: DemoCustomersIdRoute,
+  DemoTransactionsIdRoute: DemoTransactionsIdRoute,
+  DemoTransactionsNewRoute: DemoTransactionsNewRoute,
   DemoBookingsIndexRoute: DemoBookingsIndexRoute,
   DemoCustomersIndexRoute: DemoCustomersIndexRoute,
 }
