@@ -37,6 +37,14 @@ function Onboarding() {
           <div className="grid grid-cols-2 gap-3"><Field label="المدينة"><Input value={f.city} onChange={set("city")} /></Field><Field label="الدولة"><Input value={f.country} onChange={set("country")} /></Field></div>
           <Button type="submit" className="h-11 w-full" disabled={busy}>إنشاء المكتب</Button>
         </form>
+        <div className="mt-4 space-y-3 rounded-2xl border bg-card p-6 text-sm">
+          <p className="font-medium">أنا موظف في مكتب قائم</p>
+          <p className="text-muted-foreground">لا تنشئ مكتبًا. أعطِ مديرك بريدك ليضيفك من صفحة «الفريق»، ثم اضغط «تحقّق من الانضمام».</p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={() => navigate({ to: "/app", replace: true })}>تحقّق من الانضمام</Button>
+            <Button type="button" variant="ghost" onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/auth", replace: true }); }}>تسجيل الخروج</Button>
+          </div>
+        </div>
       </div>
     </div>
   );
