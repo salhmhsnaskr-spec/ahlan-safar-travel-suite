@@ -71,7 +71,7 @@ function seed(): DemoDB {
     id: uid(), number: ++seq, office_id: DEMO_OFFICE, customer_id: customers[ci]!.id, service_id: "svc-" + svcCode, details,
     source, referring_partner_id: partnerId, assigned_to: customers[ci]!.assigned_to, service_date: serviceIn === null ? null : day(serviceIn),
     priority, status, notes: null, booking_ref: booked ? "BK-" + (7000 + seq) : null, booked_at: booked ? iso(d + 1) : null,
-    created_by: "demo-admin", created_at: iso(d), updated_at: iso(d + 1),
+    service_details: {}, created_by: "demo-admin", created_at: iso(d), updated_at: iso(d + 1),
   });
   const requests = [
     req(0, "flight", "confirmed", "direct", null, 5, "normal", "تذكرتان الرياض ← إسطنبول ذهاب وعودة", -18, true),
