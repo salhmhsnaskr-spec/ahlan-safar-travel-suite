@@ -8,6 +8,13 @@
       "when": 1792455181834,
       "tag": "0000_fix_add_office_member",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792457415678,
+      "tag": "0001_add_request_service_details",
+      "breakpoints": true
     }
   ]
 }
