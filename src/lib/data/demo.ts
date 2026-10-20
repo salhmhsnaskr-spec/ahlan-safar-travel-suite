@@ -208,7 +208,7 @@ export function createDemoApi(): DataApi {
         db.seq += 1;
         const r: TravelRequest = {
           service_id: null, details: null, source: "direct", referring_partner_id: null, assigned_to: "demo-admin",
-          service_date: null, priority: "normal", status: "new", notes: null, booking_ref: null, booked_at: null, ...input,
+          service_date: null, priority: "normal", status: "new", notes: null, booking_ref: null, booked_at: null, service_details: {}, ...input,
           id: uid(), number: db.seq, office_id: DEMO_OFFICE, created_by: "demo-admin", created_at: now, updated_at: now,
         } as TravelRequest;
         db.requests.push(r);

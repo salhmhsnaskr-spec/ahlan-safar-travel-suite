@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import {
-  Bell, BarChart3, Briefcase, CalendarCheck, ClipboardList, Handshake, LayoutDashboard, Menu, Users, UserCog, X, LogOut, FlaskConical, ListTodo, History, FolderOpen,
+  Bell, BarChart3, Briefcase, CalendarCheck, ClipboardList, Handshake, LayoutDashboard, Menu, Users, UserCog, X, LogOut, FlaskConical, ListTodo, History, FolderOpen, FilePlus2,
 } from "lucide-react";
 import { Logo } from "@/components/brand";
 import { useData, usePaths } from "@/lib/data/context";
@@ -18,6 +18,7 @@ export function AppShell({ children, footer }: { children: ReactNode; footer?: R
 
   const items: NavItem[] = [
     { to: p.home, label: "لوحة التحكم", icon: LayoutDashboard, exact: true },
+    { to: p.newTransaction, label: "معاملة جديدة", icon: FilePlus2 },
     { to: p.customers, label: "العملاء", icon: Users },
     { to: p.requests, label: "الطلبات", icon: ClipboardList },
     { to: p.bookings, label: "الحجوزات", icon: CalendarCheck },
