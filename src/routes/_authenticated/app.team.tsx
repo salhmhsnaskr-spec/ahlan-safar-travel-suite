@@ -29,7 +29,8 @@ function Team() {
         e.preventDefault();
         const { data, error } = await supabase.rpc("add_office_member", { _office: office.id, _email: email, _role: role });
         if (error) { toast.error(error.message); return; }
-        if (data === "not_found") { toast.error("لا يوجد حساب بهذا البريد. اطلب من الموظف إنشاء حساب أولًا."); return; }
+        if (data === "not_found") { toast.error("لا يوجد حساب بهذا البريد بعد", { description: "اطلب من الموظف إنشاء حساب من صفحة التسجيل بنفس البريد ثم اختيار «أنا موظف» (دون إنشاء مكتب)، ثم أضِفه هنا مجددًا." }); return; }
+        if (data === "exists") { toast.error("هذا الشخص عضو في المكتب بالفعل. غيّر دوره من القائمة أدناه."); return; }
         toast.success("تمت إضافة العضو"); setEmail(""); refresh();
       }}>
         <Field label="بريد الموظف"><Input required type="email" dir="ltr" className="text-end" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
