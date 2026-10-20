@@ -439,6 +439,7 @@ export type Database = {
           priority: Database["public"]["Enums"]["request_priority"]
           referring_partner_id: string | null
           service_date: string | null
+          service_details: Json
           service_id: string | null
           source: Database["public"]["Enums"]["request_source"]
           status: Database["public"]["Enums"]["request_status"]
@@ -459,6 +460,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["request_priority"]
           referring_partner_id?: string | null
           service_date?: string | null
+          service_details?: Json
           service_id?: string | null
           source?: Database["public"]["Enums"]["request_source"]
           status?: Database["public"]["Enums"]["request_status"]
@@ -479,6 +481,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["request_priority"]
           referring_partner_id?: string | null
           service_date?: string | null
+          service_details?: Json
           service_id?: string | null
           source?: Database["public"]["Enums"]["request_source"]
           status?: Database["public"]["Enums"]["request_status"]

@@ -1,0 +1,2 @@
+ALTER TABLE public.requests ADD COLUMN IF NOT EXISTS service_details jsonb NOT NULL DEFAULT '{}'::jsonb;
+COMMENT ON COLUMN public.requests.service_details IS 'Service-specific fields of a transaction (flight, hotel, visa, tour...), keyed by field name.';

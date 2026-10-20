@@ -33,7 +33,7 @@ export function RequestRow({ r, onEdit, onDelete }: { r: TravelRequest; onEdit: 
             <span className="font-mono text-xs text-muted-foreground" dir="ltr">{requestCode(r.number)}</span>
             <span className={cn("text-xs font-medium", priorityTone[r.priority])}>● {priorityLabels[r.priority]}</span>
           </div>
-          <p className="mt-1 font-semibold">{service?.name ?? "خدمة"} — {customer ? <Link to={p.customer} params={{ id: customer.id }} className="hover:text-primary">{customer.full_name}</Link> : "—"}</p>
+          <p className="mt-1 font-semibold"><Link to={p.transaction} params={{ id: r.id }} className="hover:text-primary">{service?.name ?? "خدمة"}</Link> — {customer ? <Link to={p.customer} params={{ id: customer.id }} className="hover:text-primary">{customer.full_name}</Link> : "—"}</p>
           {r.details && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{r.details}</p>}
         </div>
         <StatusBadge status={r.status} />
@@ -99,6 +99,7 @@ export function RequestList({ list, emptyTitle = "لا توجد طلبات" }: {
 }
 
 export function RequestsPage() {
+  const p = usePaths();
   const { data, isLoading } = useRequests();
   const customers = useCustomers().data ?? [];
   const [open, setOpen] = useState(false);
@@ -115,7 +116,7 @@ export function RequestsPage() {
 
   return (
     <>
-      <PageHeader title="الطلبات" subtitle={`${all.length} طلب`} actions={<Button onClick={() => setOpen(true)}><Plus /> طلب جديد</Button>} />
+      <PageHeader title="الطلبات" subtitle={`${all.length} طلب`} actions={<div className="flex gap-2"><Button asChild><Link to={p.newTransaction}><Plus /> معاملة جديدة</Link></Button><Button variant="outline" onClick={() => setOpen(true)}>طلب سريع</Button></div>} />
       <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
         {[["", "الكل"] as const, ...statusOrder.map((s) => [s, statusLabels[s]] as const)].map(([k, v]) => (
           <button

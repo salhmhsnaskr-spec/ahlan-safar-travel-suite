@@ -71,7 +71,7 @@ function seed(): DemoDB {
     id: uid(), number: ++seq, office_id: DEMO_OFFICE, customer_id: customers[ci]!.id, service_id: "svc-" + svcCode, details,
     source, referring_partner_id: partnerId, assigned_to: customers[ci]!.assigned_to, service_date: serviceIn === null ? null : day(serviceIn),
     priority, status, notes: null, booking_ref: booked ? "BK-" + (7000 + seq) : null, booked_at: booked ? iso(d + 1) : null,
-    created_by: "demo-admin", created_at: iso(d), updated_at: iso(d + 1),
+    service_details: {}, created_by: "demo-admin", created_at: iso(d), updated_at: iso(d + 1),
   });
   const requests = [
     req(0, "flight", "confirmed", "direct", null, 5, "normal", "تذكرتان الرياض ← إسطنبول ذهاب وعودة", -18, true),
@@ -208,7 +208,7 @@ export function createDemoApi(): DataApi {
         db.seq += 1;
         const r: TravelRequest = {
           service_id: null, details: null, source: "direct", referring_partner_id: null, assigned_to: "demo-admin",
-          service_date: null, priority: "normal", status: "new", notes: null, booking_ref: null, booked_at: null, ...input,
+          service_date: null, priority: "normal", status: "new", notes: null, booking_ref: null, booked_at: null, service_details: {}, ...input,
           id: uid(), number: db.seq, office_id: DEMO_OFFICE, created_by: "demo-admin", created_at: now, updated_at: now,
         } as TravelRequest;
         db.requests.push(r);
