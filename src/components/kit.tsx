@@ -2,6 +2,9 @@ import type { ReactNode, SelectHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 import { statusLabels, statusTone, type RequestStatus } from "@/lib/domain";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { readState, retryFailedReads, type ReadQuery } from "@/lib/query-state";
 
 export function StatusBadge({ status, className }: { status: RequestStatus; className?: string }) {
   return (
@@ -58,5 +61,20 @@ export function EmptyState({ title, body, action }: { title: string; body?: stri
 }
 
 export function Loading() {
-  return <div className="py-16 text-center text-sm text-muted-foreground">جارٍ التحميل…</div>;
+  return <div role="status" aria-live="polite" className="py-16 text-center text-sm text-muted-foreground">جارٍ التحميل…</div>;
+}
+
+export function ReadState({ queries, title, children }: { queries: readonly ReadQuery[]; title: string; children: ReactNode }) {
+  const state = readState(queries);
+  if (state === "error") {
+    const retrying = queries.some((q) => q.isError && q.isFetching);
+    return (
+      <div role="alert">
+        <EmptyState title={title} body="لم تكتمل قراءة البيانات. أعد المحاولة؛ لا يعني ذلك عدم وجود سجلات."
+          action={<Button variant="outline" disabled={retrying} onClick={() => void retryFailedReads(queries)}><RefreshCw className={retrying ? "animate-spin motion-reduce:animate-none" : ""} />{retrying ? "جارٍ إعادة المحاولة…" : "إعادة المحاولة"}</Button>} />
+      </div>
+    );
+  }
+  if (state === "loading") return <Loading />;
+  return <>{children}</>;
 }

@@ -2,9 +2,9 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowRight, CalendarCheck, ListTodo, Save, Search, UserPlus, X } from "lucide-react";
 import {
-  useBookings, useCustomers, useData, useMembers, usePaths, useRequests, useSaveCustomer, useSaveRequest, useServices, useTasks,
+  useBookings, useCustomers, useData, useDocuments, useMembers, usePaths, useRequests, useSaveCustomer, useSaveRequest, useServices, useTasks,
 } from "@/lib/data/context";
-import { EmptyState, Field, Loading, NativeSelect, PageHeader, StatusBadge } from "@/components/kit";
+import { EmptyState, Field, NativeSelect, PageHeader, ReadState, StatusBadge } from "@/components/kit";
 import { BookingDialog, TaskDialog } from "@/components/forms-ops";
 import { BookingTable } from "@/components/pages/bookings";
 import { TaskList } from "@/components/pages/tasks";
@@ -45,7 +45,7 @@ function TransactionFields({ c, setC, d, setD }: { c: Common; setC: (f: (s: Comm
                 {f.type === "select" ? (
                   <NativeSelect aria-label={f.label} value={d[f.key] ?? ""} onChange={(e) => setD((s) => ({ ...s, [f.key]: e.target.value }))}>
                     <option value="">— اختر —</option>
-                    {f.options!.map((o) => <option key={o} value={o}>{o}</option>)}
+                    {f.options?.map((o) => <option key={o} value={o}>{o}</option>)}
                   </NativeSelect>
                 ) : (
                   <Input aria-label={f.label} type={f.type} min={f.type === "number" ? 0 : undefined} dir={f.ltr ? "ltr" : undefined} className={f.ltr ? "text-end" : undefined}
@@ -188,6 +188,21 @@ export function NewTransactionPage() {
 }
 
 export function TransactionDetailPage({ id }: { id: string }) {
+  const requests = useRequests();
+  const customers = useCustomers();
+  const bookings = useBookings();
+  const tasks = useTasks();
+  const services = useServices();
+  const members = useMembers();
+  const documents = useDocuments();
+  return (
+    <ReadState queries={[requests, customers, bookings, tasks, services, members, documents]} title="تعذّر تحميل تفاصيل المعاملة">
+      <TransactionDetailContent id={id} />
+    </ReadState>
+  );
+}
+
+function TransactionDetailContent({ id }: { id: string }) {
   const p = usePaths();
   const api = useData();
   const requests = useRequests();
@@ -207,7 +222,6 @@ export function TransactionDetailPage({ id }: { id: string }) {
     setD((r.service_details as ServiceDetails | null) ?? {});
   }, [r?.id, r?.updated_at]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (requests.isLoading) return <Loading />;
   if (!r) return <EmptyState title="المعاملة غير موجودة" action={<Link to={p.requests} className="text-primary">العودة إلى الطلبات</Link>} />;
   const cust = customers.find((x) => x.id === r.customer_id);
   const code = requestCode(r.number);

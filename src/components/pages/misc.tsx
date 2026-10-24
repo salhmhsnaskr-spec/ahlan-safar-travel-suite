@@ -6,7 +6,7 @@ import {
 import {
   useAddService, useBookings, useUpdateService, useCustomers, useData, useDeletePartner, usePaths, usePartners, useRequests, useServices, useToggleService,
 } from "@/lib/data/context";
-import { EmptyState, Field, Loading, PageHeader } from "@/components/kit";
+import { EmptyState, Field, Loading, PageHeader, ReadState } from "@/components/kit";
 import { PartnerDialog } from "@/components/forms";
 import { ConfirmDelete } from "@/components/confirm";
 import { Button } from "@/components/ui/button";
@@ -156,12 +156,21 @@ const kindTone = { new: "bg-info/12 text-info", upcoming: "bg-warning/15 text-wa
 export function NotificationsPage() {
   const p = usePaths();
   const requests = useRequests();
-  const customers = useCustomers().data ?? [];
-  if (requests.isLoading) return <Loading />;
-  const items = deriveNotifications(requests.data ?? [], customers);
+  const customers = useCustomers();
   return (
     <>
       <PageHeader title="الإشعارات" subtitle="تنبيهات تلقائية حسب حالة الطلبات ومواعيد الخدمات" />
+      <ReadState queries={[requests, customers]} title="تعذّر تحميل الإشعارات">
+        <NotificationItems requests={requests.data ?? []} customers={customers.data ?? []} paths={p} />
+      </ReadState>
+    </>
+  );
+}
+
+function NotificationItems({ requests, customers, paths: p }: { requests: NonNullable<ReturnType<typeof useRequests>["data"]>; customers: NonNullable<ReturnType<typeof useCustomers>["data"]>; paths: ReturnType<typeof usePaths> }) {
+  const items = deriveNotifications(requests, customers);
+  return (
+    <>
       {items.length === 0 ? <EmptyState title="لا توجد إشعارات" body="كل شيء تحت السيطرة" /> : (
         <ul className="space-y-2">
           {items.map((n) => {
@@ -200,11 +209,29 @@ function Bars({ rows }: { rows: { label: string; value: number; tone?: string }[
 }
 
 export function ReportsPage() {
-  const rs = useRequests().data ?? [];
-  const bookingsAll = useBookings().data ?? [];
-  const cs = useCustomers().data ?? [];
-  const services = useServices().data ?? [];
-  const partners = usePartners().data ?? [];
+  const requests = useRequests();
+  const bookings = useBookings();
+  const customers = useCustomers();
+  const services = useServices();
+  const partners = usePartners();
+  return (
+    <>
+      <PageHeader title="التقارير" subtitle="مؤشرات أساسية لأداء المكتب" />
+      <ReadState queries={[requests, bookings, customers, services, partners]} title="تعذّر تحميل التقارير">
+        <ReportContent rs={requests.data ?? []} bookingsAll={bookings.data ?? []} cs={customers.data ?? []} services={services.data ?? []} partners={partners.data ?? []} />
+      </ReadState>
+    </>
+  );
+}
+
+function ReportContent({ rs, bookingsAll, cs, services, partners }: {
+  rs: NonNullable<ReturnType<typeof useRequests>["data"]>;
+  bookingsAll: NonNullable<ReturnType<typeof useBookings>["data"]>;
+  cs: NonNullable<ReturnType<typeof useCustomers>["data"]>;
+  services: NonNullable<ReturnType<typeof useServices>["data"]>;
+  partners: NonNullable<ReturnType<typeof usePartners>["data"]>;
+}) {
+  if (!rs.length && !bookingsAll.length && !cs.length && !partners.length) return <EmptyState title="لا توجد بيانات للتقارير بعد" />;
   const done = rs.filter((r) => r.status === "completed").length;
   const closed = done + rs.filter((r) => r.status === "cancelled").length;
   const kpis = [
@@ -214,7 +241,6 @@ export function ReportsPage() {
   const card = "rounded-xl border bg-card p-5";
   return (
     <>
-      <PageHeader title="التقارير" subtitle="مؤشرات أساسية لأداء المكتب" />
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {kpis.map(([k, v]) => <div key={k} className={card}><p className="font-display text-3xl font-bold">{v}</p><p className="text-sm text-muted-foreground">{k}</p></div>)}
       </div>
