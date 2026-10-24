@@ -4,5 +4,6 @@
 - [x] Run isolated database regression tests and verify the deployed guards.
 - [x] Report limits of real two-office and employee verification.
 # Data safety
+- [x] Separate loading, failed reads, and empty results in reports, notifications, and transaction details with read-only retry.
 - [x] Delete document record before its stored file (no dangling records).
 - [ ] Live two-office/employee checks — blocked: needs a second account and office.
