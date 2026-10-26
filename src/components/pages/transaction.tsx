@@ -2,7 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowRight, CalendarCheck, ListTodo, Save, Search, UserPlus, X } from "lucide-react";
 import {
-  useBookings, useCustomers, useData, useDocuments, useMembers, usePaths, useRequests, useSaveCustomer, useSaveRequest, useServices, useTasks,
+  useBookings, useCustomers, useData, useDocuments, useMembers, usePartners, usePaths, useRequests, useSaveCustomer, useSaveRequest, useServices, useTasks,
 } from "@/lib/data/context";
 import { EmptyState, Field, NativeSelect, PageHeader, ReadState, StatusBadge } from "@/components/kit";
 import { BookingDialog, TaskDialog } from "@/components/forms-ops";
@@ -16,27 +16,51 @@ import { formatDate, priorityLabels, requestCode, statusLabels, statusOrder, typ
 import { cleanDetails, deriveServiceDate, fieldsFor, findDuplicateCustomer, searchCustomers, type ServiceDetails } from "@/lib/transaction";
 import { cn } from "@/lib/utils";
 
-type Common = { service_id: string; assigned_to: string; service_date: string; priority: TravelRequest["priority"]; status: TravelRequest["status"]; details: string; notes: string };
-const blankCommon: Common = { service_id: "", assigned_to: "", service_date: "", priority: "normal", status: "new", details: "", notes: "" };
+type Common = { source: TravelRequest["source"]; referring_partner_id: string; service_id: string; assigned_to: string; service_date: string; priority: TravelRequest["priority"]; status: TravelRequest["status"]; details: string; notes: string };
+const blankCommon: Common = { source: "direct", referring_partner_id: "", service_id: "", assigned_to: "", service_date: "", priority: "normal", status: "new", details: "", notes: "" };
 
 /** Service picker + specialised fields + common fields; shared by the new and detail screens. */
 function TransactionFields({ c, setC, d, setD }: { c: Common; setC: (f: (s: Common) => Common) => void; d: ServiceDetails; setD: (f: (s: ServiceDetails) => ServiceDetails) => void }) {
   const services = (useServices().data ?? []).filter((s) => s.is_active || s.id === c.service_id);
   const members = useMembers().data ?? [];
+  const partners = usePartners();
+  const p = usePaths();
+  const partnerList = (partners.data ?? []).filter((x) => x.status === "active" || x.id === c.referring_partner_id);
   const service = services.find((s) => s.id === c.service_id);
   const fields = fieldsFor(service);
   const set = (k: keyof Common) => (e: { target: { value: string } }) => setC((s) => ({ ...s, [k]: e.target.value }));
   return (
     <>
       <section className="rounded-xl border bg-card p-4">
-        <h2 className="mb-3 font-semibold">نوع الخدمة</h2>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {services.map((s) => (
-            <button key={s.id} type="button" onClick={() => setC((x) => ({ ...x, service_id: s.id }))}
-              className={cn("rounded-lg border px-3 py-2 text-sm text-start", c.service_id === s.id ? "border-primary bg-primary/10 font-semibold text-primary" : "bg-background hover:border-primary/50")}>
-              {s.name}
-            </button>
-          ))}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="مصدر العميل">
+            <NativeSelect aria-label="مصدر العميل" value={c.source} onChange={(e) => { const v = e.target.value as Common["source"]; setC((x) => ({ ...x, source: v, referring_partner_id: v === "partner" ? x.referring_partner_id : "" })); }}>
+              <option value="direct">مباشر</option>
+              <option value="partner">عبر مكتب محيل</option>
+              {c.source === "phone_online" && <option value="phone_online">هاتف / أونلاين</option>}
+              {c.source === "other" && <option value="other">أخرى</option>}
+            </NativeSelect>
+          </Field>
+          {c.source === "partner" && (
+            <Field label="المكتب المحيل *">
+              {partners.isLoading ? <p className="text-sm text-muted-foreground">جارٍ تحميل المكاتب…</p>
+                : partners.isError ? <p className="text-sm text-danger">تعذّر تحميل المكاتب المحيلة. <button type="button" className="underline" onClick={() => partners.refetch()}>إعادة المحاولة</button></p>
+                : partnerList.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">لا توجد مكاتب محيلة مسجّلة. <Link to={p.partners} className="text-primary underline">أضف مكتبًا محيلًا</Link></p>
+                ) : (
+                  <NativeSelect aria-label="المكتب المحيل" value={c.referring_partner_id} onChange={(e) => setC((x) => ({ ...x, referring_partner_id: e.target.value }))}>
+                    <option value="">— اختر المكتب —</option>
+                    {partnerList.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                  </NativeSelect>
+                )}
+            </Field>
+          )}
+          <Field label="نوع الخدمة" className="sm:col-span-2">
+            <NativeSelect aria-label="نوع الخدمة" value={c.service_id} onChange={(e) => { const v = e.target.value; setC((x) => ({ ...x, service_id: v })); setD(() => ({})); }}>
+              <option value="">— اختر نوع الخدمة —</option>
+              {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </NativeSelect>
+          </Field>
         </div>
         {fields.length > 0 && (
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -90,6 +114,7 @@ function usePayload() {
       service_id: c.service_id || null, assigned_to: c.assigned_to || null, priority: c.priority, status: c.status,
       service_date: c.service_date || deriveServiceDate(fields, details), details: c.details.trim() || null, notes: c.notes.trim() || null,
       service_details: details,
+      source: c.source, referring_partner_id: c.source === "partner" ? c.referring_partner_id || null : null,
     };
   };
 }
@@ -112,9 +137,15 @@ export function NewTransactionPage() {
   const dup = creating ? findDuplicateCustomer(customers, nc) : undefined;
   const results = searchCustomers(customers, q);
   const pending = saveCustomer.isPending || saveRequest.isPending;
+  /** Respect the customer's saved source/partner when picking an existing customer. */
+  function pickCustomer(x: Customer) {
+    setCustomer(x);
+    setC((s) => x.source === "partner" && x.referring_partner_id ? { ...s, source: "partner", referring_partner_id: x.referring_partner_id } : s);
+  }
 
   async function submit() {
     setError("");
+    if (c.source === "partner" && !c.referring_partner_id) return setError("اختر المكتب المحيل أو غيّر مصدر العميل إلى «مباشر».");
     try {
       let cust = customer;
       if (!cust) {
@@ -122,7 +153,8 @@ export function NewTransactionPage() {
         if (dup) return setError(`يوجد عميل مسجّل بنفس البيانات: ${dup.full_name}. استخدمه بدل إنشاء عميل مكرر.`);
         cust = await saveCustomer.mutateAsync({
           full_name: nc.full_name.trim(), phone: nc.phone.trim() || null, email: nc.email.trim() || null,
-          passport_number: nc.passport_number.trim() || null, nationality: nc.nationality.trim() || null, assigned_to: c.assigned_to || null,
+          passport_number: nc.passport_number.trim() || null, nationality: nc.nationality.trim() || null,
+          source: c.source === "partner" ? "partner" : "direct", referring_partner_id: c.source === "partner" ? c.referring_partner_id || null : null, assigned_to: c.assigned_to || null,
         });
         setCustomer(cust); setCreating(false);
       }
@@ -152,7 +184,7 @@ export function NewTransactionPage() {
               {dup && (
                 <div className="flex flex-wrap items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm sm:col-span-2">
                   <span>العميل مسجّل مسبقًا: <b>{dup.full_name}</b></span>
-                  <Button size="sm" onClick={() => { setCustomer(dup); setCreating(false); }}>استخدام العميل الموجود</Button>
+                  <Button size="sm" onClick={() => { pickCustomer(dup); setCreating(false); }}>استخدام العميل الموجود</Button>
                 </div>
               )}
               <Button variant="ghost" className="justify-self-start" onClick={() => setCreating(false)}>رجوع للبحث</Button>
@@ -166,7 +198,7 @@ export function NewTransactionPage() {
               {results.length > 0 && (
                 <ul className="mt-2 divide-y rounded-lg border">
                   {results.map((r) => (
-                    <li key={r.id}><button type="button" onClick={() => setCustomer(r)} className="flex w-full justify-between gap-2 px-3 py-2 text-start text-sm hover:bg-muted">
+                    <li key={r.id}><button type="button" onClick={() => pickCustomer(r)} className="flex w-full justify-between gap-2 px-3 py-2 text-start text-sm hover:bg-muted">
                       <span className="truncate font-medium">{r.full_name}</span><span className="shrink-0 text-xs text-muted-foreground" dir="ltr">{r.phone ?? ""}</span>
                     </button></li>
                   ))}
@@ -216,9 +248,10 @@ function TransactionDetailContent({ id }: { id: string }) {
   const [d, setD] = useState<ServiceDetails>({});
   const [book, setBook] = useState(false);
   const [task, setTask] = useState(false);
+  const [err, setErr] = useState("");
   useEffect(() => {
     if (!r) return;
-    setC({ service_id: r.service_id ?? "", assigned_to: r.assigned_to ?? "", service_date: r.service_date ?? "", priority: r.priority, status: r.status, details: r.details ?? "", notes: r.notes ?? "" });
+    setC({ source: r.source, referring_partner_id: r.referring_partner_id ?? "", service_id: r.service_id ?? "", assigned_to: r.assigned_to ?? "", service_date: r.service_date ?? "", priority: r.priority, status: r.status, details: r.details ?? "", notes: r.notes ?? "" });
     setD((r.service_details as ServiceDetails | null) ?? {});
   }, [r?.id, r?.updated_at]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -244,8 +277,9 @@ function TransactionDetailContent({ id }: { id: string }) {
       <div className="grid gap-4">
         <TransactionFields c={c} setC={setC} d={d} setD={setD} />
         <div className="flex justify-end">
-          <Button disabled={save.isPending} onClick={() => save.mutate({ id: r.id, customer_id: r.customer_id, ...payload(c, d) })}><Save /> حفظ التغييرات</Button>
+          <Button disabled={save.isPending} onClick={() => { if (c.source === "partner" && !c.referring_partner_id) { setErr("اختر المكتب المحيل أو غيّر مصدر العميل إلى «مباشر»."); return; } setErr(""); save.mutate({ id: r.id, customer_id: r.customer_id, ...payload(c, d) }); }}><Save /> حفظ التغييرات</Button>
         </div>
+        {err && <p role="alert" className="text-end text-sm text-danger">{err}</p>}
       </div>
       <h2 className="mb-3 mt-8 font-semibold">الحجوزات المرتبطة</h2>
       <BookingTable list={bookings} emptyTitle="لا توجد حجوزات لهذه المعاملة" />
