@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate, priorityLabels, requestCode, statusLabels, statusOrder, type Customer, type TravelRequest } from "@/lib/domain";
 import { cleanDetails, deriveServiceDate, fieldsFor, findDuplicateCustomer, searchCustomers, type ServiceDetails } from "@/lib/transaction";
-import { cn } from "@/lib/utils";
 
 type Common = { source: TravelRequest["source"]; referring_partner_id: string; service_id: string; assigned_to: string; service_date: string; priority: TravelRequest["priority"]; status: TravelRequest["status"]; details: string; notes: string };
 const blankCommon: Common = { source: "direct", referring_partner_id: "", service_id: "", assigned_to: "", service_date: "", priority: "normal", status: "new", details: "", notes: "" };
