@@ -3,6 +3,7 @@ import { ArrowLeft, Building2, ClipboardList, Handshake, ShieldCheck, Smartphone
 import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import hero from "@/assets/hero.jpg";
+import shareImage from "@/assets/ahlan-safar-share.jpg.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -12,7 +13,17 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "أهلًا سفر — نظام إدارة مكاتب السفر والسياحة" },
       { property: "og:description", content: "أدر عملاءك وطلباتك وحجوزاتك ومكاتبك الشريكة من مكان واحد." },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "أهلًا سفر — Ahlan Safar" },
+      { property: "og:locale", content: "ar_YE" },
+      { property: "og:image", content: `https://ahlan-safar-travel-suite.lovable.app${shareImage.url}` },
+      { property: "og:image:type", content: "image/jpeg" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: "أهلًا سفر — جناح طائرة فوق الساحل عند الشروق" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "أهلًا سفر — نظام إدارة مكاتب السفر والسياحة" },
+      { name: "twitter:description", content: "أدر عملاءك وطلباتك وحجوزاتك ومكاتبك الشريكة من مكان واحد." },
+      { name: "twitter:image", content: `https://ahlan-safar-travel-suite.lovable.app${shareImage.url}` },
     ],
   }),
   component: Landing,
