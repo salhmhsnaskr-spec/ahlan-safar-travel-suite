@@ -1,8 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import {
-  Bell, BarChart3, Briefcase, CalendarCheck, ClipboardList, Handshake, LayoutDashboard, Menu, Users, UserCog, X, LogOut, FlaskConical, ListTodo, History, FolderOpen, FilePlus2,
+  Bell, BarChart3, Briefcase, CalendarCheck, ClipboardList, Handshake, LayoutDashboard, Menu, Users, UserCog, X, LogOut, FlaskConical, ListTodo, History, FolderOpen, FilePlus2, MessageCircle,
 } from "lucide-react";
+
+/** Platform support line; the link carries no customer or office data. */
+export const SUPPORT_WHATSAPP_URL = "https://wa.me/967716091944";
 import { Logo } from "@/components/brand";
 import { useData, usePaths } from "@/lib/data/context";
 import { cn } from "@/lib/utils";
@@ -64,6 +67,14 @@ export function AppShell({ children, footer }: { children: ReactNode; footer?: R
         <p className="truncate text-sm font-semibold text-sidebar-accent-foreground">{api.officeName}</p>
       </div>
       <div className="flex-1 overflow-y-auto">{nav}</div>
+      <a
+        href={SUPPORT_WHATSAPP_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-3 rounded-lg border border-sidebar-border px-3 py-2.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+      >
+        <MessageCircle className="size-4.5" /> الدعم الفني (واتساب)
+      </a>
       {footer}
     </div>
   );
