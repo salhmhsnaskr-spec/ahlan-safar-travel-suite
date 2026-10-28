@@ -7,3 +7,8 @@
 - [x] Separate loading, failed reads, and empty results in reports, notifications, and transaction details with read-only retry.
 - [x] Delete document record before its stored file (no dangling records).
 - [ ] Live two-office/employee checks — blocked: needs a second account and office.
+# Comprehensive task (phased)
+- [x] WhatsApp support button in office sidebar.
+- [ ] Security approval / visit fields — blocked: user must define security-approval fields.
+- [ ] Umrah pilgrims, requests, group trips, participations, stay duration.
+- [ ] Platform owner dashboard (owner: decided email, server-side role).
