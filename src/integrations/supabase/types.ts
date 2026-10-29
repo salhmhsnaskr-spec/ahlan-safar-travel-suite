@@ -664,6 +664,130 @@ export type Database = {
           },
         ]
       }
+      umrah_participants: {
+        Row: {
+          actual_entry: string | null
+          actual_exit: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          notes: string | null
+          office_id: string
+          planned_entry: string | null
+          planned_exit: string | null
+          request_id: string | null
+          status: Database["public"]["Enums"]["umrah_pilgrim_status"]
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          actual_entry?: string | null
+          actual_exit?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          notes?: string | null
+          office_id: string
+          planned_entry?: string | null
+          planned_exit?: string | null
+          request_id?: string | null
+          status?: Database["public"]["Enums"]["umrah_pilgrim_status"]
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          actual_entry?: string | null
+          actual_exit?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          notes?: string | null
+          office_id?: string
+          planned_entry?: string | null
+          planned_exit?: string | null
+          request_id?: string | null
+          status?: Database["public"]["Enums"]["umrah_pilgrim_status"]
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "umrah_participants_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "umrah_participants_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "umrah_participants_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "umrah_participants_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "umrah_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      umrah_trips: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string | null
+          office_id: string
+          planned_end: string | null
+          planned_start: string | null
+          status: Database["public"]["Enums"]["umrah_trip_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          office_id: string
+          planned_end?: string | null
+          planned_start?: string | null
+          status?: Database["public"]["Enums"]["umrah_trip_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          office_id?: string
+          planned_end?: string | null
+          planned_start?: string | null
+          status?: Database["public"]["Enums"]["umrah_trip_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "umrah_trips_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -723,6 +847,18 @@ export type Database = {
         | "airport_pickup"
         | "medical_followup"
         | "other"
+      umrah_pilgrim_status:
+        | "registered"
+        | "preparing"
+        | "arrived"
+        | "departed"
+        | "cancelled"
+      umrah_trip_status:
+        | "planned"
+        | "preparing"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -883,6 +1019,20 @@ export const Constants = {
         "airport_pickup",
         "medical_followup",
         "other",
+      ],
+      umrah_pilgrim_status: [
+        "registered",
+        "preparing",
+        "arrived",
+        "departed",
+        "cancelled",
+      ],
+      umrah_trip_status: [
+        "planned",
+        "preparing",
+        "in_progress",
+        "completed",
+        "cancelled",
       ],
     },
   },

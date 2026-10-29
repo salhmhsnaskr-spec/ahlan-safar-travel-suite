@@ -15,6 +15,13 @@
       "when": 1792457415678,
       "tag": "0001_add_request_service_details",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793311208217,
+      "tag": "0002_umrah_trips_and_participants",
+      "breakpoints": true
     }
   ]
 }
