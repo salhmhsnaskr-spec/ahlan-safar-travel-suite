@@ -20,6 +20,8 @@ type DemoDB = {
   tasks: Task[];
   bseq: number;
   documents?: DocumentRow[];
+  trips?: UmrahTrip[];
+  participants?: UmrahParticipant[];
 };
 
 const uid = () =>
@@ -44,6 +46,9 @@ function seed(): DemoDB {
     svc("tour", "الرحلات السياحية", "map", 5),
     svc("medical", "المواعيد الطبية", "stethoscope", 6),
     svc("other", "خدمات سفر أخرى", "briefcase", 7),
+    svc("visit_visa", "تأشيرة زيارة", "stamp", 8),
+    svc("security_approval", "موافقة أمنية", "shield", 9),
+    svc("umrah", "عمرة", "moon", 10),
   ];
   const partner = (name: string, city: string, country: string, contact: string, status: Partner["status"]): Partner => ({
     id: uid(), office_id: DEMO_OFFICE, name, city, country, contact_person: contact, status,
@@ -128,7 +133,14 @@ function load(): DemoDB {
 
 /** Older demo snapshots stored bookings on requests; turn those into real bookings without touching the requests. */
 function upgrade(db: DemoDB): boolean {
-  if (db.bookings && db.tasks) return false;
+  let changed = false;
+  for (const [code, name, i] of [["visit_visa", "تأشيرة زيارة", 8], ["security_approval", "موافقة أمنية", 9], ["umrah", "عمرة", 10]] as const) {
+    if (!db.services.some((s) => s.code === code)) {
+      db.services.push({ id: "svc-" + code, office_id: null, code, name, icon: "briefcase", description: null, is_active: true, sort_order: i, created_at: new Date().toISOString() });
+      changed = true;
+    }
+  }
+  if (db.bookings && db.tasks) return changed;
   db.bookings = db.bookings ?? [];
   db.tasks = db.tasks ?? [];
   db.bseq = db.bseq ?? 0;
@@ -332,5 +344,40 @@ export function createDemoApi(): DataApi {
       return out.sort((a, b) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 200);
     },
     deleteTask: (id) => mutate((db) => void (db.tasks = db.tasks.filter((t) => t.id !== id))),
+    listTrips: async () => (load().trips ?? []).slice().sort((a, b) => (a.created_at < b.created_at ? 1 : -1)),
+    saveTrip: (input) =>
+      mutate((db) => {
+        const now = new Date().toISOString();
+        db.trips = db.trips ?? [];
+        if (input.id) {
+          const i = db.trips.findIndex((t) => t.id === input.id);
+          db.trips[i] = { ...db.trips[i], ...input, updated_at: now } as UmrahTrip;
+          return db.trips[i];
+        }
+        const t: UmrahTrip = { planned_start: null, planned_end: null, status: "planned", notes: null, ...input, id: uid(), office_id: DEMO_OFFICE, created_by: "demo-admin", created_at: now, updated_at: now } as UmrahTrip;
+        db.trips.push(t);
+        return t;
+      }),
+    deleteTrip: (id) => mutate((db) => {
+      db.trips = (db.trips ?? []).filter((t) => t.id !== id);
+      db.participants = (db.participants ?? []).filter((p) => p.trip_id !== id);
+    }),
+    listParticipants: async () => load().participants ?? [],
+    saveParticipant: (input) =>
+      mutate((db) => {
+        const now = new Date().toISOString();
+        db.participants = db.participants ?? [];
+        if (db.participants.some((p) => p.trip_id === input.trip_id && p.customer_id === input.customer_id && p.id !== input.id))
+          throw new Error("هذا المعتمر مضاف مسبقًا إلى هذه الرحلة.");
+        if (input.id) {
+          const i = db.participants.findIndex((p) => p.id === input.id);
+          db.participants[i] = { ...db.participants[i], ...input, updated_at: now } as UmrahParticipant;
+          return db.participants[i];
+        }
+        const p: UmrahParticipant = { request_id: null, status: "registered", planned_entry: null, planned_exit: null, actual_entry: null, actual_exit: null, notes: null, ...input, id: uid(), office_id: DEMO_OFFICE, created_at: now, updated_at: now } as UmrahParticipant;
+        db.participants.push(p);
+        return p;
+      }),
+    deleteParticipant: (id) => mutate((db) => void (db.participants = (db.participants ?? []).filter((p) => p.id !== id))),
   };
 }

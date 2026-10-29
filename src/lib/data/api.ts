@@ -1,4 +1,4 @@
-import type { ActivityRow, AppRole, Booking, DocumentRow, Customer, Member, Partner, Service, Task, TravelRequest } from "@/lib/domain";
+import type { ActivityRow, AppRole, Booking, DocumentRow, Customer, Member, Partner, Service, Task, TravelRequest, UmrahParticipant, UmrahTrip } from "@/lib/domain";
 
 export type CustomerInput = Partial<Omit<Customer, "id" | "office_id" | "created_at" | "updated_at" | "created_by">> & { id?: string | undefined;
   full_name: string;
@@ -10,6 +10,9 @@ export type PartnerInput = Partial<Omit<Partner, "id" | "office_id" | "created_a
 export type ServiceInput = { id?: string | undefined; name: string; description?: string | null };
 export type BookingInput = Partial<Omit<Booking, "id" | "office_id" | "created_at" | "updated_at" | "created_by" | "number">> & { id?: string | undefined; customer_id: string };
 export type TaskInput = Partial<Omit<Task, "id" | "office_id" | "created_at" | "updated_at" | "created_by">> & { id?: string | undefined; title?: string };
+
+export type TripInput = Partial<Omit<UmrahTrip, "id" | "office_id" | "created_at" | "updated_at" | "created_by">> & { id?: string | undefined; name: string };
+export type ParticipantInput = Partial<Omit<UmrahParticipant, "id" | "office_id" | "created_at" | "updated_at">> & { id?: string | undefined; trip_id: string; customer_id: string };
 
 /**
  * Shared contract for the demo (browser-only, isolated) and cloud (per-office, RLS) data sources.
@@ -48,4 +51,10 @@ export interface DataApi {
   documentUrl(doc: DocumentRow): Promise<string>;
   deleteDocument(doc: DocumentRow): Promise<void>;
   listActivity(): Promise<ActivityRow[]>;
+  listTrips(): Promise<UmrahTrip[]>;
+  saveTrip(input: TripInput): Promise<UmrahTrip>;
+  deleteTrip(id: string): Promise<void>;
+  listParticipants(): Promise<UmrahParticipant[]>;
+  saveParticipant(input: ParticipantInput): Promise<UmrahParticipant>;
+  deleteParticipant(id: string): Promise<void>;
 }

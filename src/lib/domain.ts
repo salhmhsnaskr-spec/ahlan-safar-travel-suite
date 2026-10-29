@@ -181,3 +181,6 @@ export function formatBytes(n: number | null | undefined) {
   if (!n) return "—";
   return n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
+
+export type UmrahTrip = Tables<"umrah_trips">;
+export type UmrahParticipant = Tables<"umrah_participants">;
