@@ -13,5 +13,8 @@
 - [x] Umrah trips/participants (demo verified; real-office save untested).
 - [x] Platform owner dashboard at /owner (non-owner signed-in account test pending).
 # Staff & performance system (plan pending approval)
-- [ ] Revise plan per 9 review notes and get approval before any change.
-- [ ] Add 4 safeguards (historical identity, no double-counted completion, unattributed separation, last active admin) to plan.
+- [x] Plan revised and approved.
+- [x] Batch 1: invitations, roles, suspend/remove, last active admin guard.
+- [ ] Batch 1 email delivery — blocked: needs sender domain from user.
+- [ ] Batch 2-5 (staff UI, team page activity, audit/attribution, performance reports, full tests) — waiting for user review of batch 1.
+- [x] 4 safeguards added to plan.
