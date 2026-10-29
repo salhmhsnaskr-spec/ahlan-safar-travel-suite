@@ -29,7 +29,7 @@ function Team() {
         e.preventDefault();
         const { data, error } = await supabase.rpc("add_office_member", { _office: office.id, _email: email, _role: role });
         if (error) { toast.error(error.message); return; }
-        if (data === "not_found") { toast.error("لا يوجد حساب بهذا البريد بعد", { description: "اطلب من الموظف إنشاء حساب من صفحة التسجيل بنفس البريد ثم اختيار «أنا موظف» (دون إنشاء مكتب)، ثم أضِفه هنا مجددًا." }); return; }
+        if (data === "unavailable" || data === "not_found") { toast.error("تعذّرت إضافة هذا البريد", { description: "تأكد أن الموظف أنشأ حسابًا بهذا البريد وأكّده من رسالة التفعيل، واختار «أنا موظف»، ثم أعد المحاولة." }); return; }
         if (data === "exists") { toast.error("هذا الشخص عضو في المكتب بالفعل. غيّر دوره من القائمة أدناه."); return; }
         toast.success("تمت إضافة العضو"); setEmail(""); refresh();
       }}>
