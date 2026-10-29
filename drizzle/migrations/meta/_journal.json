@@ -43,6 +43,13 @@
       "when": 1793317736283,
       "tag": "0005_staff_invitations_and_member_status",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793317748551,
+      "tag": "0006_invitations_hide_token_hash",
+      "breakpoints": true
     }
   ]
 }
