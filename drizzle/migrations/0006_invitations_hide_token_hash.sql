@@ -1,0 +1,2 @@
+REVOKE SELECT ON public.office_invitations FROM authenticated;
+GRANT SELECT (id, office_id, email, role, status, expires_at, invited_by, send_status, send_error, send_attempts, last_sent_at, failed_accepts, accepted_by, accepted_at, revoked_at, created_at) ON public.office_invitations TO authenticated;

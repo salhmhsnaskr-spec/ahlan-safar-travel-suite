@@ -75,7 +75,7 @@ export function BookingDialog({ open, onOpenChange, initial }: DialogProps<Booki
       <Field label="الموظف المسؤول">
         <NativeSelect aria-label="الموظف المسؤول" value={f.assigned_employee_id} onChange={set("assigned_employee_id")}>
           <option value="">— غير محدد —</option>
-          {members.map((m) => <option key={m.user_id} value={m.user_id}>{m.full_name || m.email}</option>)}
+          {members.filter((m) => (m.status ?? "active") === "active").map((m) => <option key={m.user_id} value={m.user_id}>{m.full_name || m.email}</option>)}
         </NativeSelect>
       </Field>
       <Field label="موعد الخدمة"><Input aria-label="موعد الخدمة" type="date" value={f.service_date} onChange={set("service_date")} /></Field>
@@ -145,7 +145,7 @@ export function TaskDialog({ open, onOpenChange, initial }: DialogProps<Task>) {
       <Field label="الموظف المسؤول">
         <NativeSelect aria-label="الموظف المسؤول" disabled={lock} value={f.assigned_to} onChange={set("assigned_to")}>
           <option value="">— غير محدد —</option>
-          {members.map((m) => <option key={m.user_id} value={m.user_id}>{m.full_name || m.email}</option>)}
+          {members.filter((m) => (m.status ?? "active") === "active").map((m) => <option key={m.user_id} value={m.user_id}>{m.full_name || m.email}</option>)}
         </NativeSelect>
       </Field>
       <Field label="موعد الاستحقاق"><Input aria-label="موعد الاستحقاق" type="datetime-local" disabled={lock} value={f.due_at} onChange={set("due_at")} /></Field>

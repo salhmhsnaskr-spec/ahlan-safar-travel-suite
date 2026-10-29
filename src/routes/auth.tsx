@@ -11,9 +11,12 @@ import { Field } from "@/components/kit";
 type Mode = "login" | "signup" | "forgot";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (s: Record<string, unknown>): { mode?: Mode | undefined } => {
+  validateSearch: (s: Record<string, unknown>): { mode?: Mode | undefined; redirect?: string | undefined } => {
     const m = s["mode"];
-    return { mode: m === "signup" || m === "forgot" || m === "login" ? m : undefined };
+    const r = s["redirect"];
+    // Only same-origin invitation paths are accepted as a post-login destination.
+    const redirect = typeof r === "string" && /^\/invite\/[a-f0-9]{64}$/.test(r) ? r : undefined;
+    return { mode: m === "signup" || m === "forgot" || m === "login" ? m : undefined, redirect };
   },
   head: () => ({
     meta: [
@@ -30,7 +33,8 @@ export const Route = createFileRoute("/auth")({
 
 
 function AuthPage() {
-  const { mode: initial } = Route.useSearch();
+  const { mode: initial, redirect } = Route.useSearch();
+  const dest = redirect ?? "/app";
   const [mode, setMode] = useState<Mode>(initial ?? "login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -41,8 +45,8 @@ function AuthPage() {
 
   useEffect(() => setMode(initial ?? "login"), [initial]);
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => data.user && navigate({ to: "/app", replace: true }));
-  }, [navigate]);
+    supabase.auth.getUser().then(({ data }) => data.user && navigate({ href: dest, replace: true }));
+  }, [navigate, dest]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -51,14 +55,14 @@ function AuthPage() {
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: "/app", replace: true });
+        navigate({ href: dest, replace: true });
       } else if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({
           email, password,
-          options: { emailRedirectTo: window.location.origin + "/app", data: { full_name: name } },
+          options: { emailRedirectTo: window.location.origin + dest, data: { full_name: name } },
         });
         if (error) throw error;
-        if (data.session) navigate({ to: "/app", replace: true });
+        if (data.session) navigate({ href: dest, replace: true });
         else setSent("confirm");
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + "/reset-password" });
@@ -78,7 +82,7 @@ function AuthPage() {
   }
 
 
-  const titles: Record<Mode, string> = { login: "مرحبًا بعودتك", signup: "أنشئ حساب مكتبك", forgot: "استعادة كلمة المرور" };
+  const titles: Record<Mode, string> = { login: "مرحبًا بعودتك", signup: redirect ? "أنشئ حسابك الشخصي" : "أنشئ حساب مكتبك", forgot: "استعادة كلمة المرور" };
 
   return (
     <div className="grid min-h-screen place-items-center bg-background px-4 py-10">
