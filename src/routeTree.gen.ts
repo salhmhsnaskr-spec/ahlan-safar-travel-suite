@@ -16,6 +16,7 @@ import { Route as DemoRouteImport } from './routes/demo'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedOwnerRouteImport } from './routes/_authenticated/owner'
 import { Route as DemoIndexRouteImport } from './routes/demo.index'
 import { Route as DemoActivityRouteImport } from './routes/demo.activity'
 import { Route as DemoDocumentsRouteImport } from './routes/demo.documents'
@@ -82,6 +83,11 @@ const AuthenticatedAppRoute = AuthenticatedAppRouteImport.update({
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOwnerRoute = AuthenticatedOwnerRouteImport.update({
+  id: '/owner',
+  path: '/owner',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const DemoIndexRoute = DemoIndexRouteImport.update({
@@ -269,6 +275,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/app': typeof AuthenticatedAppRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/owner': typeof AuthenticatedOwnerRoute
   '/demo/activity': typeof DemoActivityRoute
   '/demo/documents': typeof DemoDocumentsRoute
   '/demo/notifications': typeof DemoNotificationsRoute
@@ -308,6 +315,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/owner': typeof AuthenticatedOwnerRoute
   '/demo/activity': typeof DemoActivityRoute
   '/demo/documents': typeof DemoDocumentsRoute
   '/demo/notifications': typeof DemoNotificationsRoute
@@ -351,6 +359,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/owner': typeof AuthenticatedOwnerRoute
   '/demo/activity': typeof DemoActivityRoute
   '/demo/documents': typeof DemoDocumentsRoute
   '/demo/notifications': typeof DemoNotificationsRoute
@@ -394,6 +403,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/app'
     | '/onboarding'
+    | '/owner'
     | '/demo/activity'
     | '/demo/documents'
     | '/demo/notifications'
@@ -433,6 +443,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/onboarding'
+    | '/owner'
     | '/demo/activity'
     | '/demo/documents'
     | '/demo/notifications'
@@ -475,6 +486,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/app'
     | '/_authenticated/onboarding'
+    | '/_authenticated/owner'
     | '/demo/activity'
     | '/demo/documents'
     | '/demo/notifications'
@@ -567,6 +579,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/owner': {
+      id: '/_authenticated/owner'
+      path: '/owner'
+      fullPath: '/owner'
+      preLoaderRoute: typeof AuthenticatedOwnerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/demo/': {
@@ -849,11 +868,13 @@ const AuthenticatedAppRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppRoute: typeof AuthenticatedAppRouteWithChildren
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedOwnerRoute: typeof AuthenticatedOwnerRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppRoute: AuthenticatedAppRouteWithChildren,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedOwnerRoute: AuthenticatedOwnerRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

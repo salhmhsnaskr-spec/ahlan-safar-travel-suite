@@ -1,7 +1,9 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import {
-  Bell, BarChart3, Briefcase, CalendarCheck, ClipboardList, Handshake, LayoutDashboard, Menu, Users, UserCog, X, LogOut, FlaskConical, ListTodo, History, FolderOpen, FilePlus2, MessageCircle, Moon,
+  Bell, BarChart3, Briefcase, CalendarCheck, ClipboardList, Handshake, LayoutDashboard, Menu, Users, UserCog, X, LogOut, FlaskConical, ListTodo, History, FolderOpen, FilePlus2, MessageCircle, Moon, ShieldCheck,
 } from "lucide-react";
 
 /** Platform support line; the link carries no customer or office data. */
@@ -17,6 +19,10 @@ export function AppShell({ children, footer }: { children: ReactNode; footer?: R
   const api = useData();
   const p = usePaths();
   const [open, setOpen] = useState(false);
+  const isOwner = useQuery({
+    queryKey: ["is-platform-owner", api.userId], enabled: api.mode === "cloud", staleTime: 300_000,
+    queryFn: async () => (await supabase.rpc("is_platform_owner")).data === true,
+  }).data === true;
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const items: NavItem[] = [
@@ -34,6 +40,7 @@ export function AppShell({ children, footer }: { children: ReactNode; footer?: R
     { to: p.reports, label: "التقارير", icon: BarChart3 },
     { to: p.activity, label: "سجل النشاط", icon: History },
   ];
+  if (isOwner) items.push({ to: "/owner", label: "لوحة مالك المنصة", icon: ShieldCheck });
   if (api.mode === "cloud" && api.role === "admin") items.push({ to: "/app/team", label: "الفريق والصلاحيات", icon: UserCog });
 
   const nav = (
