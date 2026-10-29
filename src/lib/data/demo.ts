@@ -1,5 +1,5 @@
 import type { DataApi } from "./api";
-import type { ActivityRow, DocumentRow, Booking, Customer, Member, Partner, Service, Task, TravelRequest } from "@/lib/domain";
+import type { ActivityRow, DocumentRow, Booking, Customer, Member, Partner, Service, Task, TravelRequest, UmrahParticipant, UmrahTrip } from "@/lib/domain";
 
 /**
  * Demo data lives only in this browser's localStorage under DEMO_KEY.
