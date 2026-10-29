@@ -25,7 +25,7 @@ export function stayDuration(entry: string | null | undefined, exit: string | nu
 }
 
 export function stayLabel(s: Stay) {
-  if (s.kind === "final") return `${s.days} يوم`;
+  if (s.kind === "final") return `${s.days} ${s.days >= 3 && s.days <= 10 ? "أيام" : "يوم"}`;
   if (s.kind === "so_far") return `الأيام حتى الآن: ${s.days}`;
   return s.reason === "invalid" ? "تواريخ غير صحيحة" : s.reason === "future_entry" ? "لم يصل بعد" : "—";
 }

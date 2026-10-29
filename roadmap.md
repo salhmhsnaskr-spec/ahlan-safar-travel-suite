@@ -10,5 +10,5 @@
 # Comprehensive task (phased)
 - [x] WhatsApp support button in office sidebar.
 - [x] Security approval / visit fields (save/reopen in real office untested).
-- [ ] Umrah pilgrims, requests, group trips, participations, stay duration.
+- [x] Umrah trips/participants (demo verified; real-office save untested).
 - [ ] Platform owner dashboard (owner: decided email, server-side role).
