@@ -12,3 +12,5 @@
 - [x] Security approval / visit fields (save/reopen in real office untested).
 - [x] Umrah trips/participants (demo verified; real-office save untested).
 - [x] Platform owner dashboard at /owner (non-owner signed-in account test pending).
+# Staff & performance system (plan pending approval)
+- [ ] Revise plan per 9 review notes and get approval before any change.
