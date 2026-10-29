@@ -45,7 +45,7 @@ function AuthPage() {
 
   useEffect(() => setMode(initial ?? "login"), [initial]);
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => data.user && navigate({ to: dest, replace: true }));
+    supabase.auth.getUser().then(({ data }) => data.user && navigate({ href: dest, replace: true }));
   }, [navigate, dest]);
 
   async function submit(e: React.FormEvent) {
@@ -55,14 +55,14 @@ function AuthPage() {
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: dest, replace: true });
+        navigate({ href: dest, replace: true });
       } else if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({
           email, password,
           options: { emailRedirectTo: window.location.origin + dest, data: { full_name: name } },
         });
         if (error) throw error;
-        if (data.session) navigate({ to: dest, replace: true });
+        if (data.session) navigate({ href: dest, replace: true });
         else setSent("confirm");
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + "/reset-password" });
