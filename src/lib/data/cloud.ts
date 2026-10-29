@@ -144,7 +144,7 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
       return rows.map<Member>((r) => ({
         user_id: r.user_id,
         role: r.role,
-        status: r.status as Member["status"],
+        status: r.status as NonNullable<Member["status"]>,
         joined_at: r.created_at,
         full_name: map.get(r.user_id)?.full_name ?? null,
         email: map.get(r.user_id)?.email ?? null,
