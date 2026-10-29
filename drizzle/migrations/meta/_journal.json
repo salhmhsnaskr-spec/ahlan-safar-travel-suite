@@ -29,6 +29,13 @@
       "when": 1793311835035,
       "tag": "0003_platform_owner_dashboard",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793314547081,
+      "tag": "0004_require_confirmed_email_for_members",
+      "breakpoints": true
     }
   ]
 }
