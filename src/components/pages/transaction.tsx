@@ -69,7 +69,7 @@ function TransactionFields({ c, setC, d, setD, customerId, selfId }: { c: Common
               <Field key={f.key} label={f.label}>
                 {f.type === "request" ? (
                   (() => {
-                    const opts = (requests.data ?? []).filter((x) => x.id !== selfId && x.customer_id === customerId && f.linkCodes?.includes(services.find((s) => s.id === x.service_id)?.code ?? ""));
+                    const opts = (requests.data ?? []).filter((x) => x.id !== selfId && x.customer_id === customerId && f.linkCodes?.includes(allServices.find((s) => s.id === x.service_id)?.code ?? ""));
                     return !customerId ? <p className="text-sm text-muted-foreground">اختر العميل أولًا.</p>
                       : opts.length === 0 && !d[f.key] ? <p className="text-sm text-muted-foreground">لا يوجد طلب تأشيرة زيارة لهذا العميل.</p>
                       : (
