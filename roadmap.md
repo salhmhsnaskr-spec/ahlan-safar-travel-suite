@@ -14,3 +14,4 @@
 - [x] Platform owner dashboard at /owner (non-owner signed-in account test pending).
 # Staff & performance system (plan pending approval)
 - [ ] Revise plan per 9 review notes and get approval before any change.
+- [ ] Add 4 safeguards (historical identity, no double-counted completion, unattributed separation, last active admin) to plan.
