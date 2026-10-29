@@ -27,6 +27,7 @@ import { Route as DemoRequestsRouteImport } from './routes/demo.requests'
 import { Route as DemoServicesRouteImport } from './routes/demo.services'
 import { Route as DemoTasksRouteImport } from './routes/demo.tasks'
 import { Route as DemoUmrahRouteImport } from './routes/demo.umrah'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAppActivityRouteImport } from './routes/_authenticated/app.activity'
 import { Route as AuthenticatedAppDocumentsRouteImport } from './routes/_authenticated/app.documents'
@@ -139,6 +140,11 @@ const DemoUmrahRoute = DemoUmrahRouteImport.update({
   id: '/umrah',
   path: '/umrah',
   getParentRoute: () => DemoRoute,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/',
@@ -285,6 +291,7 @@ export interface FileRoutesByFullPath {
   '/demo/services': typeof DemoServicesRoute
   '/demo/tasks': typeof DemoTasksRoute
   '/demo/umrah': typeof DemoUmrahRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/demo/': typeof DemoIndexRoute
   '/app/activity': typeof AuthenticatedAppActivityRoute
   '/app/documents': typeof AuthenticatedAppDocumentsRoute
@@ -325,6 +332,7 @@ export interface FileRoutesByTo {
   '/demo/services': typeof DemoServicesRoute
   '/demo/tasks': typeof DemoTasksRoute
   '/demo/umrah': typeof DemoUmrahRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/demo': typeof DemoIndexRoute
   '/app/activity': typeof AuthenticatedAppActivityRoute
   '/app/documents': typeof AuthenticatedAppDocumentsRoute
@@ -369,6 +377,7 @@ export interface FileRoutesById {
   '/demo/services': typeof DemoServicesRoute
   '/demo/tasks': typeof DemoTasksRoute
   '/demo/umrah': typeof DemoUmrahRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/demo/': typeof DemoIndexRoute
   '/_authenticated/app/activity': typeof AuthenticatedAppActivityRoute
   '/_authenticated/app/documents': typeof AuthenticatedAppDocumentsRoute
@@ -413,6 +422,7 @@ export interface FileRouteTypes {
     | '/demo/services'
     | '/demo/tasks'
     | '/demo/umrah'
+    | '/invite/$token'
     | '/demo/'
     | '/app/activity'
     | '/app/documents'
@@ -453,6 +463,7 @@ export interface FileRouteTypes {
     | '/demo/services'
     | '/demo/tasks'
     | '/demo/umrah'
+    | '/invite/$token'
     | '/demo'
     | '/app/activity'
     | '/app/documents'
@@ -496,6 +507,7 @@ export interface FileRouteTypes {
     | '/demo/services'
     | '/demo/tasks'
     | '/demo/umrah'
+    | '/invite/$token'
     | '/demo/'
     | '/_authenticated/app/activity'
     | '/_authenticated/app/documents'
@@ -528,6 +540,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   DemoRoute: typeof DemoRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  InviteTokenRoute: typeof InviteTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -657,6 +670,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/demo/umrah'
       preLoaderRoute: typeof DemoUmrahRouteImport
       parentRoute: typeof DemoRoute
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/': {
       id: '/_authenticated/app/'
@@ -926,6 +946,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   DemoRoute: DemoRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  InviteTokenRoute: InviteTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
