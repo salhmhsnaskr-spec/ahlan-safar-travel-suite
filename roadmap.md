@@ -11,4 +11,4 @@
 - [x] WhatsApp support button in office sidebar.
 - [x] Security approval / visit fields (save/reopen in real office untested).
 - [x] Umrah trips/participants (demo verified; real-office save untested).
-- [ ] Platform owner dashboard (owner: decided email, server-side role).
+- [x] Platform owner dashboard at /owner (non-owner signed-in account test pending).
