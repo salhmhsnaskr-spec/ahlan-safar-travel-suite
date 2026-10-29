@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import {
-  Bell, BarChart3, Briefcase, CalendarCheck, ClipboardList, Handshake, LayoutDashboard, Menu, Users, UserCog, X, LogOut, FlaskConical, ListTodo, History, FolderOpen, FilePlus2, MessageCircle,
+  Bell, BarChart3, Briefcase, CalendarCheck, ClipboardList, Handshake, LayoutDashboard, Menu, Users, UserCog, X, LogOut, FlaskConical, ListTodo, History, FolderOpen, FilePlus2, MessageCircle, Moon,
 } from "lucide-react";
 
 /** Platform support line; the link carries no customer or office data. */
@@ -25,6 +25,7 @@ export function AppShell({ children, footer }: { children: ReactNode; footer?: R
     { to: p.customers, label: "العملاء", icon: Users },
     { to: p.requests, label: "الطلبات", icon: ClipboardList },
     { to: p.bookings, label: "الحجوزات", icon: CalendarCheck },
+    { to: p.umrah, label: "رحلات العمرة", icon: Moon },
     { to: p.tasks, label: "المهام", icon: ListTodo },
     { to: p.documents, label: "المستندات", icon: FolderOpen },
     { to: p.services, label: "الخدمات", icon: Briefcase },

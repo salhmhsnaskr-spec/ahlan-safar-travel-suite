@@ -25,6 +25,7 @@ import { Route as DemoReportsRouteImport } from './routes/demo.reports'
 import { Route as DemoRequestsRouteImport } from './routes/demo.requests'
 import { Route as DemoServicesRouteImport } from './routes/demo.services'
 import { Route as DemoTasksRouteImport } from './routes/demo.tasks'
+import { Route as DemoUmrahRouteImport } from './routes/demo.umrah'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAppActivityRouteImport } from './routes/_authenticated/app.activity'
 import { Route as AuthenticatedAppDocumentsRouteImport } from './routes/_authenticated/app.documents'
@@ -35,6 +36,7 @@ import { Route as AuthenticatedAppRequestsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAppServicesRouteImport } from './routes/_authenticated/app.services'
 import { Route as AuthenticatedAppTasksRouteImport } from './routes/_authenticated/app.tasks'
 import { Route as AuthenticatedAppTeamRouteImport } from './routes/_authenticated/app.team'
+import { Route as AuthenticatedAppUmrahRouteImport } from './routes/_authenticated/app.umrah'
 import { Route as DemoBookingsIndexRouteImport } from './routes/demo.bookings.index'
 import { Route as DemoBookingsIdRouteImport } from './routes/demo.bookings.$id'
 import { Route as DemoCustomersIndexRouteImport } from './routes/demo.customers.index'
@@ -127,6 +129,11 @@ const DemoTasksRoute = DemoTasksRouteImport.update({
   path: '/tasks',
   getParentRoute: () => DemoRoute,
 } as any)
+const DemoUmrahRoute = DemoUmrahRouteImport.update({
+  id: '/umrah',
+  path: '/umrah',
+  getParentRoute: () => DemoRoute,
+} as any)
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -181,6 +188,11 @@ const AuthenticatedAppTasksRoute = AuthenticatedAppTasksRouteImport.update({
 const AuthenticatedAppTeamRoute = AuthenticatedAppTeamRouteImport.update({
   id: '/team',
   path: '/team',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
+const AuthenticatedAppUmrahRoute = AuthenticatedAppUmrahRouteImport.update({
+  id: '/umrah',
+  path: '/umrah',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
 const DemoBookingsIndexRoute = DemoBookingsIndexRouteImport.update({
@@ -265,6 +277,7 @@ export interface FileRoutesByFullPath {
   '/demo/requests': typeof DemoRequestsRoute
   '/demo/services': typeof DemoServicesRoute
   '/demo/tasks': typeof DemoTasksRoute
+  '/demo/umrah': typeof DemoUmrahRoute
   '/demo/': typeof DemoIndexRoute
   '/app/activity': typeof AuthenticatedAppActivityRoute
   '/app/documents': typeof AuthenticatedAppDocumentsRoute
@@ -275,6 +288,7 @@ export interface FileRoutesByFullPath {
   '/app/services': typeof AuthenticatedAppServicesRoute
   '/app/tasks': typeof AuthenticatedAppTasksRoute
   '/app/team': typeof AuthenticatedAppTeamRoute
+  '/app/umrah': typeof AuthenticatedAppUmrahRoute
   '/demo/bookings/$id': typeof DemoBookingsIdRoute
   '/demo/customers/$id': typeof DemoCustomersIdRoute
   '/demo/transactions/$id': typeof DemoTransactionsIdRoute
@@ -302,6 +316,7 @@ export interface FileRoutesByTo {
   '/demo/requests': typeof DemoRequestsRoute
   '/demo/services': typeof DemoServicesRoute
   '/demo/tasks': typeof DemoTasksRoute
+  '/demo/umrah': typeof DemoUmrahRoute
   '/demo': typeof DemoIndexRoute
   '/app/activity': typeof AuthenticatedAppActivityRoute
   '/app/documents': typeof AuthenticatedAppDocumentsRoute
@@ -312,6 +327,7 @@ export interface FileRoutesByTo {
   '/app/services': typeof AuthenticatedAppServicesRoute
   '/app/tasks': typeof AuthenticatedAppTasksRoute
   '/app/team': typeof AuthenticatedAppTeamRoute
+  '/app/umrah': typeof AuthenticatedAppUmrahRoute
   '/demo/bookings/$id': typeof DemoBookingsIdRoute
   '/demo/customers/$id': typeof DemoCustomersIdRoute
   '/demo/transactions/$id': typeof DemoTransactionsIdRoute
@@ -343,6 +359,7 @@ export interface FileRoutesById {
   '/demo/requests': typeof DemoRequestsRoute
   '/demo/services': typeof DemoServicesRoute
   '/demo/tasks': typeof DemoTasksRoute
+  '/demo/umrah': typeof DemoUmrahRoute
   '/demo/': typeof DemoIndexRoute
   '/_authenticated/app/activity': typeof AuthenticatedAppActivityRoute
   '/_authenticated/app/documents': typeof AuthenticatedAppDocumentsRoute
@@ -353,6 +370,7 @@ export interface FileRoutesById {
   '/_authenticated/app/services': typeof AuthenticatedAppServicesRoute
   '/_authenticated/app/tasks': typeof AuthenticatedAppTasksRoute
   '/_authenticated/app/team': typeof AuthenticatedAppTeamRoute
+  '/_authenticated/app/umrah': typeof AuthenticatedAppUmrahRoute
   '/demo/bookings/$id': typeof DemoBookingsIdRoute
   '/demo/customers/$id': typeof DemoCustomersIdRoute
   '/demo/transactions/$id': typeof DemoTransactionsIdRoute
@@ -384,6 +402,7 @@ export interface FileRouteTypes {
     | '/demo/requests'
     | '/demo/services'
     | '/demo/tasks'
+    | '/demo/umrah'
     | '/demo/'
     | '/app/activity'
     | '/app/documents'
@@ -394,6 +413,7 @@ export interface FileRouteTypes {
     | '/app/services'
     | '/app/tasks'
     | '/app/team'
+    | '/app/umrah'
     | '/demo/bookings/$id'
     | '/demo/customers/$id'
     | '/demo/transactions/$id'
@@ -421,6 +441,7 @@ export interface FileRouteTypes {
     | '/demo/requests'
     | '/demo/services'
     | '/demo/tasks'
+    | '/demo/umrah'
     | '/demo'
     | '/app/activity'
     | '/app/documents'
@@ -431,6 +452,7 @@ export interface FileRouteTypes {
     | '/app/services'
     | '/app/tasks'
     | '/app/team'
+    | '/app/umrah'
     | '/demo/bookings/$id'
     | '/demo/customers/$id'
     | '/demo/transactions/$id'
@@ -461,6 +483,7 @@ export interface FileRouteTypes {
     | '/demo/requests'
     | '/demo/services'
     | '/demo/tasks'
+    | '/demo/umrah'
     | '/demo/'
     | '/_authenticated/app/activity'
     | '/_authenticated/app/documents'
@@ -471,6 +494,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/services'
     | '/_authenticated/app/tasks'
     | '/_authenticated/app/team'
+    | '/_authenticated/app/umrah'
     | '/demo/bookings/$id'
     | '/demo/customers/$id'
     | '/demo/transactions/$id'
@@ -608,6 +632,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoTasksRouteImport
       parentRoute: typeof DemoRoute
     }
+    '/demo/umrah': {
+      id: '/demo/umrah'
+      path: '/umrah'
+      fullPath: '/demo/umrah'
+      preLoaderRoute: typeof DemoUmrahRouteImport
+      parentRoute: typeof DemoRoute
+    }
     '/_authenticated/app/': {
       id: '/_authenticated/app/'
       path: '/'
@@ -676,6 +707,13 @@ declare module '@tanstack/react-router' {
       path: '/team'
       fullPath: '/app/team'
       preLoaderRoute: typeof AuthenticatedAppTeamRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/umrah': {
+      id: '/_authenticated/app/umrah'
+      path: '/umrah'
+      fullPath: '/app/umrah'
+      preLoaderRoute: typeof AuthenticatedAppUmrahRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/demo/bookings/': {
@@ -775,6 +813,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppServicesRoute: typeof AuthenticatedAppServicesRoute
   AuthenticatedAppTasksRoute: typeof AuthenticatedAppTasksRoute
   AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRoute
+  AuthenticatedAppUmrahRoute: typeof AuthenticatedAppUmrahRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppBookingsIdRoute: typeof AuthenticatedAppBookingsIdRoute
   AuthenticatedAppCustomersIdRoute: typeof AuthenticatedAppCustomersIdRoute
@@ -794,6 +833,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppServicesRoute: AuthenticatedAppServicesRoute,
   AuthenticatedAppTasksRoute: AuthenticatedAppTasksRoute,
   AuthenticatedAppTeamRoute: AuthenticatedAppTeamRoute,
+  AuthenticatedAppUmrahRoute: AuthenticatedAppUmrahRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppBookingsIdRoute: AuthenticatedAppBookingsIdRoute,
   AuthenticatedAppCustomersIdRoute: AuthenticatedAppCustomersIdRoute,
@@ -828,6 +868,7 @@ interface DemoRouteChildren {
   DemoRequestsRoute: typeof DemoRequestsRoute
   DemoServicesRoute: typeof DemoServicesRoute
   DemoTasksRoute: typeof DemoTasksRoute
+  DemoUmrahRoute: typeof DemoUmrahRoute
   DemoIndexRoute: typeof DemoIndexRoute
   DemoBookingsIdRoute: typeof DemoBookingsIdRoute
   DemoCustomersIdRoute: typeof DemoCustomersIdRoute
@@ -846,6 +887,7 @@ const DemoRouteChildren: DemoRouteChildren = {
   DemoRequestsRoute: DemoRequestsRoute,
   DemoServicesRoute: DemoServicesRoute,
   DemoTasksRoute: DemoTasksRoute,
+  DemoUmrahRoute: DemoUmrahRoute,
   DemoIndexRoute: DemoIndexRoute,
   DemoBookingsIdRoute: DemoBookingsIdRoute,
   DemoCustomersIdRoute: DemoCustomersIdRoute,

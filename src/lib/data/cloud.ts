@@ -118,6 +118,24 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
     },
     listActivity: async () =>
       must(await supabase.from("activity_log").select("*").eq("office_id", officeId).order("created_at", { ascending: false }).limit(200)),
+    listTrips: async () =>
+      must(await supabase.from("umrah_trips").select("*").eq("office_id", officeId).order("created_at", { ascending: false })),
+    saveTrip: async ({ id, ...rest }) =>
+      id
+        ? must(await supabase.from("umrah_trips").update(rest).eq("id", id).select().single())
+        : must(await supabase.from("umrah_trips").insert({ ...rest, office_id: officeId }).select().single()),
+    deleteTrip: async (id) => void must(await supabase.from("umrah_trips").delete().eq("id", id)),
+    listParticipants: async () =>
+      must(await supabase.from("umrah_participants").select("*").eq("office_id", officeId).order("created_at")),
+    saveParticipant: async ({ id, ...rest }) => {
+      const res = id
+        ? await supabase.from("umrah_participants").update(rest).eq("id", id).select().single()
+        : await supabase.from("umrah_participants").insert({ ...rest, office_id: officeId }).select().single();
+      if (res.error?.code === "23505") throw new Error("هذا المعتمر مضاف مسبقًا إلى هذه الرحلة.");
+      if (res.error?.code === "23514") throw new Error("تواريخ الدخول والمغادرة غير متسقة.");
+      return must(res);
+    },
+    deleteParticipant: async (id) => void must(await supabase.from("umrah_participants").delete().eq("id", id)),
     listMembers: async () => {
       const rows = must(await supabase.from("office_members").select("user_id, role").eq("office_id", officeId));
       const ids = rows.map((r) => r.user_id);

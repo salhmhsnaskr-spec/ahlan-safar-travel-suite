@@ -1,7 +1,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { DocumentLinks, BookingInput, CustomerInput, DataApi, PartnerInput, RequestInput, ServiceInput, TaskInput } from "./api";
+import type { DocumentLinks, BookingInput, CustomerInput, DataApi, PartnerInput, ParticipantInput, RequestInput, ServiceInput, TaskInput, TripInput } from "./api";
 
 export const PATHS = {
   demo: {
@@ -20,6 +20,7 @@ export const PATHS = {
     services: "/demo/services",
     notifications: "/demo/notifications",
     reports: "/demo/reports",
+    umrah: "/demo/umrah",
   },
   cloud: {
     home: "/app",
@@ -37,6 +38,7 @@ export const PATHS = {
     services: "/app/services",
     notifications: "/app/notifications",
     reports: "/app/reports",
+    umrah: "/app/umrah",
   },
 } as const;
 
@@ -121,3 +123,15 @@ export const useActivity = () => {
 };
 export const useUploadDocument = () => useMut((a, i: { file: File; links: DocumentLinks }) => a.uploadDocument(i.file, i.links), "تم رفع الوثيقة");
 export const useDeleteDocument = () => useMut((a, d: import("@/lib/domain").DocumentRow) => a.deleteDocument(d), "تم حذف الوثيقة");
+export const useTrips = () => {
+  const api = useData();
+  return useQuery({ queryKey: [api.key, "trips"], queryFn: api.listTrips });
+};
+export const useParticipants = () => {
+  const api = useData();
+  return useQuery({ queryKey: [api.key, "participants"], queryFn: api.listParticipants });
+};
+export const useSaveTrip = () => useMut((a, i: TripInput) => a.saveTrip(i), "تم حفظ الرحلة");
+export const useDeleteTrip = () => useMut((a, id: string) => a.deleteTrip(id), "تم حذف الرحلة");
+export const useSaveParticipant = () => useMut((a, i: ParticipantInput) => a.saveParticipant(i), "تم حفظ بيانات المعتمر");
+export const useDeleteParticipant = () => useMut((a, id: string) => a.deleteParticipant(id), "تمت إزالة المعتمر من الرحلة");

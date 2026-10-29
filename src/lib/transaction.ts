@@ -34,6 +34,12 @@ export const serviceFields: Record<string, TxField[]> = {
     { key: "passport_expiry", label: "انتهاء الجواز", type: "date" },
     { key: "appointment_date", label: "موعد السفارة", type: "date" },
   ],
+  umrah: [
+    { key: "umrah_type", label: "نوع العمرة", type: "select", options: ["فردية", "ضمن رحلة جماعية"] },
+    { key: "planned_departure", label: "تاريخ السفر المخطط", type: "date" },
+    { key: "planned_return", label: "تاريخ العودة المخطط", type: "date" },
+    { key: "companions", label: "عدد المرافقين", type: "number" },
+  ],
   visit_visa: [
     { key: "country", label: "دولة التأشيرة", type: "text" },
     { key: "applicants", label: "عدد المتقدمين", type: "number" },
