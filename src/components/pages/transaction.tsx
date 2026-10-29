@@ -19,8 +19,10 @@ type Common = { source: TravelRequest["source"]; referring_partner_id: string; s
 const blankCommon: Common = { source: "direct", referring_partner_id: "", service_id: "", assigned_to: "", service_date: "", priority: "normal", status: "new", details: "", notes: "" };
 
 /** Service picker + specialised fields + common fields; shared by the new and detail screens. */
-function TransactionFields({ c, setC, d, setD }: { c: Common; setC: (f: (s: Common) => Common) => void; d: ServiceDetails; setD: (f: (s: ServiceDetails) => ServiceDetails) => void }) {
-  const services = (useServices().data ?? []).filter((s) => s.is_active || s.id === c.service_id);
+function TransactionFields({ c, setC, d, setD, customerId, selfId }: { c: Common; setC: (f: (s: Common) => Common) => void; d: ServiceDetails; setD: (f: (s: ServiceDetails) => ServiceDetails) => void; customerId?: string | undefined; selfId?: string | undefined }) {
+  const allServices = useServices().data ?? [];
+  const services = allServices.filter((s) => s.is_active || s.id === c.service_id);
+  const requests = useRequests();
   const members = useMembers().data ?? [];
   const partners = usePartners();
   const p = usePaths();
@@ -65,7 +67,20 @@ function TransactionFields({ c, setC, d, setD }: { c: Common; setC: (f: (s: Comm
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {fields.map((f) => (
               <Field key={f.key} label={f.label}>
-                {f.type === "select" ? (
+                {f.type === "request" ? (
+                  (() => {
+                    const opts = (requests.data ?? []).filter((x) => x.id !== selfId && x.customer_id === customerId && f.linkCodes?.includes(services.find((s) => s.id === x.service_id)?.code ?? ""));
+                    return !customerId ? <p className="text-sm text-muted-foreground">اختر العميل أولًا.</p>
+                      : opts.length === 0 && !d[f.key] ? <p className="text-sm text-muted-foreground">لا يوجد طلب تأشيرة زيارة لهذا العميل.</p>
+                      : (
+                        <NativeSelect aria-label={f.label} value={d[f.key] ?? ""} onChange={(e) => setD((s) => ({ ...s, [f.key]: e.target.value }))}>
+                          <option value="">— بدون ربط —</option>
+                          {opts.map((x) => <option key={x.id} value={x.id}>{requestCode(x.number)}</option>)}
+                          {d[f.key] && !opts.some((x) => x.id === d[f.key]) && <option value={d[f.key]}>طلب مرتبط سابقًا</option>}
+                        </NativeSelect>
+                      );
+                  })()
+                ) : f.type === "select" ? (
                   <NativeSelect aria-label={f.label} value={d[f.key] ?? ""} onChange={(e) => setD((s) => ({ ...s, [f.key]: e.target.value }))}>
                     <option value="">— اختر —</option>
                     {f.options?.map((o) => <option key={o} value={o}>{o}</option>)}
