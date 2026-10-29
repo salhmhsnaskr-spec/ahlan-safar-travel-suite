@@ -1,6 +1,9 @@
 import type { Customer, Service } from "@/lib/domain";
 
-export type TxField = { key: string; label: string; type: "text" | "date" | "number" | "select" | "datetime-local"; options?: string[]; ltr?: boolean };
+/** "request" = optional link to another request of the same customer whose service code is in `linkCodes`. */
+export type TxField = { key: string; label: string; type: "text" | "date" | "number" | "select" | "datetime-local" | "request"; options?: string[]; ltr?: boolean; linkCodes?: string[] };
+
+export const approvalStatuses = ["جديد", "قيد الإجراء", "موافَق عليه", "مرفوض", "ملغى"];
 export type ServiceDetails = Record<string, string>;
 
 /** Service-specific fields for a transaction, keyed by the base catalog service code. */
@@ -30,6 +33,21 @@ export const serviceFields: Record<string, TxField[]> = {
     { key: "applicants", label: "عدد المتقدمين", type: "number" },
     { key: "passport_expiry", label: "انتهاء الجواز", type: "date" },
     { key: "appointment_date", label: "موعد السفارة", type: "date" },
+  ],
+  visit_visa: [
+    { key: "country", label: "دولة التأشيرة", type: "text" },
+    { key: "applicants", label: "عدد المتقدمين", type: "number" },
+    { key: "passport_expiry", label: "انتهاء الجواز", type: "date" },
+    { key: "appointment_date", label: "موعد السفارة", type: "date" },
+  ],
+  security_approval: [
+    { key: "country", label: "الدولة المعنية", type: "text" },
+    { key: "ref_number", label: "رقم الطلب أو المعاملة", type: "text", ltr: true },
+    { key: "submitted_date", label: "تاريخ تقديم الطلب", type: "date" },
+    { key: "authority", label: "الجهة المُصدرة أو جهة المعالجة", type: "text" },
+    { key: "approval_status", label: "حالة الموافقة", type: "select", options: approvalStatuses },
+    { key: "decision_date", label: "تاريخ صدور القرار", type: "date" },
+    { key: "linked_request_id", label: "طلب تأشيرة الزيارة المرتبط (اختياري)", type: "request", linkCodes: ["visit_visa", "visa"] },
   ],
   tour: [
     { key: "destination", label: "الوجهة", type: "text" },
