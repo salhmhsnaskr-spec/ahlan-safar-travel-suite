@@ -31,7 +31,7 @@ function Onboarding() {
           navigate({ to: "/app", replace: true });
         }}>
           <h1 className="text-2xl font-bold">أنشئ مكتبك</h1>
-          <p className="text-sm text-muted-foreground">ستكون مديرًا للمكتب ويمكنك إضافة موظفين لاحقًا. إن كنت موظفًا، اطلب من مديرك إضافتك ببريدك.</p>
+          <p className="text-sm text-muted-foreground">ستكون مديرًا للمكتب ويمكنك إضافة موظفين لاحقًا. إن كنت موظفًا، افتح رابط الدعوة الذي وصلك من مديرك.</p>
           <Field label="اسم المكتب *"><Input required value={f.name} onChange={set("name")} /></Field>
           <Field label="الهاتف"><Input dir="ltr" className="text-end" value={f.phone} onChange={set("phone")} /></Field>
           <div className="grid grid-cols-2 gap-3"><Field label="المدينة"><Input value={f.city} onChange={set("city")} /></Field><Field label="الدولة"><Input value={f.country} onChange={set("country")} /></Field></div>
@@ -39,7 +39,7 @@ function Onboarding() {
         </form>
         <div className="mt-4 space-y-3 rounded-2xl border bg-card p-6 text-sm">
           <p className="font-medium">أنا موظف في مكتب قائم</p>
-          <p className="text-muted-foreground">لا تنشئ مكتبًا. أعطِ مديرك بريدك ليضيفك من صفحة «الفريق»، ثم اضغط «تحقّق من الانضمام».</p>
+          <p className="text-muted-foreground">لا تنشئ مكتبًا. اطلب من مديرك إرسال دعوة إلى بريدك من «إدارة الفريق»، ثم افتح رابط الدعوة واضغط «قبول الدعوة». إن كانت عضويتك موقوفة فلن تتمكن من الدخول حتى يعيد المدير تفعيلها.</p>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" onClick={() => navigate({ to: "/app", replace: true })}>تحقّق من الانضمام</Button>
             <Button type="button" variant="ghost" onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/auth", replace: true }); }}>تسجيل الخروج</Button>
