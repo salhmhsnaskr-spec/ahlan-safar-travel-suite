@@ -137,13 +137,15 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
     },
     deleteParticipant: async (id) => void must(await supabase.from("umrah_participants").delete().eq("id", id)),
     listMembers: async () => {
-      const rows = must(await supabase.from("office_members").select("user_id, role").eq("office_id", officeId));
+      const rows = must(await supabase.from("office_members").select("user_id, role, status, created_at").eq("office_id", officeId));
       const ids = rows.map((r) => r.user_id);
       const profiles = ids.length ? must(await supabase.from("profiles").select("id, full_name, email").in("id", ids)) : [];
       const map = new Map(profiles.map((p) => [p.id, p]));
       return rows.map<Member>((r) => ({
         user_id: r.user_id,
         role: r.role,
+        status: r.status as Member["status"],
+        joined_at: r.created_at,
         full_name: map.get(r.user_id)?.full_name ?? null,
         email: map.get(r.user_id)?.email ?? null,
       }));

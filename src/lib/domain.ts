@@ -5,7 +5,8 @@ export type TravelRequest = Tables<"requests">;
 export type Partner = Tables<"partner_offices">;
 export type Service = Tables<"services">;
 export type AppRole = "admin" | "employee";
-export type Member = { user_id: string; role: AppRole; full_name: string | null; email: string | null };
+export type MemberStatus = "active" | "suspended" | "removed";
+export type Member = { user_id: string; role: AppRole; full_name: string | null; email: string | null; status?: MemberStatus; joined_at?: string };
 
 export type CustomerSource = Customer["source"];
 export type RequestSource = TravelRequest["source"];
