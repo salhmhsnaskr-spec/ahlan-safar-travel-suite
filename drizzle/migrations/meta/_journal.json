@@ -36,6 +36,13 @@
       "when": 1793314547081,
       "tag": "0004_require_confirmed_email_for_members",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793317736283,
+      "tag": "0005_staff_invitations_and_member_status",
+      "breakpoints": true
     }
   ]
 }

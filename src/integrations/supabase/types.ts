@@ -275,12 +275,82 @@ export type Database = {
           },
         ]
       }
+      office_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          failed_accepts: number
+          id: string
+          invited_by: string
+          last_sent_at: string | null
+          office_id: string
+          revoked_at: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          send_attempts: number
+          send_error: string | null
+          send_status: string
+          status: string
+          token_hash: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          expires_at: string
+          failed_accepts?: number
+          id?: string
+          invited_by: string
+          last_sent_at?: string | null
+          office_id: string
+          revoked_at?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          send_attempts?: number
+          send_error?: string | null
+          send_status?: string
+          status?: string
+          token_hash: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          failed_accepts?: number
+          id?: string
+          invited_by?: string
+          last_sent_at?: string | null
+          office_id?: string
+          revoked_at?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          send_attempts?: number
+          send_error?: string | null
+          send_status?: string
+          status?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "office_invitations_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       office_members: {
         Row: {
           created_at: string
           id: string
           office_id: string
           role: Database["public"]["Enums"]["app_role"]
+          status: string
+          status_changed_at: string | null
           user_id: string
         }
         Insert: {
@@ -288,6 +358,8 @@ export type Database = {
           id?: string
           office_id: string
           role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          status_changed_at?: string | null
           user_id: string
         }
         Update: {
@@ -295,6 +367,8 @@ export type Database = {
           id?: string
           office_id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          status_changed_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -808,6 +882,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _invite_hash: { Args: { _token: string }; Returns: string }
+      accept_invitation: { Args: { _token: string }; Returns: Json }
       add_office_member: {
         Args: {
           _email: string
@@ -815,6 +891,14 @@ export type Database = {
           _role?: Database["public"]["Enums"]["app_role"]
         }
         Returns: string
+      }
+      create_invitation: {
+        Args: {
+          _email: string
+          _office: string
+          _role?: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: Json
       }
       create_office: {
         Args: {
@@ -826,10 +910,21 @@ export type Database = {
         }
         Returns: string
       }
+      invitation_preview: { Args: { _token: string }; Returns: Json }
       is_office_admin: { Args: { _office: string }; Returns: boolean }
       is_office_member: { Args: { _office: string }; Returns: boolean }
       is_platform_owner: { Args: never; Returns: boolean }
+      mark_invitation_sent: {
+        Args: { _error?: string; _id: string; _status: string }
+        Returns: undefined
+      }
       platform_stats: { Args: never; Returns: Json }
+      resend_invitation: { Args: { _id: string }; Returns: Json }
+      revoke_invitation: { Args: { _id: string }; Returns: undefined }
+      set_member_status: {
+        Args: { _office: string; _status: string; _user: string }
+        Returns: undefined
+      }
       shares_office: { Args: { _user: string }; Returns: boolean }
     }
     Enums: {
