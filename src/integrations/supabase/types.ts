@@ -396,6 +396,21 @@ export type Database = {
           },
         ]
       }
+      platform_owners: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -813,6 +828,8 @@ export type Database = {
       }
       is_office_admin: { Args: { _office: string }; Returns: boolean }
       is_office_member: { Args: { _office: string }; Returns: boolean }
+      is_platform_owner: { Args: never; Returns: boolean }
+      platform_stats: { Args: never; Returns: Json }
       shares_office: { Args: { _user: string }; Returns: boolean }
     }
     Enums: {
