@@ -9,6 +9,6 @@
 - [ ] Live two-office/employee checks — blocked: needs a second account and office.
 # Comprehensive task (phased)
 - [x] WhatsApp support button in office sidebar.
-- [ ] Security approval / visit fields — blocked: user must define security-approval fields.
+- [x] Security approval / visit fields (save/reopen in real office untested).
 - [ ] Umrah pilgrims, requests, group trips, participations, stay duration.
 - [ ] Platform owner dashboard (owner: decided email, server-side role).
