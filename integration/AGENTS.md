@@ -1,0 +1,2 @@
+- Local schema reconstruction lives only in `local-schema`, outside managed migration paths, so it cannot be applied to hosted Cloud accidentally.
+- Read `local-schema/README.md` before changing the reconstruction package; compilation against dependency shells is not a real-auth or full-platform verification.
