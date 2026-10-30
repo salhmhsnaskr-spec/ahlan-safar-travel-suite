@@ -1,4 +1,5 @@
 import type { DataApi } from "./api";
+import { emptyWorkAttribution, emptyTerminalAttribution, stampDemoWork, auditAction, safeAuditValues } from "@/lib/attribution";
 import type { ActivityRow, DocumentRow, Booking, Customer, Member, Partner, Service, Task, TravelRequest, UmrahParticipant, UmrahTrip } from "@/lib/domain";
 
 /**
@@ -10,6 +11,7 @@ const DEMO_KEY = "ahlan-safar-demo-v1";
 const DEMO_OFFICE = "demo-office";
 
 type DemoDB = {
+  activity?: ActivityRow[];
   seq: number;
   customers: Customer[];
   requests: TravelRequest[];
@@ -62,7 +64,7 @@ function seed(): DemoDB {
   const cust = (full_name: string, nationality: string, source: Customer["source"], partnerId: string | null, assigned: string, d: number): Customer => ({
     id: uid(), office_id: DEMO_OFFICE, full_name, nationality, source, referring_partner_id: partnerId, assigned_to: assigned,
     phone: "+966 50 " + Math.floor(100 + Math.random() * 899) + " " + Math.floor(1000 + Math.random() * 8999),
-    email: null, passport_number: null, notes: null, created_by: "demo-admin", created_at: iso(d), updated_at: iso(d),
+    email: null, passport_number: null, notes: null, ...emptyWorkAttribution, created_by: "demo-admin", created_at: iso(d), updated_at: iso(d),
   });
   const customers = [
     cust("محمد عبدالله القحطاني", "سعودي", "direct", null, "demo-emp-1", -20),
@@ -76,7 +78,7 @@ function seed(): DemoDB {
     id: uid(), number: ++seq, office_id: DEMO_OFFICE, customer_id: customers[ci]!.id, service_id: "svc-" + svcCode, details,
     source, referring_partner_id: partnerId, assigned_to: customers[ci]!.assigned_to, service_date: serviceIn === null ? null : day(serviceIn),
     priority, status, notes: null, booking_ref: booked ? "BK-" + (7000 + seq) : null, booked_at: booked ? iso(d + 1) : null,
-    service_details: {}, created_by: "demo-admin", created_at: iso(d), updated_at: iso(d + 1),
+    service_details: {}, ...emptyTerminalAttribution, ...emptyWorkAttribution, created_by: "demo-admin", created_at: iso(d), updated_at: iso(d + 1),
   });
   const requests = [
     req(0, "flight", "confirmed", "direct", null, 5, "normal", "تذكرتان الرياض ← إسطنبول ذهاب وعودة", -18, true),
@@ -94,7 +96,7 @@ function seed(): DemoDB {
     const b: Booking = {
       id: uid(), number: db.bseq, office_id: DEMO_OFFICE, customer_id: customers[ci]!.id, request_id: null, service_id: "svc-" + svcCode,
       assigned_employee_id: emp, service_date: day(inDays), status, external_ref: null, provider, notes: null,
-      created_by: "demo-admin", created_at: iso(-2), updated_at: iso(-2),
+      ...emptyTerminalAttribution, ...emptyWorkAttribution, created_by: "demo-admin", created_at: iso(-2), updated_at: iso(-2),
     };
     db.bookings.push(b);
     return b;
@@ -104,7 +106,7 @@ function seed(): DemoDB {
   const task = (title: string, task_type: Task["task_type"], assigned: string, dueIn: number, priority: Task["priority"], extra: Partial<Task> = {}): Task => ({
     id: uid(), office_id: DEMO_OFFICE, title, task_type, assigned_to: assigned, customer_id: null, request_id: null, booking_id: null, service_id: null,
     due_at: iso(dueIn), priority, status: "new", notes: null, flight_number: null, airport: null, arrival_at: null,
-    created_by: "demo-admin", created_at: iso(-1), updated_at: iso(-1), ...extra,
+    ...emptyWorkAttribution, created_by: "demo-admin", created_at: iso(-1), updated_at: iso(-1), ...extra,
   });
   db.tasks.push(
     task("استقبال يوسف إبراهيم من المطار", "airport_pickup", "demo-emp-1", 1, "high", { customer_id: customers[4]!.id, booking_id: pick.id, service_id: "svc-airport_pickup", flight_number: "SV1234", airport: "مطار الملك خالد", arrival_at: iso(1) }),
@@ -151,7 +153,7 @@ function upgrade(db: DemoDB): boolean {
       id: uid(), number: db.bseq, office_id: DEMO_OFFICE, customer_id: r.customer_id, request_id: r.id, service_id: r.service_id,
       assigned_employee_id: r.assigned_to, service_date: r.service_date,
       status: r.status === "completed" ? "completed" : r.status === "cancelled" ? "cancelled" : "confirmed",
-      external_ref: r.booking_ref, provider: null, notes: null, created_by: "demo-admin", created_at: r.booked_at ?? r.created_at, updated_at: r.booked_at ?? r.created_at,
+      external_ref: r.booking_ref, provider: null, notes: null, ...emptyTerminalAttribution, ...emptyWorkAttribution, created_by: "demo-admin", created_at: r.booked_at ?? r.created_at, updated_at: r.booked_at ?? r.created_at,
     });
   }
   return true;
@@ -172,7 +174,29 @@ export function exportDemoData() {
 
 function mutate<T>(fn: (db: DemoDB) => T): Promise<T> {
   const db = load();
+  const collections = ['customers','requests','bookings','tasks','documents','trips','participants'] as const;
+  const before = structuredClone(db);
   const result = fn(db);
+  const now = new Date().toISOString();
+  db.activity ??= [];
+  for (const collection of collections) {
+    const previous = new Map((before[collection] ?? []).map((row) => [row.id, row]));
+    const current = db[collection] ?? [];
+    for (const row of current) {
+      const old = previous.get(row.id);
+      if (old && JSON.stringify(old) === JSON.stringify(row)) { previous.delete(row.id); continue; }
+      if (collection === 'customers' || collection === 'requests' || collection === 'bookings' || collection === 'tasks') {
+        Object.assign(row, stampDemoWork(old, row, 'demo-admin', now));
+      }
+      const entity = collection === 'trips' ? 'umrah_trips' : collection === 'participants' ? 'umrah_participants' : collection;
+      const changed = [...new Set([...Object.keys(old ?? {}), ...Object.keys(row)])].filter((key) => JSON.stringify((old as Record<string, unknown> | undefined)?.[key]) !== JSON.stringify((row as Record<string, unknown>)[key]));
+      db.activity.push({ id: uid(), office_id: DEMO_OFFICE, actor_id: 'demo-admin', actor_name: 'أنت (المدير)', entity, entity_id: row.id, action: auditAction(old, row), summary: 'number' in row ? `${entity === 'bookings' ? 'BK' : 'REQ'}-${String(row.number).padStart(4,'0')}` : entity, old_values: safeAuditValues(old), new_values: safeAuditValues(row), result: 'success', changed_fields: changed, created_at: now });
+      previous.delete(row.id);
+    }
+    for (const old of previous.values()) {
+      db.activity.push({ id: uid(), office_id: DEMO_OFFICE, actor_id: 'demo-admin', actor_name: 'أنت (المدير)', entity: collection, entity_id: old.id, action: 'deleted', summary: collection, old_values: safeAuditValues(old), new_values: null, result: 'success', changed_fields: Object.keys(old), created_at: now });
+    }
+  }
   save(db);
   return Promise.resolve(result);
 }
@@ -196,7 +220,7 @@ export function createDemoApi(): DataApi {
         const c: Customer = {
           phone: null, email: null, passport_number: null, nationality: null, notes: null, source: "direct",
           referring_partner_id: null, assigned_to: "demo-admin", ...input,
-          id: uid(), office_id: DEMO_OFFICE, created_by: "demo-admin", created_at: now, updated_at: now,
+          id: uid(), office_id: DEMO_OFFICE, ...emptyWorkAttribution, created_by: "demo-admin", created_at: now, updated_at: now,
         } as Customer;
         db.customers.push(c);
         return c;
@@ -221,7 +245,7 @@ export function createDemoApi(): DataApi {
         const r: TravelRequest = {
           service_id: null, details: null, source: "direct", referring_partner_id: null, assigned_to: "demo-admin",
           service_date: null, priority: "normal", status: "new", notes: null, booking_ref: null, booked_at: null, service_details: {}, ...input,
-          id: uid(), number: db.seq, office_id: DEMO_OFFICE, created_by: "demo-admin", created_at: now, updated_at: now,
+          id: uid(), number: db.seq, office_id: DEMO_OFFICE, ...emptyWorkAttribution, created_by: "demo-admin", created_at: now, updated_at: now,
         } as TravelRequest;
         db.requests.push(r);
         return r;
@@ -287,7 +311,7 @@ export function createDemoApi(): DataApi {
         db.bseq += 1;
         const b = {
           request_id: null, service_id: null, assigned_employee_id: null, service_date: null, status: "new", external_ref: null, provider: null, notes: null,
-          ...input, id: uid(), number: db.bseq, office_id: DEMO_OFFICE, created_by: "demo-admin", created_at: now, updated_at: now,
+          ...input, id: uid(), number: db.bseq, office_id: DEMO_OFFICE, ...emptyWorkAttribution, created_by: "demo-admin", created_at: now, updated_at: now,
         } as Booking;
         db.bookings.push(b);
         return b;
@@ -309,7 +333,7 @@ export function createDemoApi(): DataApi {
         const t = {
           title: "", task_type: "other", assigned_to: null, customer_id: null, request_id: null, booking_id: null, service_id: null, due_at: null,
           priority: "medium", status: "new", notes: null, flight_number: null, airport: null, arrival_at: null,
-          ...input, id: uid(), office_id: DEMO_OFFICE, created_by: "demo-admin", created_at: now, updated_at: now,
+          ...input, id: uid(), office_id: DEMO_OFFICE, ...emptyWorkAttribution, created_by: "demo-admin", created_at: now, updated_at: now,
         } as Task;
         db.tasks.push(t);
         return t;
@@ -331,22 +355,22 @@ export function createDemoApi(): DataApi {
     deleteDocument: (doc) => mutate((db) => void (db.documents = (db.documents ?? []).filter((d) => d.id !== doc.id))),
     listTeamActivity: async () => {
       const db = load();
-      const dates = [...db.customers, ...db.requests, ...db.bookings, ...db.tasks, ...(db.documents ?? [])].map((r) => r.created_at).sort();
+      const dates = [...db.customers, ...db.requests, ...db.bookings, ...db.tasks, ...(db.documents ?? []), ...(db.activity ?? [])].map((r) => r.created_at).sort();
       return db.members.map((m) => ({ user_id: m.user_id, last_activity_at: m.user_id === "demo-admin" ? dates.at(-1) ?? null : null }));
     },
     listActivity: async (actorId) => {
       const db = load();
       const row = (entity: string, id: string, action: string, summary: string, at: string): ActivityRow =>
-        ({ id: id + action + at, office_id: DEMO_OFFICE, actor_id: "demo-admin", entity, entity_id: id, action, summary, created_at: at });
+        ({ old_values: null, new_values: null, result: null, actor_name: null, changed_fields: null, id: id + action + at, office_id: DEMO_OFFICE, actor_id: "demo-admin", entity, entity_id: id, action, summary, created_at: at });
       const out: ActivityRow[] = [
+        ...(db.activity ?? []),
         ...db.customers.map((c) => row("customers", c.id, "created", c.full_name, c.created_at)),
         ...db.requests.map((r) => row("requests", r.id, "created", "REQ-" + String(r.number).padStart(4, "0"), r.created_at)),
-        ...db.bookings.flatMap((b) => [row("bookings", b.id, "created", "BK-" + String(b.number).padStart(4, "0"), b.created_at),
-          ...(b.updated_at !== b.created_at ? [row("bookings", b.id, "status", "BK-" + String(b.number).padStart(4, "0") + "|" + b.status, b.updated_at)] : [])]),
-        ...db.tasks.map((t) => row("tasks", t.id, t.updated_at !== t.created_at ? "status" : "created", t.title + (t.updated_at !== t.created_at ? "|" + t.status : ""), t.updated_at)),
+        ...db.bookings.map((b) => row("bookings", b.id, "created", "BK-" + String(b.number).padStart(4, "0"), b.created_at)),
+        ...db.tasks.map((t) => row("tasks", t.id, "created", t.title, t.created_at)),
         ...(db.documents ?? []).map((d) => row("documents", d.id, "created", d.file_name, d.created_at)),
       ];
-      return out.filter((a) => !actorId || a.actor_id === actorId).sort((a, b) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 200);
+      return out.filter((a) => (!actorId || a.actor_id === actorId) && (a.result !== null || !(db.activity ?? []).some((event) => event.entity_id === a.entity_id && event.action === "created"))).sort((a, b) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 200);
     },
     deleteTask: (id) => mutate((db) => void (db.tasks = db.tasks.filter((t) => t.id !== id))),
     listTrips: async () => (load().trips ?? []).slice().sort((a, b) => (a.created_at < b.created_at ? 1 : -1)),
@@ -359,7 +383,7 @@ export function createDemoApi(): DataApi {
           db.trips[i] = { ...db.trips[i], ...input, updated_at: now } as UmrahTrip;
           return db.trips[i];
         }
-        const t: UmrahTrip = { planned_start: null, planned_end: null, status: "planned", notes: null, ...input, id: uid(), office_id: DEMO_OFFICE, created_by: "demo-admin", created_at: now, updated_at: now } as UmrahTrip;
+        const t: UmrahTrip = { planned_start: null, planned_end: null, status: "planned", notes: null, ...input, id: uid(), office_id: DEMO_OFFICE, ...emptyWorkAttribution, created_by: "demo-admin", created_at: now, updated_at: now } as UmrahTrip;
         db.trips.push(t);
         return t;
       }),

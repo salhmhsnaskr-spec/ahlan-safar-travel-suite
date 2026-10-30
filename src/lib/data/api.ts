@@ -1,16 +1,17 @@
 import type { ActivityRow, AppRole, Booking, DocumentRow, Customer, Member, Partner, Service, Task, TravelRequest, UmrahParticipant, UmrahTrip } from "@/lib/domain";
 import type { TeamActivity } from "@/lib/staff";
 
-export type CustomerInput = Partial<Omit<Customer, "id" | "office_id" | "created_at" | "updated_at" | "created_by">> & { id?: string | undefined;
+type WorkSystemFields = "id" | "office_id" | "created_at" | "updated_at" | "created_by" | "updated_by" | "completed_by" | "completed_at" | "cancelled_by" | "cancelled_at";
+export type CustomerInput = Partial<Omit<Customer, WorkSystemFields>> & { id?: string | undefined;
   full_name: string;
 };
 export type RequestInput = Partial<
-  Omit<TravelRequest, "id" | "office_id" | "created_at" | "updated_at" | "created_by" | "number">
+  Omit<TravelRequest, WorkSystemFields | "number">
 > & { id?: string | undefined; customer_id: string };
 export type PartnerInput = Partial<Omit<Partner, "id" | "office_id" | "created_at" | "updated_at">> & { id?: string | undefined; name: string };
 export type ServiceInput = { id?: string | undefined; name: string; description?: string | null };
-export type BookingInput = Partial<Omit<Booking, "id" | "office_id" | "created_at" | "updated_at" | "created_by" | "number">> & { id?: string | undefined; customer_id: string };
-export type TaskInput = Partial<Omit<Task, "id" | "office_id" | "created_at" | "updated_at" | "created_by">> & { id?: string | undefined; title?: string };
+export type BookingInput = Partial<Omit<Booking, WorkSystemFields | "number">> & { id?: string | undefined; customer_id: string };
+export type TaskInput = Partial<Omit<Task, WorkSystemFields>> & { id?: string | undefined; title?: string };
 
 export type TripInput = Partial<Omit<UmrahTrip, "id" | "office_id" | "created_at" | "updated_at" | "created_by">> & { id?: string | undefined; name: string };
 export type ParticipantInput = Partial<Omit<UmrahParticipant, "id" | "office_id" | "created_at" | "updated_at">> & { id?: string | undefined; trip_id: string; customer_id: string };
