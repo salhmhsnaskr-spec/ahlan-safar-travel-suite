@@ -8,24 +8,24 @@ export function stampDemoWork<T extends { status?: string; created_by?: string |
   old: T | undefined, next: T, actor: string, now: string,
 ) {
   const stamped = { ...next, created_by: old?.created_by ?? actor, created_at: old?.created_at ?? next.created_at, updated_by: old ? actor : null };
-  if (!('status' in next) || next.status === 'done') return stamped;
-  if (old && old.status === next.status) return {
+  if (!('status' in next) || next['status'] === 'done') return stamped;
+  if (old && old['status'] === next['status']) return {
     ...stamped,
     ...Object.fromEntries(Object.keys(emptyTerminalAttribution).map((key) => [key, (old as Record<string, unknown>)[key] ?? null])),
   };
   return { ...stamped, ...emptyTerminalAttribution,
-    ...(next.status === 'completed' ? { completed_by: actor, completed_at: now } : {}),
-    ...(next.status === 'cancelled' ? { cancelled_by: actor, cancelled_at: now } : {}),
+    ...(next['status'] === 'completed' ? { completed_by: actor, completed_at: now } : {}),
+    ...(next['status'] === 'cancelled' ? { cancelled_by: actor, cancelled_at: now } : {}),
   };
 }
 
 export function auditAction(old: Record<string, unknown> | undefined, next: Record<string, unknown> | undefined) {
   if (!old) return 'created';
   if (!next) return 'deleted';
-  if (old.status === next.status) return 'updated';
-  if (next.status === 'completed' || next.status === 'done') return 'completed';
-  if (next.status === 'cancelled') return 'cancelled';
-  if (old.status === 'completed' || old.status === 'done') return 'reopened';
+  if (old['status'] === next['status']) return 'updated';
+  if (next['status'] === 'completed' || next['status'] === 'done') return 'completed';
+  if (next['status'] === 'cancelled') return 'cancelled';
+  if (old['status'] === 'completed' || old['status'] === 'done') return 'reopened';
   return 'status';
 }
 

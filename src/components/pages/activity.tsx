@@ -55,7 +55,7 @@ export function ActivityPage({ actorId, embedded = false }: { actorId?: string; 
                   <span className="rounded bg-muted px-1.5 py-0.5 text-xs">{activityActionLabels[a.action] ?? a.action}</span>{" "}
                   {activityEntityLabels[a.entity] ?? a.entity}: {link}
                   {extra && <> ← <b>{statusText(a.entity, extra)}</b></>}
-                  {old.status !== undefined && next.status !== undefined && old.status !== next.status && <span className="ms-2 text-muted-foreground">{statusText(a.entity, String(old.status))} ← {statusText(a.entity, String(next.status))}</span>}
+                  {old['status'] !== undefined && next['status'] !== undefined && old['status'] !== next['status'] && <span className="ms-2 text-muted-foreground">{statusText(a.entity, String(old['status']))} ← {statusText(a.entity, String(next['status']))}</span>}
                 </p>
                 <p className="text-xs text-muted-foreground">{actorName}{actorStatus} · {formatDateTime(a.created_at)}</p>
                 <details className="w-full min-w-0">

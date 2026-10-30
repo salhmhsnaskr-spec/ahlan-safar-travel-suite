@@ -53,7 +53,7 @@ it.each(['requests','bookings'])('%s has separate trusted creator, updater and c
   const id=await insert(table);
   await db.query("SELECT set_config('request.jwt.claim.sub',$1,true)",[employee]);
   await db.exec(`UPDATE ${table} SET status='completed',completed_by='${admin}' WHERE id='${id}'`);
-  const first=(await db.query(`SELECT created_by,updated_by,completed_by,completed_at FROM ${table}`)).rows[0];
+  const first=(await db.query<{created_by:string;updated_by:string;completed_by:string;completed_at:string}>(`SELECT created_by,updated_by,completed_by,completed_at FROM ${table}`)).rows[0];
   expect(first).toMatchObject({created_by:admin,updated_by:employee,completed_by:employee});
   await db.query("SELECT set_config('request.jwt.claim.sub',$1,true)",[admin]);
   await db.exec(`UPDATE ${table} SET status='completed',completed_by='${admin}',completed_at='2000-01-01' WHERE id='${id}'`);
@@ -67,7 +67,7 @@ it.each(['requests','bookings'])('%s reopening removes credit and recompletion c
   await db.query("SELECT set_config('request.jwt.claim.sub',$1,true)",[employee]);
   await db.exec(`UPDATE ${table} SET status='completed' WHERE id='${id}'`);
   expect((await db.query(`SELECT completed_by FROM ${table}`)).rows[0]).toEqual({completed_by:employee});
-  expect((await db.query('SELECT action FROM activity_log ORDER BY ctid')).rows.map(r=>r.action)).toEqual(['created','completed','reopened','completed']);
+  expect((await db.query<{action:string}>('SELECT action FROM activity_log ORDER BY ctid')).rows.map(r=>r.action)).toEqual(['created','completed','reopened','completed']);
 }));
 it('cancelled work is never completed and preserves cancellation actor/date', async () => isolated(async () => {
   const id=await insert(); await db.exec(`UPDATE requests SET status='completed' WHERE id='${id}'; UPDATE requests SET status='cancelled' WHERE id='${id}'`);
@@ -80,7 +80,7 @@ it('old completed rows remain unattributed after unrelated edits',async () => is
 it('before/after values retain status but omit secrets and record changed field names',async()=>isolated(async()=>{
   const id=await insert(); await db.exec(`UPDATE requests SET status='completed', notes='private password', service_details='{"token":"secret"}' WHERE id='${id}'`);
   const row=(await db.query<{old_values:Record<string,unknown>;new_values:Record<string,unknown>;changed_fields:string[];result:string}>('SELECT * FROM activity_log ORDER BY ctid DESC LIMIT 1')).rows[0];
-  expect(row?.old_values.status).toBe('new'); expect(row?.new_values.status).toBe('completed');
+  expect(row?.old_values['status']).toBe('new'); expect(row?.new_values['status']).toBe('completed');
   expect(row?.new_values).not.toHaveProperty('notes'); expect(row?.new_values).not.toHaveProperty('service_details');
   expect(row?.changed_fields).toContain('service_details'); expect(row?.result).toBe('success');
 }));
