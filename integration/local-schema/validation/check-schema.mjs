@@ -5,7 +5,8 @@ import { uuid_ossp } from '@electric-sql/pglite/contrib/uuid_ossp';
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 const root = new URL('../', import.meta.url);
-const source = JSON.parse(await readFile(new URL('schema-catalog.json', root), 'utf8'));
+// Preserve PostgreSQL bigint boundaries instead of rounding through JavaScript numbers.
+const source = JSON.parse((await readFile(new URL('schema-catalog.json', root), 'utf8')).replace(/(:\s*)(-?\d{16,})(\s*[,}])/g, '$1"$2"$3'));
 const manifest = JSON.parse(await readFile(new URL('manifest.json', root), 'utf8'));
 const db = new PGlite({ extensions: { pgcrypto, uuid_ossp } });
 const results=[];
