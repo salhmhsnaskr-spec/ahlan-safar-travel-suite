@@ -107,7 +107,7 @@ function Team() {
       <ReadState queries={[memberQuery, teamActivity]} title="تعذّر تحميل الفريق وآخر نشاط">
       <ul className="mb-6 divide-y rounded-xl border bg-card">
         {visible.map((m) => {
-          const st = memberStatus[m.status ?? "active"] ?? memberStatus.active;
+          const st = memberStatus[m.status ?? "active"] ?? { label: "غير معروفة", cls: "bg-muted text-muted-foreground" };
           const self = m.user_id === api.userId;
           return (
             <li key={m.user_id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
