@@ -27,10 +27,16 @@ const memberStatus: Record<string, { label: string; cls: string }> = {
   suspended: { label: "موقوفة", cls: "bg-warning/15 text-warning" },
   removed: { label: "مُزال (موظف سابق)", cls: "bg-muted text-muted-foreground" },
 };
-const sendLabel: Record<string, string> = { sent: "أُرسلت بالبريد", failed: "فشل الإرسال", not_configured: "البريد غير مُعدّ بعد — شارك الرابط يدويًا", pending: "لم تُرسل" };
+// Only states that can be proven; "provider accepted" is not proof the recipient received it.
+const sendLabel: Record<string, string> = {
+  pending: "لم تُرسل بعد", manual_link: "رابط يدوي — لم يُرسل بريد", not_configured: "البريد غير مُعدّ — شارك الرابط يدويًا",
+  send_attempted: "جرت محاولة إرسال — النتيجة غير مؤكدة", provider_accepted: "قبلها مزود البريد — الوصول غير مؤكد",
+  sent: "قبلها مزود البريد — الوصول غير مؤكد", delivered: "أكّد المزود التسليم", failed: "فشل الإرسال",
+};
 const inviteErrors: Record<string, string> = {
   invalid_email: "البريد غير صالح.", already_member: "هذا البريد عضو في المكتب بالفعل.",
-  already_invited: "توجد دعوة معلقة لهذا البريد. أعد إرسالها من القائمة.", too_soon: "انتظر دقيقة قبل إعادة الإرسال.", not_pending: "الدعوة لم تعد معلقة.",
+  already_invited: "توجد دعوة معلقة لهذا البريد. أعد إرسالها من القائمة.", too_soon: "انتظر دقيقة قبل إصدار رابط جديد.", not_pending: "الدعوة لم تعد معلقة.",
+  rotation_limit: "بلغت الدعوة الحد الأقصى (5 روابط جديدة). ألغِها وأنشئ دعوة جديدة.",
 };
 const fmt = (d?: string) => (d ? new Date(d).toLocaleDateString("ar", { year: "numeric", month: "short", day: "numeric" }) : "—");
 
