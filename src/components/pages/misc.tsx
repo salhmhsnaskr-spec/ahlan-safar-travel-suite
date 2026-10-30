@@ -17,6 +17,7 @@ import {
   customerSourceLabels, deriveNotifications, formatDate, isOpenStatus, requestSourceLabels, statusBar, statusLabels, statusOrder, type Partner,
 } from "@/lib/domain";
 import { cn } from "@/lib/utils";
+import { PerformancePage } from "@/components/pages/performance";
 
 const icons: Record<string, typeof Plane> = { plane: Plane, hotel: Hotel, stamp: Stamp, car: Car, map: MapIcon, stethoscope: Stethoscope, briefcase: Briefcase, sparkles: Sparkles };
 
@@ -218,12 +219,16 @@ export function ReportsPage() {
   const customers = useCustomers();
   const services = useServices();
   const partners = usePartners();
+  const [view, setView] = useState('staff');
   return (
     <>
       <PageHeader title="التقارير" subtitle="مؤشرات أساسية لأداء المكتب" />
+      <div className="mb-6 flex gap-2 print:hidden"><Button variant={view==='staff'?'default':'outline'} onClick={()=>setView('staff')}>أداء الموظفين</Button><Button variant={view==='office'?'default':'outline'} onClick={()=>setView('office')}>المكتب</Button></div>
+      {view==='staff'?<PerformancePage/>:
       <ReadState queries={[requests, bookings, customers, services, partners]} title="تعذّر تحميل التقارير">
         <ReportContent rs={requests.data ?? []} bookingsAll={bookings.data ?? []} cs={customers.data ?? []} services={services.data ?? []} partners={partners.data ?? []} />
       </ReadState>
+      }
     </>
   );
 }

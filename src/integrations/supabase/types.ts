@@ -985,6 +985,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      team_performance: { Args: { _office: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "employee"

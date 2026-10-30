@@ -126,6 +126,10 @@ export const useTeamActivity = () => {
   const api = useData();
   return useQuery({ queryKey: [api.key, "team-activity", api.userId], queryFn: api.listTeamActivity, enabled: api.role === "admin" });
 };
+export const usePerformance = () => {
+  const api = useData();
+  return useQuery({ queryKey: [api.key, "performance", api.userId], queryFn: api.performance });
+};
 export const useUploadDocument = () => useMut((a, i: { file: File; links: DocumentLinks }) => a.uploadDocument(i.file, i.links), "تم رفع الوثيقة");
 export const useDeleteDocument = () => useMut((a, d: import("@/lib/domain").DocumentRow) => a.deleteDocument(d), "تم حذف الوثيقة");
 export const useTrips = () => {

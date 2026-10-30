@@ -1,4 +1,5 @@
 import type { DataApi } from "./api";
+import { buildDemoPerformance } from "@/lib/performance";
 import { emptyWorkAttribution, emptyTerminalAttribution, stampDemoWork, auditAction, safeAuditValues } from "@/lib/attribution";
 import type { ActivityRow, DocumentRow, Booking, Customer, Member, Partner, Service, Task, TravelRequest, UmrahParticipant, UmrahTrip } from "@/lib/domain";
 
@@ -299,6 +300,7 @@ export function createDemoApi(): DataApi {
         if (s && s.office_id) Object.assign(s, { name, description: description ?? null });
       }),
     listMembers: async () => load().members,
+    performance: async () => buildDemoPerformance(load()),
     listBookings: async () => load().bookings.slice().sort((a, b) => b.number - a.number),
     saveBooking: (input) =>
       mutate((db) => {
