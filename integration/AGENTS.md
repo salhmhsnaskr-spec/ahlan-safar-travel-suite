@@ -1,2 +1,3 @@
 - Local schema reconstruction lives only in `local-schema`, outside managed migration paths, so it cannot be applied to hosted Cloud accidentally.
 - Read `local-schema/README.md` before changing the reconstruction package; compilation against dependency shells is not a real-auth or full-platform verification.
+- Apply local security overlays only after the six reference migrations and before exposing the independent API; do not put overlays in managed hosted migration paths or describe local ACL checks as real-session acceptance.

@@ -33,3 +33,4 @@
 
 ## Independent reconstruction
 - `integration/` has its own `AGENTS.md`; read it before changing files there, because local-only reconstruction must stay outside hosted migration paths.
+- Preserve the captured six-file reconstruction and catalog as immutable provenance; independent security overlays and their focused tests live outside the baseline migration directory, so source comparison never mistakes hardening for an exact hosted clone.
