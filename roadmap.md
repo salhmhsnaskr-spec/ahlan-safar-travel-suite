@@ -1,4 +1,5 @@
 # Security completion
+- [ ] Final critical integration verification (2026-10-30): environment gate assessed; main project only, no isolated draft, preview/published share database/auth, Docker/Podman unavailable. Blocked pending approval and availability of an independent real-auth multi-connection environment. Do not rerun 92 tests/deep scan/exports; email delivery out of scope. No tests, production sessions, resources or production changes in this round.
 - [x] Prevent removing or demoting the last office administrator.
 - [x] Restrict employee task updates to status and notes, preserving system timestamps.
 - [x] Run isolated database regression tests and verify the deployed guards.
