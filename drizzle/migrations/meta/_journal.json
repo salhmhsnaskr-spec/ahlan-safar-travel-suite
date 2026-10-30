@@ -57,6 +57,13 @@
       "when": 1793318696972,
       "tag": "0007_staff_workspace_and_team_activity",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793319309784,
+      "tag": "0008_staff_audit_and_work_attribution",
+      "breakpoints": true
     }
   ]
 }
