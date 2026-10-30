@@ -25,6 +25,7 @@ function TransactionFields({ c, setC, d, setD, customerId, selfId }: { c: Common
   const requests = useRequests();
   const members = useMembers().data ?? [];
   const partners = usePartners();
+  const api = useData();
   const p = usePaths();
   const partnerList = (partners.data ?? []).filter((x) => x.status === "active" || x.id === c.referring_partner_id);
   const service = services.find((s) => s.id === c.service_id);
@@ -47,7 +48,7 @@ function TransactionFields({ c, setC, d, setD, customerId, selfId }: { c: Common
               {partners.isLoading ? <p className="text-sm text-muted-foreground">جارٍ تحميل المكاتب…</p>
                 : partners.isError ? <p className="text-sm text-danger">تعذّر تحميل المكاتب المحيلة. <button type="button" className="underline" onClick={() => partners.refetch()}>إعادة المحاولة</button></p>
                 : partnerList.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">لا توجد مكاتب محيلة مسجّلة. <Link to={p.partners} className="text-primary underline">أضف مكتبًا محيلًا</Link></p>
+                  <p className="text-sm text-muted-foreground">لا توجد مكاتب محيلة مسجّلة. {api.role === "admin" ? <Link to={p.partners} className="text-primary underline">أضف مكتبًا محيلًا</Link> : "اطلب من مدير المكتب إضافة المكتب المحيل."}</p>
                 ) : (
                   <NativeSelect aria-label="المكتب المحيل" value={c.referring_partner_id} onChange={(e) => setC((x) => ({ ...x, referring_partner_id: e.target.value }))}>
                     <option value="">— اختر المكتب —</option>

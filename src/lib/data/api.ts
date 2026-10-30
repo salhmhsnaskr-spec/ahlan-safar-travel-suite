@@ -1,4 +1,5 @@
 import type { ActivityRow, AppRole, Booking, DocumentRow, Customer, Member, Partner, Service, Task, TravelRequest, UmrahParticipant, UmrahTrip } from "@/lib/domain";
+import type { TeamActivity } from "@/lib/staff";
 
 export type CustomerInput = Partial<Omit<Customer, "id" | "office_id" | "created_at" | "updated_at" | "created_by">> & { id?: string | undefined;
   full_name: string;
@@ -50,7 +51,8 @@ export interface DataApi {
   uploadDocument(file: File, links: DocumentLinks): Promise<void>;
   documentUrl(doc: DocumentRow): Promise<string>;
   deleteDocument(doc: DocumentRow): Promise<void>;
-  listActivity(): Promise<ActivityRow[]>;
+  listActivity(actorId?: string): Promise<ActivityRow[]>;
+  listTeamActivity(): Promise<TeamActivity[]>;
   listTrips(): Promise<UmrahTrip[]>;
   saveTrip(input: TripInput): Promise<UmrahTrip>;
   deleteTrip(id: string): Promise<void>;

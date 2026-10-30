@@ -1,0 +1,7 @@
+ALTER POLICY "activity select" ON public.activity_log TO authenticated USING (public.is_office_member(office_id) AND (public.is_office_admin(office_id) OR actor_id = auth.uid()));
+ALTER POLICY "services insert" ON public.services TO authenticated WITH CHECK (office_id IS NOT NULL AND public.is_office_admin(office_id));
+ALTER POLICY "services update" ON public.services TO authenticated USING (office_id IS NOT NULL AND public.is_office_admin(office_id)) WITH CHECK (office_id IS NOT NULL AND public.is_office_admin(office_id));
+ALTER POLICY "services delete" ON public.services TO authenticated USING (office_id IS NOT NULL AND public.is_office_admin(office_id));
+CREATE OR REPLACE FUNCTION public.team_last_activity(_office uuid) RETURNS TABLE(user_id uuid, last_activity_at timestamptz) LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$ BEGIN IF NOT public.is_office_admin(_office) THEN RAISE EXCEPTION 'Not authorized' USING ERRCODE = '42501'; END IF; RETURN QUERY SELECT m.user_id, max(a.created_at) FROM public.office_members m LEFT JOIN public.activity_log a ON a.office_id = m.office_id AND a.actor_id = m.user_id WHERE m.office_id = _office GROUP BY m.user_id; END; $$;
+REVOKE ALL ON FUNCTION public.team_last_activity(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.team_last_activity(uuid) TO authenticated;

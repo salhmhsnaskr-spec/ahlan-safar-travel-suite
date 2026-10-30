@@ -12,6 +12,7 @@ import { Logo } from "@/components/brand";
 import { useData, usePaths } from "@/lib/data/context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { canManageOffice } from "@/lib/staff";
 
 type NavItem = { to: string; label: string; icon: typeof Bell; exact?: boolean };
 
@@ -34,11 +35,10 @@ export function AppShell({ children, footer }: { children: ReactNode; footer?: R
     { to: p.umrah, label: "رحلات العمرة", icon: Moon },
     { to: p.tasks, label: "المهام", icon: ListTodo },
     { to: p.documents, label: "المستندات", icon: FolderOpen },
-    { to: p.services, label: "الخدمات", icon: Briefcase },
-    { to: p.partners, label: "المكاتب الشريكة", icon: Handshake },
+    ...(canManageOffice(api.role) ? [{ to: p.services, label: "الخدمات", icon: Briefcase }, { to: p.partners, label: "المكاتب الشريكة", icon: Handshake }] : []),
     { to: p.notifications, label: "الإشعارات", icon: Bell },
     { to: p.reports, label: "التقارير", icon: BarChart3 },
-    { to: p.activity, label: "سجل النشاط", icon: History },
+    { to: p.activity, label: api.role === "admin" ? "سجل النشاط" : "نشاطي", icon: History },
   ];
   if (isOwner) items.push({ to: "/owner", label: "لوحة مالك المنصة", icon: ShieldCheck });
   if (api.mode === "cloud" && api.role === "admin") items.push({ to: "/app/team", label: "إدارة الفريق", icon: UserCog });

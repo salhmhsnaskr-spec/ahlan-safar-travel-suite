@@ -16,5 +16,6 @@
 - [x] Plan revised and approved.
 - [x] Batch 1: invitations, roles, suspend/remove, last active admin guard.
 - [ ] Batch 1 email delivery — blocked: needs sender domain from user.
-- [ ] Batch 2-5 (staff UI, team page activity, audit/attribution, performance reports, full tests) — waiting for user review of batch 1.
+- [ ] Batch 2: employee office view, own activity, team last activity and member view — in progress, approved.
+- [ ] Batch 3-5 (audit/attribution, performance reports, full tests) — waiting for user review of batch 2.
 - [x] 4 safeguards added to plan.

@@ -116,8 +116,13 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
       const rm = await supabase.storage.from("documents").remove([doc.storage_path]);
       if (rm.error) console.warn("تعذر حذف الملف من التخزين:", rm.error.message);
     },
-    listActivity: async () =>
-      must(await supabase.from("activity_log").select("*").eq("office_id", officeId).order("created_at", { ascending: false }).limit(200)),
+    listActivity: async (actorId) => {
+      let query = supabase.from("activity_log").select("*").eq("office_id", officeId);
+      const actor = role === "employee" ? userId : actorId;
+      if (actor) query = query.eq("actor_id", actor);
+      return must(await query.order("created_at", { ascending: false }).limit(200));
+    },
+    listTeamActivity: async () => must(await supabase.rpc("team_last_activity", { _office: officeId })),
     listTrips: async () =>
       must(await supabase.from("umrah_trips").select("*").eq("office_id", officeId).order("created_at", { ascending: false })),
     saveTrip: async ({ id, ...rest }) =>

@@ -4,12 +4,16 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useData, useMembers } from "@/lib/data/context";
-import { Field, NativeSelect, PageHeader } from "@/components/kit";
+import { useData, useMembers, useTeamActivity } from "@/lib/data/context";
+import { Field, NativeSelect, PageHeader, ReadState } from "@/components/kit";
 import { ConfirmDelete } from "@/components/confirm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Member } from "@/lib/domain";
+import { formatDateTime } from "@/lib/domain";
+import { activityIsRecent } from "@/lib/staff";
+import { ActivityPage } from "@/components/pages/activity";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/app/team")({
   head: () => ({ meta: [{ title: "إدارة الفريق — أهلًا سفر" }, { name: "description", content: "دعوة موظفي المكتب وإدارة أدوارهم وعضوياتهم." }, { property: "og:title", content: "إدارة الفريق — أهلًا سفر" }, { property: "og:description", content: "إدارة الفريق." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -38,7 +42,11 @@ function inviteState(i: Invite) {
 function Team() {
   const { office } = Route.useRouteContext();
   const api = useData();
-  const members = useMembers().data ?? [];
+  const memberQuery = useMembers();
+  const members = memberQuery.data ?? [];
+  const teamActivity = useTeamActivity();
+  const lastActivity = new Map((teamActivity.data ?? []).map((a) => [a.user_id, a.last_activity_at]));
+  const [selected, setSelected] = useState<Member | null>(null);
   const qc = useQueryClient();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "employee">("employee");
@@ -96,17 +104,20 @@ function Team() {
       )}
 
       <h2 className="mb-2 font-semibold">الأعضاء</h2>
+      <ReadState queries={[memberQuery, teamActivity]} title="تعذّر تحميل الفريق وآخر نشاط">
       <ul className="mb-6 divide-y rounded-xl border bg-card">
         {visible.map((m) => {
-          const st = memberStatus[m.status ?? "active"]!;
+          const st = memberStatus[m.status ?? "active"] ?? { label: "غير معروفة", cls: "bg-muted text-muted-foreground" };
           const self = m.user_id === api.userId;
           return (
             <li key={m.user_id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
               <div className="min-w-0">
                 <p className="font-medium">{m.full_name || "—"} {self && <span className="text-xs text-muted-foreground">(أنت)</span>} <span className={`ms-1 rounded-full px-2 py-0.5 text-xs ${st.cls}`}>{st.label}</span></p>
                 <p className="text-xs text-muted-foreground"><span dir="ltr">{m.email}</span> · انضم {fmt(m.joined_at)}</p>
+                <p className="text-xs text-muted-foreground">آخر نشاط: {formatDateTime(lastActivity.get(m.user_id))} · {activityIsRecent(lastActivity.get(m.user_id)) ? "نشط خلال آخر 30 يومًا" : "لا نشاط مسجل خلال آخر 30 يومًا"}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" variant="outline" onClick={() => setSelected(m)}>ملف الموظف</Button>
                 <NativeSelect aria-label="الدور" className="h-8 w-28 text-xs" value={m.role} onChange={async (e) => {
                   const { error } = await supabase.from("office_members").update({ role: e.target.value as "admin" | "employee" }).eq("office_id", office.id).eq("user_id", m.user_id);
                   if (error) toast.error(error.message); refresh();
@@ -120,6 +131,7 @@ function Team() {
           );
         })}
       </ul>
+      </ReadState>
 
       <h2 className="mb-2 font-semibold">الدعوات</h2>
       {invites.isError ? <p className="mb-6 text-sm text-danger">تعذّر تحميل الدعوات. <button className="underline" onClick={() => invites.refetch()}>إعادة المحاولة</button></p> :
@@ -158,8 +170,15 @@ function Team() {
       {former.length > 0 && (<>
         <h2 className="mb-2 font-semibold text-muted-foreground">موظفون سابقون</h2>
         <p className="mb-2 text-xs text-muted-foreground">تبقى أعمالهم السابقة منسوبة إليهم. لإعادتهم أرسل دعوة جديدة.</p>
-        <ul className="divide-y rounded-xl border bg-card">{former.map((m) => <li key={m.user_id} className="px-4 py-3 text-sm">{m.full_name || "—"} · <span dir="ltr">{m.email}</span></li>)}</ul>
+        <ul className="divide-y rounded-xl border bg-card">{former.map((m) => <li key={m.user_id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"><span>{m.full_name || "—"} · <span dir="ltr">{m.email}</span> · آخر نشاط: {formatDateTime(lastActivity.get(m.user_id))}</span><Button size="sm" variant="outline" onClick={() => setSelected(m)}>ملف الموظف</Button></li>)}</ul>
       </>)}
+
+      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+        <DialogContent dir="rtl" className="max-h-[85dvh] max-w-3xl overflow-y-auto">
+          <DialogHeader><DialogTitle className="text-start">{selected?.full_name || selected?.email || "ملف الموظف"}</DialogTitle><DialogDescription className="text-start">{selected?.role === "admin" ? "مدير" : "موظف"} · {memberStatus[selected?.status ?? "active"]?.label} · انضم {fmt(selected?.joined_at)} · آخر نشاط: {formatDateTime(selected ? lastActivity.get(selected.user_id) : null)}</DialogDescription></DialogHeader>
+          {selected && <ActivityPage key={selected.user_id} actorId={selected.user_id} embedded />}
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDelete open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}
         title={confirm?.action === "removed" ? "إزالة العضو من المكتب؟" : "إيقاف العضوية مؤقتًا؟"}

@@ -926,6 +926,13 @@ export type Database = {
         Returns: undefined
       }
       shares_office: { Args: { _user: string }; Returns: boolean }
+      team_last_activity: {
+        Args: { _office: string }
+        Returns: {
+          last_activity_at: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "employee"

@@ -50,6 +50,13 @@
       "when": 1793317748551,
       "tag": "0006_invitations_hide_token_hash",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793318696972,
+      "tag": "0007_staff_workspace_and_team_activity",
+      "breakpoints": true
     }
   ]
 }
