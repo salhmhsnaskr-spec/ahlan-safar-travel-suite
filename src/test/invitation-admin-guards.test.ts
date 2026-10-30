@@ -44,7 +44,7 @@ async function as(user: string, action: () => Promise<void>) {
 }
 const addInvite = (createdAgo = "2 minutes") => db.exec(`INSERT INTO public.office_invitations (id, office_id, email, token_hash, expires_at, created_at)
   VALUES ('${inv}', '${office}', 'a@x.com', 'old-hash', now() + interval '1 day', now() - interval '${createdAgo}')`);
-const resend = async () => (await db.query<{ r: { token?: string; error?: string } }>(`SELECT public.resend_invitation('${inv}') r`)).rows[0].r;
+const resend = async () => (await db.query<{ r: { token?: string; error?: string } }>(`SELECT public.resend_invitation('${inv}') r`)).rows[0]!.r;
 const age = (sql: string) => db.exec(`UPDATE public.office_invitations SET ${sql} WHERE id = '${inv}'`);
 
 describe("Invitation link rotation", () => {
@@ -53,7 +53,7 @@ describe("Invitation link rotation", () => {
       await addInvite();
       const first = await resend();
       expect(first.token).toHaveLength(64);
-      const row = (await db.query<{ token_hash: string; rotation_count: number }>(`SELECT token_hash, rotation_count FROM public.office_invitations WHERE id = '${inv}'`)).rows[0];
+      const row = (await db.query<{ token_hash: string; rotation_count: number }>(`SELECT token_hash, rotation_count FROM public.office_invitations WHERE id = '${inv}'`)).rows[0]!;
       expect(row.token_hash).not.toBe("old-hash");
       expect(row.rotation_count).toBe(1);
       expect((await resend()).error).toBe("too_soon");
@@ -86,7 +86,7 @@ describe("Invitation delivery states", () => {
     await as(admin, async () => {
       await addInvite();
       await db.query(`SELECT public.mark_invitation_sent('${inv}', $1)`, [s]);
-      expect((await db.query<{ send_status: string }>(`SELECT send_status FROM public.office_invitations WHERE id = '${inv}'`)).rows[0].send_status).toBe(s);
+      expect((await db.query<{ send_status: string }>(`SELECT send_status FROM public.office_invitations WHERE id = '${inv}'`)).rows[0]!.send_status).toBe(s);
     });
   });
   it.each(["provider_accepted", "delivered", "sent"])("refuses %s from the browser", async (s) => {
