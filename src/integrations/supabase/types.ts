@@ -318,10 +318,12 @@ export type Database = {
           failed_accepts: number
           id: string
           invited_by: string
+          last_rotated_at: string | null
           last_sent_at: string | null
           office_id: string
           revoked_at: string | null
           role: Database["public"]["Enums"]["app_role"]
+          rotation_count: number
           send_attempts: number
           send_error: string | null
           send_status: string
@@ -337,10 +339,12 @@ export type Database = {
           failed_accepts?: number
           id?: string
           invited_by: string
+          last_rotated_at?: string | null
           last_sent_at?: string | null
           office_id: string
           revoked_at?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          rotation_count?: number
           send_attempts?: number
           send_error?: string | null
           send_status?: string
@@ -356,10 +360,12 @@ export type Database = {
           failed_accepts?: number
           id?: string
           invited_by?: string
+          last_rotated_at?: string | null
           last_sent_at?: string | null
           office_id?: string
           revoked_at?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          rotation_count?: number
           send_attempts?: number
           send_error?: string | null
           send_status?: string

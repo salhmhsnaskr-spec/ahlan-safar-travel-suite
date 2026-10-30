@@ -71,6 +71,13 @@
       "when": 1793321770358,
       "tag": "0009_office_staff_performance_read",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793323348418,
+      "tag": "0010_invitation_rotation_limits_and_delivery_states",
+      "breakpoints": true
     }
   ]
 }
