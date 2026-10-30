@@ -1,0 +1,25 @@
+{
+  "scope": "public application schema and application storage policies; managed Supabase schemas supplied by local platform",
+  "captured_at_utc": "2026-10-30",
+  "source_server_version": "17.11",
+  "counts": {
+    "tables": 15,
+    "columns": 190,
+    "enums": 12,
+    "sequences": 2,
+    "constraints": 54,
+    "indexes": 32,
+    "functions": 29,
+    "triggers": 30,
+    "policies": 50,
+    "column_acl": 16
+  },
+  "sha256": {
+    "20261030000100_prerequisites.sql": "79a80134b4505e7a4103824f356c2f64174911f5e5688c8dc5615f82db9a99e1",
+    "20261030000200_tables_types.sql": "eee563ea298bbfdd6a1694ed51ee91015d1df42d51a582341a3199ebe64deeee",
+    "20261030000300_constraints_indexes.sql": "22ed54a57f690d3825528472915a431a0ccf2c1261051e124bfc880c9658035c",
+    "20261030000400_functions.sql": "d984322c43dde783dd46c88ad6606e7b8d118e0573d84a4b48da6b4da71175e3",
+    "20261030000500_triggers_policies.sql": "ea85ebb40f4bab3b6e63c5d6fcf54ad5fa6374250bd7b67661a2dfe049ff58b4",
+    "20261030000600_permissions.sql": "0b8d4f2ee1ac68cb86eef64ff5babf536d2aa914057cda6cb38ddfacc1208c48"
+  }
+}

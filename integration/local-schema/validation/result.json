@@ -1,0 +1,105 @@
+{
+  "status": "partial validation passed",
+  "results": [
+    {
+      "name": "20261030000100_prerequisites.sql",
+      "status": "applied"
+    },
+    {
+      "name": "20261030000200_tables_types.sql",
+      "status": "applied"
+    },
+    {
+      "name": "20261030000300_constraints_indexes.sql",
+      "status": "applied"
+    },
+    {
+      "name": "20261030000400_functions.sql",
+      "status": "applied"
+    },
+    {
+      "name": "20261030000500_triggers_policies.sql",
+      "status": "applied"
+    },
+    {
+      "name": "20261030000600_permissions.sql",
+      "status": "applied"
+    },
+    {
+      "name": "tables and RLS",
+      "status": "passed",
+      "count": 15
+    },
+    {
+      "name": "columns/defaults/identity",
+      "status": "passed",
+      "count": 190
+    },
+    {
+      "name": "constraints",
+      "status": "passed",
+      "count": 54
+    },
+    {
+      "name": "indexes",
+      "status": "passed",
+      "count": 32
+    },
+    {
+      "name": "enums",
+      "status": "passed",
+      "count": 12
+    },
+    {
+      "name": "sequence configuration",
+      "status": "passed",
+      "count": 2
+    },
+    {
+      "name": "functions exact definitions/owners",
+      "status": "passed",
+      "count": 29
+    },
+    {
+      "name": "triggers",
+      "status": "passed",
+      "count": 30
+    },
+    {
+      "name": "policies",
+      "status": "passed",
+      "count": 50
+    },
+    {
+      "name": "relation ACL",
+      "status": "passed",
+      "count": 529
+    },
+    {
+      "name": "function ACL",
+      "status": "passed",
+      "count": 109
+    },
+    {
+      "name": "column ACL",
+      "status": "passed",
+      "count": 16
+    },
+    {
+      "name": "schema ACL",
+      "status": "passed",
+      "count": 8
+    },
+    {
+      "name": "default ACL",
+      "status": "passed",
+      "count": 100
+    },
+    {
+      "name": "all application tables empty",
+      "status": "passed",
+      "count": 15
+    }
+  ],
+  "full_supabase_rebuild_verified": false
+}
