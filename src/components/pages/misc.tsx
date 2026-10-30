@@ -32,6 +32,8 @@ export function ServicesPage() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
+  const api = useData();
+  if (api.role !== "admin") return <p role="alert">هذه الصفحة للمدير فقط.</p>;
   return (
     <>
       <PageHeader title="الخدمات" subtitle="الخدمات الأساسية متاحة لكل المكاتب، ويمكنك إضافة خدمات خاصة بمكتبك." actions={<Button onClick={() => { setEditId(null); setName(""); setDesc(""); setOpen(true); }}><Plus /> خدمة جديدة</Button>} />
@@ -85,6 +87,8 @@ export function PartnersPage() {
   const [editing, setEditing] = useState<Partner | null>(null);
   const [open, setOpen] = useState(false);
   const [toDelete, setToDelete] = useState<Partner | null>(null);
+
+  if (!isAdmin) return <p role="alert">هذه الصفحة للمدير فقط.</p>;
 
   return (
     <>

@@ -1,26 +1,29 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useActivity, useMembers, usePaths } from "@/lib/data/context";
-import { EmptyState, Loading, NativeSelect, PageHeader } from "@/components/kit";
+import { useActivity, useData, useMembers, usePaths } from "@/lib/data/context";
+import { EmptyState, NativeSelect, PageHeader, ReadState } from "@/components/kit";
 import { activityActionLabels, activityEntityLabels, bookingStatusLabels, formatDateTime, statusLabels, taskStatusLabels } from "@/lib/domain";
 
 const statusText = (entity: string, s: string) =>
   (entity === "bookings" ? bookingStatusLabels : entity === "tasks" ? taskStatusLabels : statusLabels)[s as never] ?? s;
 
-export function ActivityPage() {
+export function ActivityPage({ actorId, embedded = false }: { actorId?: string; embedded?: boolean } = {}) {
   const p = usePaths();
-  const { data, isLoading } = useActivity();
-  const members = new Map((useMembers().data ?? []).map((m) => [m.user_id, m.full_name || m.email || "—"]));
+  const api = useData();
+  const activity = useActivity(actorId);
+  const memberQuery = useMembers();
+  const members = new Map((memberQuery.data ?? []).map((m) => [m.user_id, m.full_name || m.email || "—"]));
   const [entity, setEntity] = useState("");
-  const list = (data ?? []).filter((a) => !entity || a.entity === entity);
+  const list = (activity.data ?? []).filter((a) => (!entity || a.entity === entity) && (api.role === "admin" || a.actor_id === api.userId));
   return (
     <>
-      <PageHeader title="سجل النشاط" subtitle="آخر العمليات المهمة في مكتبك" />
+      {!embedded && <PageHeader title={api.role === "admin" ? "سجل النشاط" : "نشاطي"} subtitle="آخر 200 عملية مسجلة" />}
       <NativeSelect aria-label="نوع العنصر" className="mb-4 w-auto" value={entity} onChange={(e) => setEntity(e.target.value)}>
         <option value="">كل العناصر</option>
         {Object.entries(activityEntityLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
       </NativeSelect>
-      {isLoading ? <Loading /> : list.length === 0 ? <EmptyState title="لا يوجد نشاط بعد" /> : (
+      <ReadState queries={[activity, memberQuery]} title="تعذّر تحميل النشاط">
+      {list.length === 0 ? <EmptyState title="لا يوجد نشاط بعد" /> : (
         <ol className="divide-y rounded-xl border bg-card">
           {list.map((a) => {
             const [label, extra] = (a.summary ?? "").split("|");
@@ -42,6 +45,7 @@ export function ActivityPage() {
           })}
         </ol>
       )}
+      </ReadState>
     </>
   );
 }

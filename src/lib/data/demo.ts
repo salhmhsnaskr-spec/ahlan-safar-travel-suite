@@ -329,7 +329,12 @@ export function createDemoApi(): DataApi {
     },
     documentUrl: async (doc) => doc.data_url ?? "",
     deleteDocument: (doc) => mutate((db) => void (db.documents = (db.documents ?? []).filter((d) => d.id !== doc.id))),
-    listActivity: async () => {
+    listTeamActivity: async () => {
+      const db = load();
+      const dates = [...db.customers, ...db.requests, ...db.bookings, ...db.tasks, ...(db.documents ?? [])].map((r) => r.created_at).sort();
+      return db.members.map((m) => ({ user_id: m.user_id, last_activity_at: m.user_id === "demo-admin" ? dates.at(-1) ?? null : null }));
+    },
+    listActivity: async (actorId) => {
       const db = load();
       const row = (entity: string, id: string, action: string, summary: string, at: string): ActivityRow =>
         ({ id: id + action + at, office_id: DEMO_OFFICE, actor_id: "demo-admin", entity, entity_id: id, action, summary, created_at: at });
@@ -341,7 +346,7 @@ export function createDemoApi(): DataApi {
         ...db.tasks.map((t) => row("tasks", t.id, t.updated_at !== t.created_at ? "status" : "created", t.title + (t.updated_at !== t.created_at ? "|" + t.status : ""), t.updated_at)),
         ...(db.documents ?? []).map((d) => row("documents", d.id, "created", d.file_name, d.created_at)),
       ];
-      return out.sort((a, b) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 200);
+      return out.filter((a) => !actorId || a.actor_id === actorId).sort((a, b) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 200);
     },
     deleteTask: (id) => mutate((db) => void (db.tasks = db.tasks.filter((t) => t.id !== id))),
     listTrips: async () => (load().trips ?? []).slice().sort((a, b) => (a.created_at < b.created_at ? 1 : -1)),

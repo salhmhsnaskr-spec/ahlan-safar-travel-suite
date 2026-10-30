@@ -54,7 +54,7 @@ export function DashboardPage() {
     { label: "العملاء", value: cs.length, icon: Users, to: p.customers },
     { label: "طلبات مفتوحة", value: rs.filter((r) => isOpenStatus(r.status)).length, icon: ClipboardList, to: p.requests },
     { label: "الحجوزات", value: bookings.length, icon: CalendarCheck, to: p.bookings },
-    { label: "مكاتب شريكة نشطة", value: partners.filter((x) => x.status === "active").length, icon: Handshake, to: p.partners },
+    ...(api.role === "admin" ? [{ label: "مكاتب شريكة نشطة", value: partners.filter((x) => x.status === "active").length, icon: Handshake, to: p.partners }] : []),
   ];
   const max = Math.max(1, ...statusOrder.map((s) => rs.filter((r) => r.status === s).length));
 

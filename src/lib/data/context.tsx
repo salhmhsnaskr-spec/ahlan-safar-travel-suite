@@ -117,9 +117,14 @@ export const useDocuments = () => {
   const api = useData();
   return useQuery({ queryKey: [api.key, "documents"], queryFn: api.listDocuments });
 };
-export const useActivity = () => {
+export const useActivity = (actorId?: string) => {
   const api = useData();
-  return useQuery({ queryKey: [api.key, "activity"], queryFn: api.listActivity });
+  const actor = api.role === "employee" ? api.userId : actorId;
+  return useQuery({ queryKey: [api.key, "activity", actor ?? "all", api.userId], queryFn: () => api.listActivity(actor) });
+};
+export const useTeamActivity = () => {
+  const api = useData();
+  return useQuery({ queryKey: [api.key, "team-activity", api.userId], queryFn: api.listTeamActivity, enabled: api.role === "admin" });
 };
 export const useUploadDocument = () => useMut((a, i: { file: File; links: DocumentLinks }) => a.uploadDocument(i.file, i.links), "تم رفع الوثيقة");
 export const useDeleteDocument = () => useMut((a, d: import("@/lib/domain").DocumentRow) => a.deleteDocument(d), "تم حذف الوثيقة");
