@@ -7,7 +7,7 @@ export const emptyTerminalAttribution = { completed_by: null, completed_at: null
 export function stampDemoWork<T extends { status?: string; created_by?: string | null; created_at: string }>(
   old: T | undefined, next: T, actor: string, now: string,
 ) {
-  const stamped = { ...next, created_by: old?.created_by ?? actor, created_at: old?.created_at ?? next.created_at, updated_by: old ? actor : null };
+  const stamped = { ...next, created_by: old ? old.created_by ?? null : actor, created_at: old?.created_at ?? next.created_at, updated_by: old ? actor : null };
   if (!('status' in next) || next['status'] === 'done') return stamped;
   if (old && old['status'] === next['status']) return {
     ...stamped,

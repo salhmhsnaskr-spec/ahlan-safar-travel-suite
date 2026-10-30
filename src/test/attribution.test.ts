@@ -112,4 +112,5 @@ it('demo keeps terminal credit stable and excludes raw secret fields',()=>{
   expect(stampDemoWork(old,{...old,completed_by:admin},admin,'2026-10-30')).toMatchObject({completed_by:employee,completed_at:'2026-10-02'});
   expect(stampDemoWork(old,{...old,status:'new'},admin,'2026-10-30')).toMatchObject({completed_by:null,completed_at:null});
   expect(safeAuditValues({status:'new',password:'secret',service_details:{token:'secret'}})).toEqual({status:'new'});
+  expect(stampDemoWork({...old,created_by:null}, {...old,created_by:null},admin,'2026-10-30')).toMatchObject({created_by:null});
 });
