@@ -51,6 +51,11 @@
       "count": 12
     },
     {
+      "name": "sequence configuration",
+      "status": "passed",
+      "count": 2
+    },
+    {
       "name": "functions exact definitions/owners",
       "status": "passed",
       "count": 29
@@ -79,6 +84,16 @@
       "name": "column ACL",
       "status": "passed",
       "count": 16
+    },
+    {
+      "name": "schema ACL",
+      "status": "passed",
+      "count": 8
+    },
+    {
+      "name": "default ACL",
+      "status": "passed",
+      "count": 100
     },
     {
       "name": "all application tables empty",
