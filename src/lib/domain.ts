@@ -176,8 +176,8 @@ export function formatDateTime(d: string | null | undefined) {
 
 export type DocumentRow = Tables<"documents"> & { data_url?: string };
 export type ActivityRow = Tables<"activity_log">;
-export const activityEntityLabels: Record<string, string> = { customers: "عميل", requests: "طلب", bookings: "حجز", tasks: "مهمة", documents: "وثيقة" };
-export const activityActionLabels: Record<string, string> = { created: "إنشاء", updated: "تعديل", deleted: "حذف", status: "تغيير حالة" };
+export const activityEntityLabels: Record<string, string> = { customers: "عميل", requests: "طلب", bookings: "حجز", tasks: "مهمة", documents: "وثيقة", umrah_trips: "رحلة عمرة", umrah_participants: "معتمر", office_members: "عضوية", invitations: "دعوة" };
+export const activityActionLabels: Record<string, string> = { created: "إنشاء", updated: "تعديل", deleted: "حذف", status: "تغيير حالة", completed: "إكمال", cancelled: "إلغاء", reopened: "إعادة فتح", member_active: "تفعيل العضوية", member_suspended: "إيقاف العضوية", member_removed: "إزالة العضوية", accepted: "قبول دعوة", resent: "إعادة إرسال", revoked: "إلغاء الدعوة" };
 export function formatBytes(n: number | null | undefined) {
   if (!n) return "—";
   return n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`;

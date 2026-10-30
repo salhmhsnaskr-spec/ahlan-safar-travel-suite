@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate, priorityLabels, requestCode, statusLabels, statusOrder, type Customer, type TravelRequest } from "@/lib/domain";
 import { cleanDetails, deriveServiceDate, fieldsFor, findDuplicateCustomer, searchCustomers, type ServiceDetails } from "@/lib/transaction";
+import { WorkAttribution } from "@/components/work-attribution";
 
 type Common = { source: TravelRequest["source"]; referring_partner_id: string; service_id: string; assigned_to: string; service_date: string; priority: TravelRequest["priority"]; status: TravelRequest["status"]; details: string; notes: string };
 const blankCommon: Common = { source: "direct", referring_partner_id: "", service_id: "", assigned_to: "", service_date: "", priority: "normal", status: "new", details: "", notes: "" };
@@ -276,6 +277,7 @@ function TransactionDetailContent({ id }: { id: string }) {
 
   return (
     <>
+      <WorkAttribution work={r} />
       <Link to={p.requests} className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowRight className="size-4" /> الطلبات</Link>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">

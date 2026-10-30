@@ -18,5 +18,8 @@
 - [ ] Batch 1 email delivery — blocked: needs sender domain from user.
 - [x] Batch 2: employee office view, own activity, team last activity and member view; 28 isolated tests passed; real admin/team/profile and employee/direct-read/phone checks passed.
 - [ ] Batch 2 live non-empty employee history and session revocation — not tested: employee has no recorded activity; suspension would change an existing membership. Covered with isolated fixtures only.
-- [ ] Batch 3-5 (audit/attribution, performance reports, full tests) — waiting for user review of batch 2.
+- [x] Batch 3: immutable audit, trusted attribution, completion/reopening and historical identity; 63 tests passed, real-office read-only history and demo transition UI verified; no existing work/member records changed and no publishing. Results: .lovable/phase-3-results.md.
+- [ ] Batch 3 real write/reopen/readback with two separate test users/offices — deferred: requires isolated live test setup; not performed on existing office records.
+- [ ] Batch 4: verifiable performance reports — waiting for review of batch 3.
+- [ ] Batch 5: full live security tests — waiting for review of batch 4.
 - [x] 4 safeguards added to plan.

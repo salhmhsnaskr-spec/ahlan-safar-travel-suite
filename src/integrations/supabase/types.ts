@@ -18,31 +18,46 @@ export type Database = {
         Row: {
           action: string
           actor_id: string | null
+          actor_name: string | null
+          changed_fields: string[] | null
           created_at: string
           entity: string
           entity_id: string | null
           id: string
+          new_values: Json | null
           office_id: string
+          old_values: Json | null
+          result: string | null
           summary: string | null
         }
         Insert: {
           action: string
           actor_id?: string | null
+          actor_name?: string | null
+          changed_fields?: string[] | null
           created_at?: string
           entity: string
           entity_id?: string | null
           id?: string
+          new_values?: Json | null
           office_id: string
+          old_values?: Json | null
+          result?: string | null
           summary?: string | null
         }
         Update: {
           action?: string
           actor_id?: string | null
+          actor_name?: string | null
+          changed_fields?: string[] | null
           created_at?: string
           entity?: string
           entity_id?: string | null
           id?: string
+          new_values?: Json | null
           office_id?: string
+          old_values?: Json | null
+          result?: string | null
           summary?: string | null
         }
         Relationships: [
@@ -58,6 +73,10 @@ export type Database = {
       bookings: {
         Row: {
           assigned_employee_id: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          completed_at: string | null
+          completed_by: string | null
           created_at: string
           created_by: string | null
           customer_id: string
@@ -72,9 +91,14 @@ export type Database = {
           service_id: string | null
           status: Database["public"]["Enums"]["booking_status"]
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           assigned_employee_id?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
           created_by?: string | null
           customer_id: string
@@ -89,9 +113,14 @@ export type Database = {
           service_id?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           assigned_employee_id?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
           created_by?: string | null
           customer_id?: string
@@ -106,6 +135,7 @@ export type Database = {
           service_id?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -154,6 +184,7 @@ export type Database = {
           referring_partner_id: string | null
           source: Database["public"]["Enums"]["customer_source"]
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -170,6 +201,7 @@ export type Database = {
           referring_partner_id?: string | null
           source?: Database["public"]["Enums"]["customer_source"]
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -186,6 +218,7 @@ export type Database = {
           referring_partner_id?: string | null
           source?: Database["public"]["Enums"]["customer_source"]
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -517,6 +550,10 @@ export type Database = {
           assigned_to: string | null
           booked_at: string | null
           booking_ref: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          completed_at: string | null
+          completed_by: string | null
           created_at: string
           created_by: string | null
           customer_id: string
@@ -533,11 +570,16 @@ export type Database = {
           source: Database["public"]["Enums"]["request_source"]
           status: Database["public"]["Enums"]["request_status"]
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           assigned_to?: string | null
           booked_at?: string | null
           booking_ref?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
           created_by?: string | null
           customer_id: string
@@ -554,11 +596,16 @@ export type Database = {
           source?: Database["public"]["Enums"]["request_source"]
           status?: Database["public"]["Enums"]["request_status"]
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           assigned_to?: string | null
           booked_at?: string | null
           booking_ref?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
           created_by?: string | null
           customer_id?: string
@@ -575,6 +622,7 @@ export type Database = {
           source?: Database["public"]["Enums"]["request_source"]
           status?: Database["public"]["Enums"]["request_status"]
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -672,6 +720,7 @@ export type Database = {
           task_type: Database["public"]["Enums"]["task_type"]
           title: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           airport?: string | null
@@ -693,6 +742,7 @@ export type Database = {
           task_type?: Database["public"]["Enums"]["task_type"]
           title: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           airport?: string | null
@@ -714,6 +764,7 @@ export type Database = {
           task_type?: Database["public"]["Enums"]["task_type"]
           title?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -892,6 +943,7 @@ export type Database = {
         }
         Returns: string
       }
+      audit_safe_values: { Args: { _row: Json }; Returns: Json }
       create_invitation: {
         Args: {
           _email: string

@@ -15,6 +15,7 @@ import {
   bookingCode, bookingStatusLabels, bookingStatusOrder, bookingStatusTone, formatDate, requestCode, type Booking, type BookingStatus,
 } from "@/lib/domain";
 import { cn } from "@/lib/utils";
+import { WorkAttribution } from "@/components/work-attribution";
 
 export function BookingBadge({ status }: { status: BookingStatus }) {
   return (
@@ -177,6 +178,7 @@ export function BookingDetailPage({ id }: { id: string }) {
       <dl className="grid gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-2">
         {info.map(([k, v]) => <div key={k} className="bg-card px-4 py-3"><dt className="text-xs text-muted-foreground">{k}</dt><dd className="mt-0.5 text-sm font-medium">{v}</dd></div>)}
       </dl>
+      <WorkAttribution work={b} />
       {b.notes && <div className="mt-4 whitespace-pre-wrap rounded-xl border bg-card p-4 text-sm">{b.notes}</div>}
       <h2 className="mb-3 mt-8 font-semibold">المهام المرتبطة بالحجز</h2>
       <TaskList list={tasks} emptyTitle="لا توجد مهام لهذا الحجز" />
