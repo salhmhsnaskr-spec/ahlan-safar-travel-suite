@@ -24,5 +24,8 @@
 - [ ] Batch 3 live concurrent updates — not tested; distinct from the requested sequential four-actor verification.
 - [x] Batch 4: filtered drillable staff reports, actor-scoped database snapshot, current completion/cancellation vs historical audit, CSV/print, historical unattributed; 74/74 tests and demo browser flow passed. No production account testing, data-row writes or publishing. Report: .lovable/phase-4-results.md.
 - [ ] Batch 4 isolated real-auth integration — blocked: needs a Docker-capable isolated runner authorized once; current tests simulate Auth in isolated fixtures, browser verification is demo only.
-- [ ] Batch 5: full live security tests — waiting for review of batch 4.
+- [x] Batch 5 safe assessment: 74/74 isolated tests rerun; four signed-out protected pages redirected to auth with external requests blocked; read-only live RLS/function review and basic scan completed. Report: .lovable/phase-5-results.md.
+- [ ] Batch 5 full real-auth/concurrency security acceptance — blocked: no independent authenticated test environment or Docker/Podman runner; production accounts prohibited. Invitation delivery also needs a configured sender domain. No production mutations or publishing.
+- [ ] Batch 5 deep security scan — running; await completion notification before final security sign-off.
+- [ ] Batch 5 review findings — resend cooldown timestamp not advanced on rotation; delivery status admin-assertable; status-aware last-admin regression coverage missing; selected-office mutation scope relies on RLS. No fixes applied pending review.
 - [x] 4 safeguards added to plan.
