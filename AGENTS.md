@@ -30,3 +30,6 @@
 - Audit values use an explicit safe-field allowlist and retain changed field names without free text, service details or document paths; immutable actor-name snapshots supplement retained profiles, and historical attribution is never backfilled without evidence.
 - Staff reports read a single office-scoped, active-membership-checked RPC snapshot; employees receive only their own entries and activity. Counts and drilldowns share filtered entries, current terminal-state attribution is distinct from historical audit events, and missing identities remain outside staff rankings.
 - Invitation send_status records only provable facts: browsers may set manual_link/not_configured/send_attempted/failed; provider_accepted/delivered come only from a verified server-side provider result; link rotation is limited in resend_invitation under a row lock.
+
+## Independent reconstruction
+- `integration/` has its own `AGENTS.md`; read it before changing files there, because local-only reconstruction must stay outside hosted migration paths.

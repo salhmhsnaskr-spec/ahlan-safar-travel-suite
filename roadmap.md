@@ -1,4 +1,6 @@
 # Security completion
+- [x] Independent integration preparation phase 1: read-only application schema extraction and new standalone reconstruction package; empty-database SQL/catalog/ACL comparison passed; no existing migration/config/application files replaced, no production mutations, no 92-test rerun or publishing.
+- [ ] Phase 1 complete-platform rebuild verification — blocked: Docker/Podman unavailable; local Auth/Storage platform has not been started or verified. Compilation-only dependency shells are not full-platform proof; await approval and an independent runtime. Report: integration/local-schema/REPORT.md.
 - [ ] Final critical integration verification (2026-10-30): environment gate assessed; main project only, no isolated draft, preview/published share database/auth, Docker/Podman unavailable. Blocked pending approval and availability of an independent real-auth multi-connection environment. Do not rerun 92 tests/deep scan/exports; email delivery out of scope. No tests, production sessions, resources or production changes in this round.
 - [x] Prevent removing or demoting the last office administrator.
 - [x] Restrict employee task updates to status and notes, preserving system timestamps.
