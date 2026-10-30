@@ -1,0 +1,29 @@
+# Independent local project, never linked to hosted Cloud.
+project_id = "ahlan-safar-schema-local"
+[api]
+port = 56321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+[db]
+port = 56322
+shadow_port = 56320
+major_version = 17
+[db.seed]
+enabled = false
+[studio]
+port = 56323
+[inbucket]
+port = 56324
+[auth]
+site_url = "http://localhost:8080"
+additional_redirect_urls = ["http://localhost:8080/auth/callback"]
+enable_signup = true
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+[storage]
+enabled = true
+file_size_limit = "20MiB"
+[storage.buckets.documents]
+public = false
+file_size_limit = "20MiB"
