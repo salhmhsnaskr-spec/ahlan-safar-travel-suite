@@ -19,7 +19,8 @@
 - [x] Batch 2: employee office view, own activity, team last activity and member view; 28 isolated tests passed; real admin/team/profile and employee/direct-read/phone checks passed.
 - [ ] Batch 2 live non-empty employee history and session revocation — not tested: employee has no recorded activity; suspension would change an existing membership. Covered with isolated fixtures only.
 - [x] Batch 3: immutable audit, trusted attribution, completion/reopening and historical identity; 63 tests passed, real-office read-only history and demo transition UI verified; no existing work/member records changed and no publishing. Results: .lovable/phase-3-results.md.
-- [ ] Batch 3 live write/reopen/readback — in progress in a newly created isolated office using the requesting user's session; no existing office changes or publishing.
+- [x] Batch 3 live save/reload: separate new test office, one test customer/request/booking; creator/updater/completer/canceller matched session; repeated completion/reopening/recompletion/cancellation verified, 15 real audit rows; existing-office/profile fingerprints unchanged; no publishing. Report appended to .lovable/phase-3-results.md.
+- [ ] Batch 3 live distinct-actor reassignment/concurrency — not tested: only requester session used; needs separately authorized test identities. Waiting for review, no next phase started.
 - [ ] Batch 4: verifiable performance reports — waiting for review of batch 3.
 - [ ] Batch 5: full live security tests — waiting for review of batch 4.
 - [x] 4 safeguards added to plan.
