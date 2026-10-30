@@ -22,6 +22,7 @@
 - [x] Batch 3 live save/reload: separate new test office, one test customer/request/booking; creator/updater/completer/canceller matched session; repeated completion/reopening/recompletion/cancellation verified, 15 real audit rows; existing-office/profile fingerprints unchanged; no publishing. Report appended to .lovable/phase-3-results.md.
 - [ ] Batch 3 live distinct-actor attribution — rechecked 2026-10-30: all three confirmed accounts have active real-office memberships; none verified as independent test-only. Needs four official, email-confirmed independent test accounts and isolated-office invitations. Empty office data does not establish test-only status. No account sessions minted, live writes, or publishing; waiting for user to supply accounts.
 - [ ] Batch 3 live concurrent updates — not tested; distinct from the requested sequential four-actor verification.
-- [ ] Batch 4: verifiable performance reports — authorized 2026-10-30; implement filtered, drillable staff metrics and historical unattributed section; no production account testing or publishing.
+- [x] Batch 4: filtered drillable staff reports, actor-scoped database snapshot, current completion/cancellation vs historical audit, CSV/print, historical unattributed; 74/74 tests and demo browser flow passed. No production account testing, data-row writes or publishing. Report: .lovable/phase-4-results.md.
+- [ ] Batch 4 isolated real-auth integration — blocked: needs a Docker-capable isolated runner authorized once; current tests simulate Auth in isolated fixtures, browser verification is demo only.
 - [ ] Batch 5: full live security tests — waiting for review of batch 4.
 - [x] 4 safeguards added to plan.
