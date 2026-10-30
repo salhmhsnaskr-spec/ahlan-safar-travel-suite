@@ -18,5 +18,7 @@
 - [ ] Batch 1 email delivery — blocked: needs sender domain from user.
 - [x] Batch 2: employee office view, own activity, team last activity and member view; 28 isolated tests passed; real admin/team/profile and employee/direct-read/phone checks passed.
 - [ ] Batch 2 live non-empty employee history and session revocation — not tested: employee has no recorded activity; suspension would change an existing membership. Covered with isolated fixtures only.
-- [ ] Batch 3-5 (audit/attribution, performance reports, full tests) — waiting for user review of batch 2.
+- [ ] Batch 3: immutable audit, trusted actor attribution, completion/reopening rules and historical identity — in progress with user approval; no production record writes or publishing.
+- [ ] Batch 4: verifiable performance reports — waiting for review of batch 3.
+- [ ] Batch 5: full live security tests — waiting for review of batch 4.
 - [x] 4 safeguards added to plan.
