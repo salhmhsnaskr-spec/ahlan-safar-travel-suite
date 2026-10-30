@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { DataApi } from "./api";
 import type { AppRole, Member } from "@/lib/domain";
+import type { PerformanceData } from "@/lib/performance";
 
 function must<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
@@ -123,6 +124,7 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
       return must(await query.order("created_at", { ascending: false }).limit(200));
     },
     listTeamActivity: async () => must(await supabase.rpc("team_last_activity", { _office: officeId })),
+    performance: async () => must(await supabase.rpc("team_performance", { _office: officeId })) as unknown as PerformanceData,
     listTrips: async () =>
       must(await supabase.from("umrah_trips").select("*").eq("office_id", officeId).order("created_at", { ascending: false })),
     saveTrip: async ({ id, ...rest }) =>

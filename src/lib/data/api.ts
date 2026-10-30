@@ -1,5 +1,6 @@
 import type { ActivityRow, AppRole, Booking, DocumentRow, Customer, Member, Partner, Service, Task, TravelRequest, UmrahParticipant, UmrahTrip } from "@/lib/domain";
 import type { TeamActivity } from "@/lib/staff";
+import type { PerformanceData } from "@/lib/performance";
 
 type WorkSystemFields = "id" | "office_id" | "created_at" | "updated_at" | "created_by" | "updated_by" | "completed_by" | "completed_at" | "cancelled_by" | "cancelled_at";
 export type CustomerInput = Partial<Omit<Customer, WorkSystemFields>> & { id?: string | undefined;
@@ -54,6 +55,7 @@ export interface DataApi {
   deleteDocument(doc: DocumentRow): Promise<void>;
   listActivity(actorId?: string): Promise<ActivityRow[]>;
   listTeamActivity(): Promise<TeamActivity[]>;
+  performance(): Promise<PerformanceData>;
   listTrips(): Promise<UmrahTrip[]>;
   saveTrip(input: TripInput): Promise<UmrahTrip>;
   deleteTrip(id: string): Promise<void>;
