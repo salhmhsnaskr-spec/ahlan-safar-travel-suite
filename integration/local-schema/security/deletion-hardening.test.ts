@@ -5,6 +5,8 @@ import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
 import { uuid_ossp } from '@electric-sql/pglite/contrib/uuid_ossp';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { createClient } from '@supabase/supabase-js';
+import { localDeletionTransport } from '../../../src/lib/data/permanent-deletion.server';
 let db:PGlite;
 const root=new URL('../',import.meta.url);
 const office='00000000-0000-0000-0000-000000000001', other='00000000-0000-0000-0000-000000000002';
@@ -21,6 +23,17 @@ beforeAll(async()=>{
   await db.exec(await readFile(new URL(`security/${file}`,root),'utf8'));
 },60000);
 afterAll(async()=>{await db?.close();});
+it('actual installed Storage SDK and deletion adapter accept HEAD 404 after remove (mock HTTP, no network)',async()=>{
+ const methods:string[]=[];
+ const client=createClient('http://127.0.0.1:54321','offline-test-key',{global:{fetch:async(input,init)=>{
+  const url=String(input);methods.push(init?.method ?? 'GET');
+  if(url.includes('/rpc/renew_deletion'))return new Response('null',{headers:{'Content-Type':'application/json'}});
+  if(init?.method==='HEAD')return new Response(null,{status:404});
+  return new Response('[]',{headers:{'Content-Type':'application/json'}});
+ }},auth:{persistSession:false,autoRefreshToken:false}});
+ await localDeletionTransport(client).remove([`${office}/f`],{id:job,office_id:office,target_id:doc,kind:'document',status:'running',attempts:1});
+ expect(methods).toEqual(['DELETE','POST','HEAD']);
+});
 async function transaction(fn:()=>Promise<void>){await db.exec('BEGIN');try{await fn();}finally{await db.exec('ROLLBACK');}}
 async function fixture(){await db.exec(`INSERT INTO profiles(id,full_name) VALUES('${other}','shared identity');
  INSERT INTO auth.users(id,email) VALUES('${other}','offline-fixture.invalid');
@@ -59,6 +72,17 @@ it('lease renewal refuses stale attempt, accepts current and a repeated claim fa
  await db.exec('ROLLBACK TO stale');await db.query('SELECT renew_deletion($1,1)',[job]);await db.exec('SAVEPOINT busy');
  await expect(db.query('SELECT claim_deletion($1)',[job])).rejects.toThrow('busy');await db.exec('ROLLBACK TO busy');
  expect((await db.query('SELECT attempts,lease_until>now() alive FROM deletion_jobs')).rows).toEqual([{attempts:1,alive:true}]);
+}));
+it('expired lease is reclaimed with a new attempt and finalizer lock order is office then job with fail-fast trigger locks',async()=>transaction(async()=>{
+ await fixture();await db.exec(`INSERT INTO deletion_jobs(id,office_id,kind,target_id,status,attempts,lease_until) VALUES('${job}','${office}','document','${doc}','running',1,now()-interval '1 minute');`);
+ await db.query('SELECT claim_deletion($1)',[job]);
+ expect((await db.query('SELECT attempts FROM deletion_jobs')).rows).toEqual([{attempts:2}]);
+ const {rows}=await db.query<{body:string}>(`SELECT prosrc body FROM pg_proc WHERE oid='public.finish_deletion(uuid,integer)'::regprocedure`);
+ const body=rows[0]?.body ?? '';
+ expect(body.indexOf('id=j.office_id FOR UPDATE NOWAIT')).toBeGreaterThan(0);
+ expect(body.indexOf('id=j.office_id FOR UPDATE NOWAIT')).toBeLessThan(body.indexOf('id=_job FOR UPDATE NOWAIT'));
+ const trigger=(await db.query<{body:string}>(`SELECT prosrc body FROM pg_proc WHERE oid='public.guard_deletion_freeze()'::regprocedure`)).rows[0]?.body ?? '';
+ expect(trigger).toContain('id=o FOR UPDATE NOWAIT');
 }));
 it('office finalization preserves populated other office, shared account/profile/membership and other Storage objects',async()=>transaction(async()=>{
  await fixture();
