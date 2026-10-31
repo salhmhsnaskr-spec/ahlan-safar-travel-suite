@@ -3,7 +3,7 @@ export type DeletionJob = { id: string; office_id: string | null; kind: "custome
 export interface DeletionTransport {
   claim(id: string): Promise<DeletionJob>;
   paths(job: DeletionJob): Promise<string[]>;
-  remove(paths: string[]): Promise<void>;
+  remove(paths: string[], job: DeletionJob): Promise<void>;
   remaining(job: DeletionJob): Promise<string[]>;
   finish(id: string, attempt: number): Promise<void>;
   failed(id: string, attempt: number): Promise<void>;
@@ -28,7 +28,7 @@ export async function processDeletion(id: string, transport: DeletionTransport) 
       await transport.renew?.(job);
       const batch = paths.slice(offset, offset + 100);
       if (batch.some(path => !path.startsWith(`${job.office_id}/`) || path.includes('..') || path.includes('\\'))) throw new Error('Invalid Storage scope');
-      await transport.remove(batch);
+      await transport.remove(batch, job);
     }
     if ((await transport.remaining(job)).length) throw new Error('Storage deletion not confirmed');
     await transport.finish(id, job.attempts);

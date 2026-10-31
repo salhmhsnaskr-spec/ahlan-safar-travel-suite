@@ -35,11 +35,12 @@ export function localDeletionTransport(admin: SupabaseClient): DeletionTransport
       }
       return paths;
     },
-    remove: async paths => {
+    remove: async (paths, job) => {
       const result = await admin.storage.from('documents').remove(paths);
       if (result.error) throw new Error('Storage removal failed');
       // Confirm through Storage itself as well as the database catalog.
       for (const path of paths) {
+        await rpc('renew_deletion', job.id, job.attempts);
         const check = await admin.storage.from('documents').exists(path);
         assertStorageAbsent(check);
       }

@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from '@tanstack/react-start';
+import { setLocalMemberRole } from '@/lib/data/permanent-deletion.functions';
 import { useState } from "react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -46,6 +48,7 @@ function inviteState(i: Invite) {
 }
 
 function Team() {
+  const changeRole = useServerFn(setLocalMemberRole);
   const { office } = Route.useRouteContext();
   const api = useData();
   const memberQuery = useMembers();
@@ -125,9 +128,9 @@ function Team() {
               <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" variant="outline" onClick={() => setSelected(m)}>ملف الموظف</Button>
                 <NativeSelect aria-label="الدور" className="h-8 w-28 text-xs" value={m.role} onChange={async (e) => {
-                  // Standalone overlay RPC is not present on hosted Cloud; fail closed there.
-                  const { error } = await supabase.rpc("set_member_role" as never, { _office: office.id, _user: m.user_id, _role: e.target.value } as never);
-                  if (error) toast.error(error.message); refresh();
+                  try { await changeRole({data:{officeId:office.id,userId:m.user_id,role:e.target.value as 'admin'|'employee'}}); }
+                  catch(error) {toast.error(error instanceof Error ? error.message : 'تعذّر تغيير الدور');}
+                  refresh();
                 }}><option value="employee">موظف</option><option value="admin">مدير</option></NativeSelect>
                 {m.status === "suspended"
                   ? <Button size="sm" variant="outline" onClick={() => setStatus(m, "active")}>إعادة التفعيل</Button>
