@@ -30,7 +30,8 @@ export function OwnerDashboard() {
       return r.data as unknown as PlatformStats;
     },
   });
-  if (q.isError) return <EmptyState title="تعذّر تحميل لوحة المالك" body={q.error.message} action={<Button onClick={() => q.refetch()}>إعادة المحاولة</Button>} />;
+  const officeManagement=import.meta.env['VITE_LOCAL_PERMANENT_DELETION']==='1' && <section className="mt-6"><h2 className="mb-2 font-semibold">إدارة المكاتب</h2>{offices.isError?<p>تعذّر تحميل المكاتب.</p>:offices.isLoading?<Loading/>:<ul className="divide-y">{offices.data?.map(o=><li key={o.id} className="flex items-center justify-between gap-3 py-3"><span>{o.name}</span><OwnerOfficeDelete id={o.id} name={o.name}/></li>)}</ul>}</section>;
+  if (q.isError) return <div dir="rtl" className="mx-auto max-w-5xl p-4"><EmptyState title="تعذّر تحميل لوحة المالك" body={q.error.message} action={<Button onClick={() => q.refetch()}>إعادة المحاولة</Button>} />{officeManagement}</div>;
   if (q.isLoading) return <Loading />;
   if (!q.data) return <EmptyState title="غير مصرح" body="هذه الصفحة خاصة بمالك المنصة." action={<Link to="/app" className="text-primary">العودة إلى لوحة المكتب</Link>} />;
   const s = q.data;
@@ -74,7 +75,7 @@ export function OwnerDashboard() {
           ))}
         </ul>
       )}
-      {import.meta.env['VITE_LOCAL_PERMANENT_DELETION']==='1' && <section className="mt-6"><h2 className="mb-2 font-semibold">إدارة المكاتب</h2>{offices.isError?<p>تعذّر تحميل المكاتب.</p>:offices.isLoading?<Loading/>:<ul className="divide-y">{offices.data?.map(o=><li key={o.id} className="flex items-center justify-between gap-3 py-3"><span>{o.name}</span><OwnerOfficeDelete id={o.id} name={o.name}/></li>)}</ul>}</section>}
+      {officeManagement}
     </div>
   );
 }
