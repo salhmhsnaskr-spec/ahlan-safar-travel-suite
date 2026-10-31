@@ -44,7 +44,8 @@ for (const kind of ['customer','office'] as const) it(`permanently finalizes ${k
   await fixture(kind);
   await db.query('SELECT finish_deletion($1,1)',[job]);
   for(const table of ['customers','requests','documents','umrah_participants','activity_log']) {
-   expect((await db.query(`SELECT count(*)::int n FROM ${table} WHERE office_id=$1`,[office])).rows).toEqual([{n:0}]);
+   const expected=table==='activity_log' && kind==='customer' ? 1 : 0; // shared trip's audit is not customer-owned
+   expect((await db.query(`SELECT count(*)::int n FROM ${table} WHERE office_id=$1`,[office])).rows,table).toEqual([{n:expected}]);
   }
   expect((await db.query('SELECT count(*)::int n FROM offices WHERE id=$1',[other])).rows).toEqual([{n:1}]);
   expect((await db.query('SELECT count(*)::int n FROM offices WHERE id=$1',[office])).rows).toEqual([{n:kind==='office'?0:1}]);
