@@ -13,7 +13,7 @@ const independentOnly = createMiddleware().server(async ({ next }) => {
 
 export const permanentDelete = createServerFn({ method: 'POST' })
   .middleware([independentOnly, requireSupabaseAuth])
-  .inputValidator(z.object({ officeId: z.string().uuid(), targetId: z.string().uuid(), kind: z.enum(['customer', 'office']) }))
+  .inputValidator(z.object({ officeId: z.string().uuid(), targetId: z.string().uuid(), kind: z.enum(['customer', 'office', 'document']) }))
   .handler(async ({ data, context }) => {
     const { runLocalDeletion } = await import('./permanent-deletion.server');
     // Database authorization uses the caller session, never a role supplied by the browser.
@@ -37,4 +37,14 @@ export const ownerDeletionOffices=createServerFn({method:'POST'})
   const result=await client.rpc('owner_deletion_offices');
   if(result.error)throw new Error('تعذّر تحميل المكاتب');
   return result.data as {id:string;name:string}[];
+ });
+
+export const setLocalMemberRole = createServerFn({method:'POST'})
+ .middleware([independentOnly,requireSupabaseAuth])
+ .inputValidator(z.object({officeId:z.string().uuid(),userId:z.string().uuid(),role:z.enum(['admin','employee'])}))
+ .handler(async({data,context})=>{
+  const client:SupabaseClient=context.supabase;
+  const result=await client.rpc('set_member_role',{_office:data.officeId,_user:data.userId,_role:data.role});
+  if(result.error)throw new Error(result.error.message);
+  return {ok:true};
  });

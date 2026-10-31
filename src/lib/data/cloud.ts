@@ -1,8 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { DataApi } from "./api";
-import type { AppRole, Member, DocumentRow } from "@/lib/domain";
+import type { AppRole, Member } from "@/lib/domain";
 import type { PerformanceData } from "@/lib/performance";
-import { assertDocumentDeletion } from "./deletion";
 import { assertLocalDeletionEnvironment } from "./permanent-deletion";
 import { permanentDelete } from "./permanent-deletion.functions";
 
@@ -121,24 +120,8 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
       return r.data.signedUrl;
     },
     deleteDocument: async (doc) => {
-      // Never trust the caller's path or uploader: read the canonical scoped row.
-      const current = must<Pick<DocumentRow, "id" | "storage_path" | "uploaded_by">>(await supabase.from("documents").select("id, storage_path, uploaded_by").eq("office_id", officeId).eq("id", doc.id).single());
-      if (!current) throw new Error("لم يُعثر على الوثيقة أو ليست لديك صلاحية الوصول إليها.");
-      assertDocumentDeletion(role, userId, current.uploaded_by);
-      if (!current.storage_path.startsWith(`${officeId}/`)) throw new Error("مسار الوثيقة لا يطابق المكتب؛ أوقف الحذف.");
-      const bucket = supabase.storage.from("documents");
-      const rm = await bucket.remove([current.storage_path]);
-      if (rm.error) throw new Error("تعذّر حذف الملف؛ احتُفظ بسجل الوثيقة لإعادة المحاولة. " + rm.error.message);
-      // remove() may return no objects for denied/missing files. Verify absence,
-      // allowing retries when a previous attempt removed the file but not its row.
-      const slash = current.storage_path.lastIndexOf("/");
-      const name = current.storage_path.slice(slash + 1);
-      const remaining = await bucket.list(current.storage_path.slice(0, slash), { search: name, limit: 100 });
-      if (remaining.error || !remaining.data || remaining.data.some((file) => file.name === name)) {
-        throw new Error("لم يُؤكّد حذف الملف؛ احتُفظ بسجل الوثيقة لإعادة المحاولة.");
-      }
-      const del = await supabase.from("documents").delete().eq("office_id", officeId).eq("id", current.id).select("id");
-      if (del.error || !del.data?.length) throw new Error("حُذف الملف أو تأكد غيابه، لكن لم يُحذف سجل الوثيقة؛ أعد محاولة الحذف.");
+      assertLocalDeletionEnvironment(import.meta.env['VITE_LOCAL_PERMANENT_DELETION'], import.meta.env['VITE_SUPABASE_URL']);
+      await permanentDelete({ data: { officeId, targetId: doc.id, kind: 'document' } });
     },
     listActivity: async (actorId) => {
       let query = supabase.from("activity_log").select("*").eq("office_id", officeId);

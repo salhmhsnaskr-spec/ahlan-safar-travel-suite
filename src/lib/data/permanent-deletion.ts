@@ -1,12 +1,13 @@
 /** Browser-safe orchestration. Adapters own authorization, durable state and file verification. */
-export type DeletionJob = { id: string; office_id: string | null; kind: "customer" | "office"; target_id: string | null; status: string; attempts: number };
+export type DeletionJob = { id: string; office_id: string | null; kind: "customer" | "office" | "document"; target_id: string | null; status: string; attempts: number };
 export interface DeletionTransport {
   claim(id: string): Promise<DeletionJob>;
   paths(job: DeletionJob): Promise<string[]>;
-  remove(paths: string[]): Promise<void>;
+  remove(paths: string[], job: DeletionJob): Promise<void>;
   remaining(job: DeletionJob): Promise<string[]>;
   finish(id: string, attempt: number): Promise<void>;
   failed(id: string, attempt: number): Promise<void>;
+  renew?(job: DeletionJob): Promise<void>;
 }
 
 export function assertLocalDeletionEnvironment(enabled: string | undefined, url: string | undefined) {
@@ -24,9 +25,10 @@ export async function processDeletion(id: string, transport: DeletionTransport) 
     if (!job.office_id || !job.target_id) throw new Error('Invalid deletion scope');
     const paths = await transport.paths(job);
     for (let offset = 0; offset < paths.length; offset += 100) {
+      await transport.renew?.(job);
       const batch = paths.slice(offset, offset + 100);
       if (batch.some(path => !path.startsWith(`${job.office_id}/`) || path.includes('..') || path.includes('\\'))) throw new Error('Invalid Storage scope');
-      await transport.remove(batch);
+      await transport.remove(batch, job);
     }
     if ((await transport.remaining(job)).length) throw new Error('Storage deletion not confirmed');
     await transport.finish(id, job.attempts);
