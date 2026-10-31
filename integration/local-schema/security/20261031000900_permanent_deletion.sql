@@ -85,6 +85,13 @@ BEGIN
  'requests',(SELECT coalesce(jsonb_agg(id),'[]') FROM r),'bookings',(SELECT coalesce(jsonb_agg(id),'[]') FROM b),
  'tasks',(SELECT coalesce(jsonb_agg(id),'[]') FROM t),'documents',(SELECT coalesce(jsonb_agg(id),'[]') FROM d),
  'umrah_participants',(SELECT coalesce(jsonb_agg(id),'[]') FROM u)) INTO e;
+ -- Refuse corrupted cross-office references BEFORE any irreversible file removal.
+ IF EXISTS(SELECT 1 FROM public.requests WHERE office_id<>_office AND customer_id::text IN (SELECT jsonb_array_elements_text(e->'customers')))
+ OR EXISTS(SELECT 1 FROM public.bookings WHERE office_id<>_office AND (customer_id::text IN (SELECT jsonb_array_elements_text(e->'customers')) OR request_id::text IN (SELECT jsonb_array_elements_text(e->'requests'))))
+ OR EXISTS(SELECT 1 FROM public.tasks WHERE office_id<>_office AND (customer_id::text IN (SELECT jsonb_array_elements_text(e->'customers')) OR request_id::text IN (SELECT jsonb_array_elements_text(e->'requests')) OR booking_id::text IN (SELECT jsonb_array_elements_text(e->'bookings'))))
+ OR EXISTS(SELECT 1 FROM public.documents WHERE office_id<>_office AND (customer_id::text IN (SELECT jsonb_array_elements_text(e->'customers')) OR request_id::text IN (SELECT jsonb_array_elements_text(e->'requests')) OR booking_id::text IN (SELECT jsonb_array_elements_text(e->'bookings'))))
+ OR EXISTS(SELECT 1 FROM public.umrah_participants WHERE office_id<>_office AND (customer_id::text IN (SELECT jsonb_array_elements_text(e->'customers')) OR request_id::text IN (SELECT jsonb_array_elements_text(e->'requests')))) THEN
+ RAISE EXCEPTION 'Cross-office reference corruption; no deletion started' USING ERRCODE='42501'; END IF;
  INSERT INTO public.deletion_jobs(office_id,kind,target_id,requested_by,entities) VALUES(_office,_kind,_target,auth.uid(),e) RETURNING * INTO j;
  RETURN j.id;
 END $$;
@@ -93,6 +100,7 @@ CREATE FUNCTION public.deletion_paths(_job uuid) RETURNS TABLE(path text) LANGUA
  WHERE j.status <> 'completed' AND d.id::text IN (SELECT jsonb_array_elements_text(j.entities->'documents'))
  UNION SELECT o.name FROM storage.objects o JOIN public.deletion_jobs j ON j.id=_job
  WHERE j.status <> 'completed' AND j.kind='office' AND o.bucket_id='documents' AND starts_with(o.name,j.office_id::text||'/')
+ ORDER BY 1
 $$;
 CREATE FUNCTION public.deletion_remaining(_job uuid) RETURNS TABLE(path text) LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,public AS $$
  SELECT o.name FROM storage.objects o WHERE o.bucket_id='documents' AND o.name IN (SELECT path FROM public.deletion_paths(_job))

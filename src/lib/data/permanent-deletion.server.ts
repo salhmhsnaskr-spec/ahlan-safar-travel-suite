@@ -22,10 +22,24 @@ export function localDeletionTransport(admin: SupabaseClient): DeletionTransport
   };
   return {
     claim: async id => await rpc('claim_deletion', id) as DeletionJob,
-    paths: async job => (await rpc('deletion_paths', job.id) as { path: string }[]).map(row => row.path),
+    paths: async job => {
+      const paths: string[] = [];
+      for (let offset = 0; ; offset += 500) {
+        const result = await admin.rpc('deletion_paths', { _job: job.id }).range(offset, offset + 499);
+        if (result.error || !Array.isArray(result.data)) throw new Error('Cannot enumerate Storage paths');
+        paths.push(...result.data.map((row: { path: string }) => row.path));
+        if (result.data.length < 500) break;
+      }
+      return paths;
+    },
     remove: async paths => {
       const result = await admin.storage.from('documents').remove(paths);
       if (result.error) throw new Error('Storage removal failed');
+      // Confirm through Storage itself as well as the database catalog.
+      for (const path of paths) {
+        const check = await admin.storage.from('documents').exists(path);
+        if (check.error || check.data) throw new Error('Storage physical absence unverified');
+      }
     },
     remaining: async job => {
       const paths = await rpc('deletion_remaining', job.id) as { path: string }[];
