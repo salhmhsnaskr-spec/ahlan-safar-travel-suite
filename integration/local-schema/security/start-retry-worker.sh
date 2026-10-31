@@ -6,4 +6,7 @@ case "$DELETION_LOCAL_ENV_FILE" in /*) ;; *) echo 'Absolute independent environm
 PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 case "$DELETION_LOCAL_ENV_FILE" in "$PROJECT_ROOT"/*) echo 'Environment file must be outside the project' >&2; exit 1;; esac
 test -f "$DELETION_LOCAL_ENV_FILE"
-exec env -i PATH="$PATH" HOME="$HOME" bun --env-file="$DELETION_LOCAL_ENV_FILE" "$PROJECT_ROOT/integration/local-schema/security/retry-deletions.ts"
+ENV_REAL="$(realpath "$DELETION_LOCAL_ENV_FILE")"
+case "$ENV_REAL" in "$PROJECT_ROOT"/*) echo 'Project environment files are forbidden' >&2; exit 1;; esac
+cd /tmp
+exec env -i PATH="$PATH" HOME="$HOME" bun --env-file="$ENV_REAL" "$PROJECT_ROOT/integration/local-schema/security/retry-deletions.ts"

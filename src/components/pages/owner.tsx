@@ -5,6 +5,8 @@ import { EmptyState, Loading, PageHeader } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/domain";
 import { OwnerOfficeDelete } from '@/components/office-delete';
+import { useServerFn } from '@tanstack/react-start';
+import { ownerDeletionOffices } from '@/lib/data/permanent-deletion.functions';
 
 export type PlatformStats = {
   offices: number; active_offices_30d: number; customers: number;
@@ -15,6 +17,8 @@ export type PlatformStats = {
 
 /** Owner check and stats are both enforced in the database; the UI only reflects the answer. */
 export function OwnerDashboard() {
+  const listOffices=useServerFn(ownerDeletionOffices);
+  const offices=useQuery({queryKey:['owner-deletion-offices'],queryFn:()=>listOffices(),enabled:import.meta.env['VITE_LOCAL_PERMANENT_DELETION']==='1'});
   const q = useQuery({
     queryKey: ["platform-stats"],
     queryFn: async () => {
@@ -65,11 +69,12 @@ export function OwnerDashboard() {
             <li key={o.id} className="flex flex-wrap justify-between gap-2 p-3 text-sm">
               <span className="font-medium">{o.name}</span>
               <span className="text-muted-foreground">{[o.city, o.country].filter(Boolean).join("، ") || "—"} · {o.members} عضو · {formatDate(o.created_at)}</span>
-              <OwnerOfficeDelete id={o.id} name={o.name}/>
+              {import.meta.env['VITE_LOCAL_PERMANENT_DELETION']!=='1' && <OwnerOfficeDelete id={o.id} name={o.name}/>}
             </li>
           ))}
         </ul>
       )}
+      {import.meta.env['VITE_LOCAL_PERMANENT_DELETION']==='1' && <section className="mt-6"><h2 className="mb-2 font-semibold">إدارة المكاتب</h2>{offices.isError?<p>تعذّر تحميل المكاتب.</p>:offices.isLoading?<Loading/>:<ul className="divide-y">{offices.data?.map(o=><li key={o.id} className="flex items-center justify-between gap-3 py-3"><span>{o.name}</span><OwnerOfficeDelete id={o.id} name={o.name}/></li>)}</ul>}</section>}
     </div>
   );
 }

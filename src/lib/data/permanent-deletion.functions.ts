@@ -29,3 +29,12 @@ export const deletionStatus = createServerFn({method:'POST'})
   if(result.error)throw new Error('تعذّر التحقق من حالة الحذف');
   return result.data as unknown as {pending:boolean;status:string|null};
  });
+
+export const ownerDeletionOffices=createServerFn({method:'POST'})
+ .middleware([independentOnly,requireSupabaseAuth])
+ .handler(async({context})=>{
+  const client:SupabaseClient=context.supabase;
+  const result=await client.rpc('owner_deletion_offices');
+  if(result.error)throw new Error('تعذّر تحميل المكاتب');
+  return result.data as {id:string;name:string}[];
+ });

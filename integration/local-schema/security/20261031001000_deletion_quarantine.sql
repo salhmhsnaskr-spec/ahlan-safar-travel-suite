@@ -21,6 +21,13 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.deletion_status(uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.deletion_status(uuid) TO authenticated;
+CREATE FUNCTION public.owner_deletion_offices() RETURNS TABLE(id uuid,name text) LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+BEGIN
+ IF NOT public.is_platform_owner() THEN RAISE EXCEPTION 'Forbidden' USING ERRCODE='42501'; END IF;
+ RETURN QUERY SELECT o.id,o.name FROM public.offices o ORDER BY o.created_at;
+END $$;
+REVOKE ALL ON FUNCTION public.owner_deletion_offices() FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.owner_deletion_offices() TO authenticated;
 -- SECURITY DEFINER reports also need quarantine: RLS alone cannot hide their reads.
 DO $$ DECLARE f text; definition text; BEGIN
  FOREACH f IN ARRAY ARRAY['team_performance','team_last_activity'] LOOP
