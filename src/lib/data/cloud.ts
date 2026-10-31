@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { DataApi } from "./api";
-import type { AppRole, Member } from "@/lib/domain";
+import type { AppRole, Member, DocumentRow } from "@/lib/domain";
 import type { PerformanceData } from "@/lib/performance";
+import { assertCustomerHasNoDependents, assertDocumentDeletion } from "./deletion";
 
 function must<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
@@ -22,7 +23,17 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
       id
         ? must(await supabase.from("customers").update(rest).eq("id", id).select().single())
         : must(await supabase.from("customers").insert({ ...rest, office_id: officeId }).select().single()),
-    deleteCustomer: async (id) => void must(await supabase.from("customers").delete().eq("id", id)),
+    deleteCustomer: async (id) => {
+      const groups = await Promise.all(
+        (["requests", "bookings", "tasks", "documents", "umrah_participants"] as const).map(async (table) =>
+          must(await supabase.from(table).select("id").eq("office_id", officeId).eq("customer_id", id).limit(1)),
+        ),
+      );
+      assertCustomerHasNoDependents(groups);
+      // The prepared RESTRICT FKs are required to close races / direct API bypass.
+      const deleted = must(await supabase.from("customers").delete().eq("office_id", officeId).eq("id", id).select("id"));
+      if (!deleted?.length) throw new Error("لم يُحذف العميل؛ قد لا تملك الصلاحية أو لم يعد موجودًا.");
+    },
     listRequests: async () =>
       must(await supabase.from("requests").select("*").eq("office_id", officeId).order("number", { ascending: false })),
     saveRequest: async ({ id, ...rest }) =>
@@ -82,26 +93,27 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
         throw new Error("تعذّرت قراءة الملف من جهازك. إن كان من معرض الصور أو التخزين السحابي، احفظه على الجهاز أولًا ثم أعد المحاولة.");
       }
       const opts = { contentType: body.type, upsert: false };
+      // Persist cleanup metadata BEFORE Storage: a failed request never loses the
+      // path of a possibly uploaded object (including an ambiguous network error).
+      must(await supabase.from("documents").insert({
+        office_id: officeId, storage_path: path, file_name: file.name, size_bytes: file.size, mime_type: file.type || null,
+        uploaded_by: userId, customer_id: links.customer_id ?? null, booking_id: links.booking_id ?? null, request_id: links.request_id ?? null,
+      }));
       let up = await supabase.storage.from("documents").upload(path, body, opts);
       if (up.error && /failed to fetch|network|load failed/i.test(up.error.message)) {
         await new Promise((r) => setTimeout(r, 1200));
         up = await supabase.storage.from("documents").upload(path, body, opts);
       }
       if (up.error) {
+        // Retain the row for explicit cleanup; do not compensate by discarding
+        // the only durable reference when the upload outcome is uncertain.
+        const retained = " احتُفظ بسجل الوثيقة للتحقق والتنظيف؛ لا يُعد الرفع ناجحًا.";
         const m = up.error.message.toLowerCase();
-        if (m.includes("maximum allowed size") || m.includes("too large")) throw new Error("حجم الملف يتجاوز الحد المسموح (20MB).");
-        if (m.includes("row-level security") || m.includes("unauthorized")) throw new Error("ليست لديك صلاحية رفع ملفات لهذا المكتب.");
-        if (m.includes("jwt") || m.includes("exp claim")) throw new Error("انتهت جلستك، سجّل الدخول من جديد ثم أعد المحاولة.");
-        if (/failed to fetch|network|load failed/.test(m)) throw new Error("انقطع الاتصال أثناء رفع الملف. تحقّق من الإنترنت ثم أعد المحاولة.");
-        throw new Error(up.error.message);
-      }
-      const res = await supabase.from("documents").insert({
-        office_id: officeId, storage_path: path, file_name: file.name, size_bytes: file.size, mime_type: file.type || null,
-        uploaded_by: userId, customer_id: links.customer_id ?? null, booking_id: links.booking_id ?? null, request_id: links.request_id ?? null,
-      });
-      if (res.error) {
-        await supabase.storage.from("documents").remove([path]);
-        throw new Error(res.error.message);
+        if (m.includes("maximum allowed size") || m.includes("too large")) throw new Error("حجم الملف يتجاوز الحد المسموح (20MB)." + retained);
+        if (m.includes("row-level security") || m.includes("unauthorized")) throw new Error("ليست لديك صلاحية رفع ملفات لهذا المكتب." + retained);
+        if (m.includes("jwt") || m.includes("exp claim")) throw new Error("انتهت جلستك، سجّل الدخول من جديد ثم أعد المحاولة." + retained);
+        if (/failed to fetch|network|load failed/.test(m)) throw new Error("انقطع الاتصال أثناء رفع الملف." + retained);
+        throw new Error(up.error.message + retained);
       }
     },
     documentUrl: async (doc) => {
@@ -110,12 +122,24 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
       return r.data.signedUrl;
     },
     deleteDocument: async (doc) => {
-      // Delete the record first so a failure never leaves a record pointing to a missing file.
-      const del = await supabase.from("documents").delete().eq("id", doc.id).select("id");
-      if (del.error) throw new Error(del.error.message);
-      if (!del.data?.length) throw new Error("ليست لديك صلاحية حذف هذه الوثيقة");
-      const rm = await supabase.storage.from("documents").remove([doc.storage_path]);
-      if (rm.error) console.warn("تعذر حذف الملف من التخزين:", rm.error.message);
+      // Never trust the caller's path or uploader: read the canonical scoped row.
+      const current = must<Pick<DocumentRow, "id" | "storage_path" | "uploaded_by">>(await supabase.from("documents").select("id, storage_path, uploaded_by").eq("office_id", officeId).eq("id", doc.id).single());
+      if (!current) throw new Error("لم يُعثر على الوثيقة أو ليست لديك صلاحية الوصول إليها.");
+      assertDocumentDeletion(role, userId, current.uploaded_by);
+      if (!current.storage_path.startsWith(`${officeId}/`)) throw new Error("مسار الوثيقة لا يطابق المكتب؛ أوقف الحذف.");
+      const bucket = supabase.storage.from("documents");
+      const rm = await bucket.remove([current.storage_path]);
+      if (rm.error) throw new Error("تعذّر حذف الملف؛ احتُفظ بسجل الوثيقة لإعادة المحاولة. " + rm.error.message);
+      // remove() may return no objects for denied/missing files. Verify absence,
+      // allowing retries when a previous attempt removed the file but not its row.
+      const slash = current.storage_path.lastIndexOf("/");
+      const name = current.storage_path.slice(slash + 1);
+      const remaining = await bucket.list(current.storage_path.slice(0, slash), { search: name, limit: 100 });
+      if (remaining.error || !remaining.data || remaining.data.some((file) => file.name === name)) {
+        throw new Error("لم يُؤكّد حذف الملف؛ احتُفظ بسجل الوثيقة لإعادة المحاولة.");
+      }
+      const del = await supabase.from("documents").delete().eq("office_id", officeId).eq("id", current.id).select("id");
+      if (del.error || !del.data?.length) throw new Error("حُذف الملف أو تأكد غيابه، لكن لم يُحذف سجل الوثيقة؛ أعد محاولة الحذف.");
     },
     listActivity: async (actorId) => {
       let query = supabase.from("activity_log").select("*").eq("office_id", officeId);

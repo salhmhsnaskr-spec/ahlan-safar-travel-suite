@@ -1,4 +1,5 @@
 import type { DataApi } from "./api";
+import { assertCustomerHasNoDependents } from "./deletion";
 import { buildDemoPerformance } from "@/lib/performance";
 import { emptyWorkAttribution, emptyTerminalAttribution, stampDemoWork, auditAction, safeAuditValues } from "@/lib/attribution";
 import type { ActivityRow, DocumentRow, Booking, Customer, Member, Partner, Service, Task, TravelRequest, UmrahParticipant, UmrahTrip } from "@/lib/domain";
@@ -228,10 +229,14 @@ export function createDemoApi(): DataApi {
       }),
     deleteCustomer: (id) =>
       mutate((db) => {
+        assertCustomerHasNoDependents([
+          db.requests.filter((r) => r.customer_id === id),
+          db.bookings.filter((b) => b.customer_id === id),
+          db.tasks.filter((t) => t.customer_id === id),
+          (db.documents ?? []).filter((d) => d.customer_id === id),
+          (db.participants ?? []).filter((p) => p.customer_id === id),
+        ]);
         db.customers = db.customers.filter((c) => c.id !== id);
-        db.requests = db.requests.filter((r) => r.customer_id !== id);
-        db.bookings = db.bookings.filter((b) => b.customer_id !== id);
-        db.tasks.forEach((t) => t.customer_id === id && (t.customer_id = null));
       }),
     listRequests: async () => load().requests.slice().sort((a, b) => b.number - a.number),
     saveRequest: (input) =>

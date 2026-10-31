@@ -1,4 +1,5 @@
 # Security completion
+- [x] Local-only release blocker repair: canonical file-first deletion with retained retry metadata, no-dependent customer deletion in cloud/demo, existing membership ACL overlay reused unchanged and new separate RESTRICT FK SQL prepared; 25 new offline regressions passed. Report: integration/local-schema/security/RELEASE-BLOCKERS.md. No production application or real-session/Storage/concurrency verification.
 - [x] Unified execution local security overlay: six-file reference hashes preserved; client table/function/sequence/default grants narrowed, hashes protected, membership identity/history and TRUNCATE safeguards added outside hosted paths; 8 new offline ACL/SQL checks passed, not real-session evidence. No production changes.
 - [ ] Unified final real-session execution — blocked at mandatory financial gate: GitHub repository/API accessible and Actions enabled, but usage/budget reads returned 404; paid-overage stop control not verified or configured. No workflow added/dispatched, containers/accounts/offices created, or costs incurred. Local Docker/Podman unavailable. Security overlay is not applied to production and live risks remain unchanged.
 - [x] Independent integration preparation phase 1: read-only application schema extraction and new standalone reconstruction package; empty-database SQL/catalog/ACL comparison passed; no existing migration/config/application files replaced, no production mutations, no 92-test rerun or publishing.
@@ -10,7 +11,7 @@
 - [x] Report limits of real two-office and employee verification.
 # Data safety
 - [x] Separate loading, failed reads, and empty results in reports, notifications, and transaction details with read-only retry.
-- [x] Delete document record before its stored file (no dangling records).
+- [x] Replace unsafe record-first document deletion locally with retryable file-first deletion and explicit failure reporting; live Storage/permissions verification remains blocked on an independent runtime.
 - [ ] Live two-office/employee checks — blocked: needs a second account and office.
 # Comprehensive task (phased)
 - [x] WhatsApp support button in office sidebar.
