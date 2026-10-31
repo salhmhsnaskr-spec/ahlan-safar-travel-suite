@@ -15,8 +15,8 @@ function localAdmin() {
 }
 
 export function localDeletionTransport(admin: SupabaseClient): DeletionTransport {
-  const rpc = async (name: string, id: string) => {
-    const result = await admin.rpc(name, { _job: id });
+  const rpc = async (name: string, id: string, attempt?: number) => {
+    const result = await admin.rpc(name, { _job: id, ...(attempt === undefined ? {} : { _attempt: attempt }) });
     if (result.error) throw new Error('Deletion operation failed');
     return result.data;
   };
@@ -28,14 +28,11 @@ export function localDeletionTransport(admin: SupabaseClient): DeletionTransport
       if (result.error) throw new Error('Storage removal failed');
     },
     remaining: async job => {
-      // Actual Storage catalog, not public list pagination or remove() response length.
-      const paths = await rpc('deletion_paths', job.id) as { path: string }[];
-      const result = await admin.schema('storage').from('objects').select('name').in('name', paths.map(row => row.path)).eq('bucket_id', 'documents');
-      if (result.error) throw new Error('Storage absence unverified');
-      return (result.data ?? []).map(row => row.name as string);
+      const paths = await rpc('deletion_remaining', job.id) as { path: string }[];
+      return paths.map(row => row.path);
     },
-    finish: async id => { await rpc('finish_deletion', id); },
-    failed: async id => { await rpc('fail_deletion', id); },
+    finish: async (id, attempt) => { await rpc('finish_deletion', id, attempt); },
+    failed: async (id, attempt) => { await rpc('fail_deletion', id, attempt); },
   };
 }
 

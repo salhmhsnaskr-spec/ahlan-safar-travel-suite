@@ -5,8 +5,8 @@ export interface DeletionTransport {
   paths(job: DeletionJob): Promise<string[]>;
   remove(paths: string[]): Promise<void>;
   remaining(job: DeletionJob): Promise<string[]>;
-  finish(id: string): Promise<void>;
-  failed(id: string): Promise<void>;
+  finish(id: string, attempt: number): Promise<void>;
+  failed(id: string, attempt: number): Promise<void>;
 }
 
 export function assertLocalDeletionEnvironment(enabled: string | undefined, url: string | undefined) {
@@ -29,10 +29,10 @@ export async function processDeletion(id: string, transport: DeletionTransport) 
       await transport.remove(batch);
     }
     if ((await transport.remaining(job)).length) throw new Error('Storage deletion not confirmed');
-    await transport.finish(id);
+    await transport.finish(id, job.attempts);
   } catch (error) {
     // Durable retry state is mandatory; never swallow failure to persist it.
-    await transport.failed(id);
+    await transport.failed(id, job.attempts);
     throw error;
   }
 }

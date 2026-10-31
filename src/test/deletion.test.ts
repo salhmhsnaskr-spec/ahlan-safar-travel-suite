@@ -27,10 +27,11 @@ beforeEach(() => {
 
 describe("local deletion rules (mock transport, not real Storage/RLS)", () => {
   for (const [index, label] of ["requests", "bookings", "tasks", "documents", "umrah_participants"].entries()) {
-    it(`blocks customer deletion with ${label}`, async () => {
+    it(`does not contact production for cascade involving ${label}`, async () => {
       let n = 0;
       chain.limit.mockImplementation(() => Promise.resolve({ data: n++ === index ? [{ id: "child" }] : [], error: null }));
-      await expect(api().deleteCustomer("customer")).rejects.toThrow();
+      await expect(api().deleteCustomer("customer")).rejects.toThrow("غير مفعّل");
+      expect(fake.from).not.toHaveBeenCalled();
       expect(chain.delete).not.toHaveBeenCalled();
     });
   }
@@ -40,9 +41,10 @@ describe("local deletion rules (mock transport, not real Storage/RLS)", () => {
     expect(() => assertDocumentDeletion("employee", "employee", "employee")).not.toThrow();
     expect(() => assertDocumentDeletion("admin", "admin", "other")).not.toThrow();
   });
-  it("fails closed on child read error", async () => {
+  it("fails closed before hosted customer reads", async () => {
     chain.limit.mockResolvedValue({ data: null, error: { message: "denied" } });
-    await expect(api().deleteCustomer("customer")).rejects.toThrow("denied");
+    await expect(api().deleteCustomer("customer")).rejects.toThrow("غير مفعّل");
+    expect(fake.from).not.toHaveBeenCalled();
     expect(chain.delete).not.toHaveBeenCalled();
   });
   it("retains metadata when Storage deletion fails", async () => {
