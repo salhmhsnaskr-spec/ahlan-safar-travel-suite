@@ -9,8 +9,8 @@ REVOKE UPDATE(role) ON public.office_members FROM PUBLIC,anon,authenticated;
 CREATE OR REPLACE FUNCTION public.deletion_frozen(_office uuid) RETURNS boolean LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,public AS $$
 BEGIN
  IF _office IS NULL THEN RETURN false; END IF;
- IF NOT (public.is_office_member(_office) OR public.is_platform_owner() OR
-   auth.role()='service_role' OR (session_user='postgres' AND current_setting('role')='none')) THEN
+ IF NOT coalesce((public.is_office_member(_office) OR public.is_platform_owner() OR
+   auth.role()='service_role' OR (session_user='postgres' AND current_setting('role')='none')),false) THEN
    RAISE EXCEPTION 'Forbidden office scope' USING ERRCODE='42501';
  END IF;
  -- Read only: policy evaluation must never lock an unrelated office.

@@ -42,10 +42,10 @@ it('revokes direct document/membership writes including the formerly granted rol
  has_function_privilege('authenticated','set_member_role(uuid,uuid,app_role)','EXECUTE') rpc`)).rows).toEqual([{d:false,u:false,w:false,rpc:true}]);
 });
 it('admin decision accepts admin and rejects employee even when active membership returns true (mock authorization dependency)',async()=>transaction(async()=>{
- await db.exec(`CREATE OR REPLACE FUNCTION public.is_office_member(uuid) RETURNS boolean LANGUAGE sql AS 'SELECT true';
- CREATE OR REPLACE FUNCTION public.is_office_admin(uuid) RETURNS boolean LANGUAGE sql AS 'SELECT false'; SAVEPOINT employee;`);
+ await db.exec(`CREATE OR REPLACE FUNCTION public.is_office_member(_office uuid) RETURNS boolean LANGUAGE sql AS 'SELECT true';
+ CREATE OR REPLACE FUNCTION public.is_office_admin(_office uuid) RETURNS boolean LANGUAGE sql AS 'SELECT false'; SAVEPOINT employee;`);
  await expect(db.query('SELECT require_customer_deletion_admin($1)',[office])).rejects.toMatchObject({code:'42501'});
- await db.exec(`ROLLBACK TO employee; CREATE OR REPLACE FUNCTION public.is_office_admin(uuid) RETURNS boolean LANGUAGE sql AS 'SELECT true';`);
+ await db.exec(`ROLLBACK TO employee; CREATE OR REPLACE FUNCTION public.is_office_admin(_office uuid) RETURNS boolean LANGUAGE sql AS 'SELECT true';`);
  await expect(db.query('SELECT require_customer_deletion_admin($1)',[office])).resolves.toBeDefined();
 }));
 it('rejects unrelated office policy RPC without fabricating auth identity',async()=>transaction(async()=>{
