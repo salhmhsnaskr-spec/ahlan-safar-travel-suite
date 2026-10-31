@@ -18,8 +18,11 @@ CREATE TABLE public.deletion_scope (backend integer NOT NULL, transaction_id big
 GRANT ALL ON public.deletion_scope TO service_role;
 ALTER TABLE public.deletion_scope ENABLE ROW LEVEL SECURITY;
 -- No client policies or grants: only a privileged finalizer can establish this transaction scope.
-CREATE FUNCTION public.deletion_frozen(_office uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,public AS $$
- SELECT EXISTS(SELECT 1 FROM public.deletion_jobs WHERE office_id=_office AND status <> 'completed')
+CREATE FUNCTION public.deletion_frozen(_office uuid) RETURNS boolean LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+ BEGIN
+ PERFORM id FROM public.offices WHERE id=_office FOR UPDATE;
+ RETURN EXISTS(SELECT 1 FROM public.deletion_jobs WHERE office_id=_office AND status <> 'completed');
+ END
 $$;
 CREATE FUNCTION public.deletion_internal(_office uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,public AS $$
  SELECT EXISTS(SELECT 1 FROM public.deletion_scope s JOIN public.deletion_jobs j ON j.id=s.job_id
@@ -91,6 +94,9 @@ CREATE FUNCTION public.deletion_paths(_job uuid) RETURNS TABLE(path text) LANGUA
  UNION SELECT o.name FROM storage.objects o JOIN public.deletion_jobs j ON j.id=_job
  WHERE j.status <> 'completed' AND j.kind='office' AND o.bucket_id='documents' AND starts_with(o.name,j.office_id::text||'/')
 $$;
+CREATE FUNCTION public.deletion_remaining(_job uuid) RETURNS TABLE(path text) LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+ SELECT o.name FROM storage.objects o WHERE o.bucket_id='documents' AND o.name IN (SELECT path FROM public.deletion_paths(_job))
+$$;
 CREATE FUNCTION public.claim_deletion(_job uuid) RETURNS public.deletion_jobs LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
 DECLARE j public.deletion_jobs;
 BEGIN
@@ -101,17 +107,17 @@ BEGIN
  UPDATE public.deletion_jobs SET status='running',attempts=attempts+1,lease_until=now()+interval '5 minutes' WHERE id=_job RETURNING * INTO j;
  RETURN j;
 END $$;
-CREATE FUNCTION public.fail_deletion(_job uuid) RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+CREATE FUNCTION public.fail_deletion(_job uuid, _attempt integer) RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
  UPDATE public.deletion_jobs SET status='pending',lease_until=NULL,last_error='Storage or database cleanup unconfirmed',
- retry_at=now()+make_interval(secs=>least(300, power(2,least(attempts,8))::integer)) WHERE id=_job AND status <> 'completed'
+ retry_at=now()+make_interval(secs=>least(300, power(2,least(attempts,8))::integer)) WHERE id=_job AND status <> 'completed' AND attempts=_attempt
 $$;
-CREATE FUNCTION public.finish_deletion(_job uuid) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+CREATE FUNCTION public.finish_deletion(_job uuid, _attempt integer) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
 DECLARE j public.deletion_jobs; t text;
 BEGIN
  SELECT * INTO j FROM public.deletion_jobs WHERE id=_job FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Job not found'; END IF;
  IF j.status='completed' THEN RETURN; END IF;
- IF j.status <> 'running' THEN RAISE EXCEPTION 'Job not claimed'; END IF;
+ IF j.status <> 'running' OR j.attempts <> _attempt OR j.lease_until < now() THEN RAISE EXCEPTION 'Job not claimed or lease expired'; END IF;
  PERFORM id FROM public.offices WHERE id=j.office_id FOR UPDATE;
  IF EXISTS(SELECT 1 FROM storage.objects o WHERE o.bucket_id='documents' AND o.name IN (SELECT path FROM public.deletion_paths(_job))) THEN
  RAISE EXCEPTION 'Storage objects remain'; END IF;
@@ -134,7 +140,7 @@ BEGIN
  -- Retain only non-identifying receipt; no office, customer, file paths or user data.
  UPDATE public.deletion_jobs SET status='completed',office_id=NULL,target_id=NULL,requested_by=NULL,entities='{}',lease_until=NULL,last_error=NULL WHERE id=j.id;
 END $$;
-REVOKE ALL ON FUNCTION public.begin_permanent_deletion(uuid,text,uuid),public.deletion_frozen(uuid),public.deletion_internal(uuid),public.guard_deletion_freeze(),public.deletion_paths(uuid),public.claim_deletion(uuid),public.fail_deletion(uuid),public.finish_deletion(uuid) FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.begin_permanent_deletion(uuid,text,uuid),public.deletion_frozen(uuid),public.deletion_internal(uuid),public.guard_deletion_freeze(),public.deletion_paths(uuid),public.deletion_remaining(uuid),public.claim_deletion(uuid),public.fail_deletion(uuid,integer),public.finish_deletion(uuid,integer) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.begin_permanent_deletion(uuid,text,uuid),public.deletion_frozen(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.deletion_paths(uuid),public.claim_deletion(uuid),public.fail_deletion(uuid),public.finish_deletion(uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.deletion_paths(uuid),public.deletion_remaining(uuid),public.claim_deletion(uuid),public.fail_deletion(uuid,integer),public.finish_deletion(uuid,integer) TO service_role;
 COMMIT;
