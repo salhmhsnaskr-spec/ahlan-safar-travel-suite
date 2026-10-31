@@ -31,6 +31,11 @@ BEGIN
  RAISE EXCEPTION 'Office identity is immutable' USING ERRCODE='42501'; END IF;
  IF TG_OP='DELETE' THEN RETURN OLD; END IF; RETURN NEW;
 END $$;
+CREATE FUNCTION public.require_customer_deletion_admin(_office uuid) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+BEGIN
+ IF NOT public.is_office_admin(_office) THEN RAISE EXCEPTION 'Active office admin required' USING ERRCODE='42501'; END IF;
+END $$;
+REVOKE ALL ON FUNCTION public.require_customer_deletion_admin(uuid) FROM PUBLIC,anon,authenticated;
 CREATE OR REPLACE FUNCTION public.begin_permanent_deletion(_office uuid, _kind text, _target uuid) RETURNS uuid
  LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
 DECLARE j public.deletion_jobs; e jsonb;
@@ -39,7 +44,7 @@ BEGIN
  IF _kind='office' THEN
  IF _target IS DISTINCT FROM _office OR NOT (public.is_office_admin(_office) OR public.is_platform_owner()) THEN RAISE EXCEPTION 'Forbidden' USING ERRCODE='42501'; END IF;
  ELSIF _kind='customer' THEN
- IF NOT public.is_office_admin(_office) THEN RAISE EXCEPTION 'Forbidden' USING ERRCODE='42501'; END IF;
+ PERFORM public.require_customer_deletion_admin(_office);
  ELSE RAISE EXCEPTION 'Invalid kind'; END IF;
  PERFORM id FROM public.offices WHERE id=_office FOR UPDATE NOWAIT;
  IF NOT FOUND THEN RAISE EXCEPTION 'Office not found'; END IF;
@@ -137,6 +142,14 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.set_member_role(uuid,uuid,public.app_role) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.set_member_role(uuid,uuid,public.app_role) TO authenticated;
+CREATE FUNCTION public.renew_deletion(_job uuid,_attempt integer) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+BEGIN
+ UPDATE public.deletion_jobs SET lease_until=now()+interval '5 minutes'
+ WHERE id=_job AND status='running' AND attempts=_attempt AND lease_until>now();
+ IF NOT FOUND THEN RAISE EXCEPTION 'Lease lost' USING ERRCODE='55000'; END IF;
+END $$;
+REVOKE ALL ON FUNCTION public.renew_deletion(uuid,integer) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.renew_deletion(uuid,integer) TO service_role;
 -- Existing last-admin guard also fails fast instead of waiting while holding a member row.
 DO $$ DECLARE definition text; BEGIN
  definition:=pg_get_functiondef('public.guard_last_office_admin()'::regprocedure);
