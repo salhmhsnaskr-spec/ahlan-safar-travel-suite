@@ -9,14 +9,14 @@ import { createCloudApi } from "@/lib/data/cloud";
 const row = { id: "doc", storage_path: "office/file.pdf", uploaded_by: "uploader" };
 const input = { ...row, storage_path: "other/forged.pdf", uploaded_by: "employee" } as DocumentRow;
 const api = () => createCloudApi("office", "test", "admin", "admin");
-let chain: Record<string, ReturnType<typeof vi.fn>>;
+let chain: { select: ReturnType<typeof vi.fn>; eq: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn>; insert: ReturnType<typeof vi.fn>; single: ReturnType<typeof vi.fn>; limit: ReturnType<typeof vi.fn> };
 let remove: ReturnType<typeof vi.fn>;
 let list: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
-  chain = Object.fromEntries(["select", "eq", "delete", "insert", "single", "limit"].map((key) => [key, vi.fn()]));
-  for (const key of ["select", "eq", "delete"]) chain[key].mockReturnValue(chain);
+  chain = { select: vi.fn(), eq: vi.fn(), delete: vi.fn(), insert: vi.fn(), single: vi.fn(), limit: vi.fn() };
+  for (const key of ["select", "eq", "delete"] as const) chain[key].mockReturnValue(chain);
   chain.single.mockResolvedValue({ data: row, error: null });
   chain.insert.mockResolvedValue({ data: null, error: null });
   fake.from.mockReturnValue(chain);
@@ -70,7 +70,7 @@ describe("local deletion rules (mock transport, not real Storage/RLS)", () => {
     await api().deleteDocument(input);
     expect(remove).toHaveBeenCalledWith(["office/file.pdf"]);
     expect(chain.delete).toHaveBeenCalledOnce();
-    expect(remove.mock.invocationCallOrder[0]).toBeLessThan(chain.delete.mock.invocationCallOrder[0]);
+    expect(remove.mock.invocationCallOrder[0] ?? Infinity).toBeLessThan(chain.delete.mock.invocationCallOrder[0] ?? -Infinity);
   });
   it("reports failed row deletion after confirmed file absence", async () => {
     chain.select.mockImplementation(() => chain.delete.mock.calls.length ? Promise.resolve({ data: [], error: null }) : chain);

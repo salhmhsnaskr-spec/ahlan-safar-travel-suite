@@ -7,12 +7,7 @@ let db: PGlite;
 beforeAll(async () => {
   db = new PGlite();
   await db.exec(`CREATE TABLE customers(id uuid PRIMARY KEY);
-    CREATE TABLE requests(id uuid PRIMARY KEY, customer_id uuid REFERENCES customers(id) ON DELETE CASCADE CONSTRAINT requests_customer_id_fkey);
-  `).catch(async () => {
-    // Explicit constraint form for PostgreSQL.
-    await db.exec(`CREATE TABLE IF NOT EXISTS customers(id uuid PRIMARY KEY);
-      CREATE TABLE requests(id uuid PRIMARY KEY, customer_id uuid, CONSTRAINT requests_customer_id_fkey FOREIGN KEY(customer_id) REFERENCES customers(id) ON DELETE CASCADE);`);
-  });
+    CREATE TABLE requests(id uuid PRIMARY KEY, customer_id uuid, CONSTRAINT requests_customer_id_fkey FOREIGN KEY(customer_id) REFERENCES customers(id) ON DELETE CASCADE);`);
   for (const name of ['bookings','documents','tasks']) {
     await db.exec(`CREATE TABLE ${name}(id uuid PRIMARY KEY, customer_id uuid,
       CONSTRAINT ${name}_customer_id_fkey FOREIGN KEY(customer_id) REFERENCES customers(id) ON DELETE CASCADE);`);
@@ -34,7 +29,7 @@ for (const table of ['requests','bookings','documents','tasks','umrah_participan
     await db.exec('BEGIN');
     try {
       await db.exec(`INSERT INTO customers VALUES('${id}'); INSERT INTO ${table} VALUES('${other}','${id}'); SAVEPOINT attempt;`);
-      await expect(db.exec(`DELETE FROM customers WHERE id='${id}'`)).rejects.toMatchObject({ code: '23503' });
+      await expect(db.exec(`DELETE FROM customers WHERE id='${id}'`)).rejects.toMatchObject({ code: table === 'umrah_participants' ? '23503' : '23001' });
       await db.exec('ROLLBACK TO attempt');
       expect((await db.query(`SELECT count(*)::int n FROM ${table}`)).rows).toEqual([{ n: 1 }]);
       expect((await db.query(`SELECT count(*)::int n FROM customers`)).rows).toEqual([{ n: 1 }]);

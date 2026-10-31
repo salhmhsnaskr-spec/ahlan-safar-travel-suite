@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { DataApi } from "./api";
-import type { AppRole, Member } from "@/lib/domain";
+import type { AppRole, Member, DocumentRow } from "@/lib/domain";
 import type { PerformanceData } from "@/lib/performance";
 import { assertCustomerHasNoDependents, assertDocumentDeletion } from "./deletion";
 
@@ -123,7 +123,7 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
     },
     deleteDocument: async (doc) => {
       // Never trust the caller's path or uploader: read the canonical scoped row.
-      const current = must(await supabase.from("documents").select("id, storage_path, uploaded_by").eq("office_id", officeId).eq("id", doc.id).single());
+      const current = must<Pick<DocumentRow, "id" | "storage_path" | "uploaded_by">>(await supabase.from("documents").select("id, storage_path, uploaded_by").eq("office_id", officeId).eq("id", doc.id).single());
       if (!current) throw new Error("لم يُعثر على الوثيقة أو ليست لديك صلاحية الوصول إليها.");
       assertDocumentDeletion(role, userId, current.uploaded_by);
       if (!current.storage_path.startsWith(`${officeId}/`)) throw new Error("مسار الوثيقة لا يطابق المكتب؛ أوقف الحذف.");
