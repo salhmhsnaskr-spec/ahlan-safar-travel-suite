@@ -91,7 +91,7 @@ export function CustomersPage() {
         open={!!toDelete}
         onOpenChange={(o) => !o && setToDelete(null)}
         title={`حذف ${toDelete?.full_name ?? ""}؟`}
-        body="سيُحذف العميل نهائيًا فقط إذا لم توجد سجلات مرتبطة به. لن تُحذف طلباته أو حجوزاته أو وثائقه تلقائيًا."
+        body="سيُحذف العميل وجميع طلباته وحجوزاته ومهامه ووثائقه وملفاته واشتراكاته المرتبطة نهائيًا. لا يمكن التراجع عن الحذف."
         onConfirm={() => toDelete && del.mutate(toDelete.id, { onSuccess: () => setToDelete(null) })}
       />
     </>

@@ -96,6 +96,7 @@ function useMut<I, O>(fn: (api: DataApi, input: I) => Promise<O>, success?: stri
 
 export const useSaveCustomer = () => useMut((a, i: CustomerInput) => a.saveCustomer(i), "تم حفظ العميل");
 export const useDeleteCustomer = () => useMut((a, id: string) => a.deleteCustomer(id), "تم حذف العميل");
+export const useDeleteOffice = () => useMut((a) => a.deleteOffice(), "تم حذف المكتب نهائيًا");
 export const useSaveRequest = () => useMut((a, i: RequestInput) => a.saveRequest(i), "تم حفظ الطلب");
 export const useDeleteRequest = () => useMut((a, id: string) => a.deleteRequest(id), "تم حذف الطلب");
 export const useSavePartner = () => useMut((a, i: PartnerInput) => a.savePartner(i), "تم حفظ المكتب الشريك");

@@ -32,6 +32,7 @@ export interface DataApi {
   listCustomers(): Promise<Customer[]>;
   saveCustomer(input: CustomerInput): Promise<Customer>;
   deleteCustomer(id: string): Promise<void>;
+  deleteOffice(): Promise<void>;
   listRequests(): Promise<TravelRequest[]>;
   saveRequest(input: RequestInput): Promise<TravelRequest>;
   deleteRequest(id: string): Promise<void>;
