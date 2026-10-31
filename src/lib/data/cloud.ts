@@ -2,7 +2,9 @@ import { supabase } from "@/integrations/supabase/client";
 import type { DataApi } from "./api";
 import type { AppRole, Member, DocumentRow } from "@/lib/domain";
 import type { PerformanceData } from "@/lib/performance";
-import { assertCustomerHasNoDependents, assertDocumentDeletion } from "./deletion";
+import { assertDocumentDeletion } from "./deletion";
+import { assertLocalDeletionEnvironment } from "./permanent-deletion";
+import { permanentDelete } from "./permanent-deletion.functions";
 
 function must<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
@@ -24,15 +26,12 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
         ? must(await supabase.from("customers").update(rest).eq("id", id).select().single())
         : must(await supabase.from("customers").insert({ ...rest, office_id: officeId }).select().single()),
     deleteCustomer: async (id) => {
-      const groups = await Promise.all(
-        (["requests", "bookings", "tasks", "documents", "umrah_participants"] as const).map(async (table) =>
-          must(await supabase.from(table).select("id").eq("office_id", officeId).eq("customer_id", id).limit(1)),
-        ),
-      );
-      assertCustomerHasNoDependents(groups);
-      // The prepared RESTRICT FKs are required to close races / direct API bypass.
-      const deleted = must(await supabase.from("customers").delete().eq("office_id", officeId).eq("id", id).select("id"));
-      if (!deleted?.length) throw new Error("لم يُحذف العميل؛ قد لا تملك الصلاحية أو لم يعد موجودًا.");
+      assertLocalDeletionEnvironment(import.meta.env['VITE_LOCAL_PERMANENT_DELETION'], import.meta.env['VITE_SUPABASE_URL']);
+      await permanentDelete({ data: { officeId, targetId: id, kind: "customer" } });
+    },
+    deleteOffice: async () => {
+      assertLocalDeletionEnvironment(import.meta.env['VITE_LOCAL_PERMANENT_DELETION'], import.meta.env['VITE_SUPABASE_URL']);
+      await permanentDelete({ data: { officeId, targetId: officeId, kind: "office" } });
     },
     listRequests: async () =>
       must(await supabase.from("requests").select("*").eq("office_id", officeId).order("number", { ascending: false })),

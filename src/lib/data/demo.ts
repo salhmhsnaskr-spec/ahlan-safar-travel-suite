@@ -1,5 +1,4 @@
 import type { DataApi } from "./api";
-import { assertCustomerHasNoDependents } from "./deletion";
 import { buildDemoPerformance } from "@/lib/performance";
 import { emptyWorkAttribution, emptyTerminalAttribution, stampDemoWork, auditAction, safeAuditValues } from "@/lib/attribution";
 import type { ActivityRow, DocumentRow, Booking, Customer, Member, Partner, Service, Task, TravelRequest, UmrahParticipant, UmrahTrip } from "@/lib/domain";
@@ -228,16 +227,31 @@ export function createDemoApi(): DataApi {
         return c;
       }),
     deleteCustomer: (id) =>
-      mutate((db) => {
-        assertCustomerHasNoDependents([
-          db.requests.filter((r) => r.customer_id === id),
-          db.bookings.filter((b) => b.customer_id === id),
-          db.tasks.filter((t) => t.customer_id === id),
-          (db.documents ?? []).filter((d) => d.customer_id === id),
-          (db.participants ?? []).filter((p) => p.customer_id === id),
+      Promise.resolve().then(() => {
+        const db = load();
+        const requests = new Set(db.requests.filter(r => r.customer_id === id).map(r => r.id));
+        const bookings = new Set(db.bookings.filter(b => b.customer_id === id || (b.request_id && requests.has(b.request_id))).map(b => b.id));
+        const linked = (r: { customer_id?: string | null; request_id?: string | null; booking_id?: string | null }) =>
+          r.customer_id === id || Boolean(r.request_id && requests.has(r.request_id)) || Boolean(r.booking_id && bookings.has(r.booking_id));
+        const entities = new Map<string, Set<string>>([
+          ['customers', new Set([id])], ['requests', requests], ['bookings', bookings],
+          ['tasks', new Set(db.tasks.filter(linked).map(r => r.id))],
+          ['documents', new Set((db.documents ?? []).filter(linked).map(r => r.id))],
+          ['umrah_participants', new Set((db.participants ?? []).filter(linked).map(r => r.id))],
         ]);
+        db.requests = db.requests.filter(r => !requests.has(r.id));
+        db.bookings = db.bookings.filter(r => !bookings.has(r.id));
+        db.tasks = db.tasks.filter(r => !linked(r));
+        db.documents = (db.documents ?? []).filter(r => !linked(r));
+        db.participants = (db.participants ?? []).filter(r => !linked(r));
+        db.activity = (db.activity ?? []).filter(r => !r.entity_id || !entities.get(r.entity)?.has(r.entity_id));
         db.customers = db.customers.filter((c) => c.id !== id);
+        save(db);
       }),
+    deleteOffice: async () => {
+      const db = load();
+      save({ ...db, customers: [], requests: [], bookings: [], tasks: [], documents: [], trips: [], participants: [], activity: [], members: [], partners: [], services: db.services.filter(s => s.office_id === null) });
+    },
     listRequests: async () => load().requests.slice().sort((a, b) => b.number - a.number),
     saveRequest: (input) =>
       mutate((db) => {
