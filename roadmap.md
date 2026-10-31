@@ -1,4 +1,5 @@
 # Security completion
+- [ ] Local-only release blocker repair: document deletion failures must retain retry metadata; customer deletion must reject dependents; reuse unapplied membership/least-privilege overlay and prepare separate FK safeguards. Run only new focused offline regressions; no production, publishing or GitHub writes.
 - [x] Unified execution local security overlay: six-file reference hashes preserved; client table/function/sequence/default grants narrowed, hashes protected, membership identity/history and TRUNCATE safeguards added outside hosted paths; 8 new offline ACL/SQL checks passed, not real-session evidence. No production changes.
 - [ ] Unified final real-session execution — blocked at mandatory financial gate: GitHub repository/API accessible and Actions enabled, but usage/budget reads returned 404; paid-overage stop control not verified or configured. No workflow added/dispatched, containers/accounts/offices created, or costs incurred. Local Docker/Podman unavailable. Security overlay is not applied to production and live risks remain unchanged.
 - [x] Independent integration preparation phase 1: read-only application schema extraction and new standalone reconstruction package; empty-database SQL/catalog/ACL comparison passed; no existing migration/config/application files replaced, no production mutations, no 92-test rerun or publishing.
@@ -10,7 +11,7 @@
 - [x] Report limits of real two-office and employee verification.
 # Data safety
 - [x] Separate loading, failed reads, and empty results in reports, notifications, and transaction details with read-only retry.
-- [x] Delete document record before its stored file (no dangling records).
+- [ ] Replace unsafe record-first document deletion with retryable file-first deletion and explicit failure reporting (local-only repair in progress).
 - [ ] Live two-office/employee checks — blocked: needs a second account and office.
 # Comprehensive task (phased)
 - [x] WhatsApp support button in office sidebar.
