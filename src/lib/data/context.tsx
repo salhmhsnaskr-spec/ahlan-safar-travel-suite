@@ -90,7 +90,7 @@ function useMut<I, O>(fn: (api: DataApi, input: I) => Promise<O>, success?: stri
     },
     onError: (e: Error) => toast.error("تعذّر تنفيذ العملية", { description: e.message }),
     // Partial file operations retain cleanup rows even on errors; refresh them.
-    onSettled: () => { qc.invalidateQueries({ queryKey: [api.key, "documents"] }); },
+    onSettled: () => { qc.invalidateQueries({ queryKey: [api.key, "documents"] }); qc.invalidateQueries({queryKey:['deletion-status']}); },
   });
 }
 

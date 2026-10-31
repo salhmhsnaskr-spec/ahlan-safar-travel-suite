@@ -62,7 +62,8 @@ export async function runLocalDeletion(input: { officeId: string; targetId: stri
 /** Invoked by the independent local worker, not by browser page load or production cron. */
 export async function retryLocalDeletions() {
   const admin = localAdmin();
-  const result = await admin.from('deletion_jobs').select('id').neq('status', 'completed').lte('retry_at', new Date().toISOString());
+  const now=new Date().toISOString();
+  const result = await admin.from('deletion_jobs').select('id').neq('status', 'completed').lte('retry_at', now).or(`lease_until.is.null,lease_until.lte.${now}`).order('retry_at').limit(100);
   if (result.error) throw new Error('Cannot read independent deletion queue');
   for (const job of result.data ?? []) {
     try { await processDeletion(job.id, localDeletionTransport(admin)); }

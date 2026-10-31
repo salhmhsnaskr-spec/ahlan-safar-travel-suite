@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell, SignOutButton } from "@/components/app-shell";
 import { DataProvider } from "@/lib/data/context";
 import { createCloudApi } from "@/lib/data/cloud";
+import { DeletionQuarantine } from '@/lib/data/deletion-quarantine';
 
 export const Route = createFileRoute("/_authenticated/app")({
   head: () => ({ meta: [{ title: "لوحة المكتب — أهلًا سفر" }, { name: "description", content: "إدارة مكتب السفر في أهلًا سفر." }, { property: "og:title", content: "لوحة المكتب — أهلًا سفر" }, { property: "og:description", content: "إدارة مكتب السفر." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -27,7 +28,7 @@ function AppLayout() {
   return (
     <DataProvider api={api}>
       <AppShell footer={<SignOutButton onClick={async () => { await qc.cancelQueries(); qc.clear(); await supabase.auth.signOut(); navigate({ to: "/auth", replace: true }); }} />}>
-        <Outlet />
+        {import.meta.env['VITE_LOCAL_PERMANENT_DELETION']==='1' ? <DeletionQuarantine officeId={office.id}><Outlet /></DeletionQuarantine> : <Outlet />}
       </AppShell>
     </DataProvider>
   );
