@@ -34,3 +34,12 @@ it('still rejects an existing file and stops before removal when lease renewal f
     paths:async()=>['o/f'],renew:async()=>{throw new Error('lost lease');},remove,remaining:async()=>[],finish:vi.fn(),failed};
   await expect(processDeletion('j',t)).rejects.toThrow('lost lease');expect(remove).not.toHaveBeenCalled();expect(failed).toHaveBeenCalledOnce();
 });
+it('a lock-conflict finalization retains retry state and a later attempt completes without foreign-office removal',async()=>{
+  const state={attempt:0,removed:false};const failed=vi.fn();const finish=vi.fn()
+    .mockRejectedValueOnce(Object.assign(new Error('lock unavailable'),{code:'55P03'})).mockResolvedValue(undefined);
+  const t:DeletionTransport={claim:async()=>({id:'j',office_id:'o',target_id:'d',kind:'document',status:'running',attempts:++state.attempt}),
+    paths:async()=>['o/f'],remove:async paths=>{expect(paths).toEqual(['o/f']);state.removed=true;},remaining:async()=>[],finish,failed};
+  await expect(processDeletion('j',t)).rejects.toThrow('lock unavailable');
+  expect(state.removed).toBe(true);expect(failed).toHaveBeenCalledWith('j',1);
+  await processDeletion('j',t);expect(finish).toHaveBeenLastCalledWith('j',2);
+});

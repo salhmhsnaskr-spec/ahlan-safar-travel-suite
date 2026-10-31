@@ -1,4 +1,5 @@
 # Security completion
+- [ ] Focused deletion hardening: local absence handling, durable document path, admin-only customer deletion, scoped nonlocking freeze checks, fail-fast locks, fenced renewal and membership RPC; focused verification/report in progress. Production worker is design only.
 - [x] Cascade follow-up local files: office admin/all-office owner deletion UI, documented supervised loopback retry service, restrictive pending-read quarantine and historical-file attribution report. Six new checks passed; signed-out route verified. Report integration/local-schema/security/FOLLOWUP.md.
 - [ ] Cascade follow-up operational verification — blocked: independent Auth/Storage and systemd/container runtime unavailable; supervisor not activated, signed-in deletion/restart/real-file retry not proved.
 - [x] Permanent cascade local implementation: isolated durable SQL jobs, office freeze, scoped child-first finalization, Storage removal/absence verification, retry worker, DataApi/demo wiring without production enablement. Focused 31 offline tests and demo customer UI verified; report integration/local-schema/security/PERMANENT-DELETION.md.

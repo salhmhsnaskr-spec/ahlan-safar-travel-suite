@@ -46,37 +46,12 @@ describe("local deletion rules (mock transport, not real Storage/RLS)", () => {
     expect(fake.from).not.toHaveBeenCalled();
     expect(chain.delete).not.toHaveBeenCalled();
   });
-  it("retains metadata when Storage deletion fails", async () => {
-    remove.mockResolvedValue({ data: null, error: { message: "offline" } });
-    await expect(api().deleteDocument(input)).rejects.toThrow();
-    expect(remove).toHaveBeenCalledWith(["office/file.pdf"]);
-    expect(chain.delete).not.toHaveBeenCalled();
-  });
-  it("rejects a forged uploader before any Storage call", async () => {
-    await expect(createCloudApi("office", "test", "employee", "employee").deleteDocument(input)).rejects.toThrow();
-    expect(remove).not.toHaveBeenCalled();
-  });
-  it("keeps row when removal returns success but object still exists", async () => {
-    list.mockResolvedValue({ data: [{ name: "file.pdf" }], error: null });
-    await expect(api().deleteDocument(input)).rejects.toThrow();
-    expect(chain.delete).not.toHaveBeenCalled();
-  });
-  it("keeps row when absence verification fails", async () => {
-    list.mockResolvedValue({ data: null, error: { message: "offline" } });
-    await expect(api().deleteDocument(input)).rejects.toThrow();
-    expect(chain.delete).not.toHaveBeenCalled();
-  });
-  it("retries row deletion after file removal, without trusting supplied path", async () => {
-    chain.select.mockImplementation(() => chain.delete.mock.calls.length ? Promise.resolve({ data: [{ id: "doc" }], error: null }) : chain);
-    await api().deleteDocument(input);
-    expect(remove).toHaveBeenCalledWith(["office/file.pdf"]);
-    expect(chain.delete).toHaveBeenCalledOnce();
-    expect(remove.mock.invocationCallOrder[0] ?? Infinity).toBeLessThan(chain.delete.mock.invocationCallOrder[0] ?? -Infinity);
-  });
-  it("reports failed row deletion after confirmed file absence", async () => {
-    chain.select.mockImplementation(() => chain.delete.mock.calls.length ? Promise.resolve({ data: [], error: null }) : chain);
-    await expect(api().deleteDocument(input)).rejects.toThrow();
-    expect(remove).toHaveBeenCalledOnce();
+  // Storage/finalization regressions now live at the durable adapter boundary,
+  // in storage-absence-hardening.test.ts and deletion-hardening.test.ts.
+  it("blocks the new durable document path before any hosted metadata or Storage call", async () => {
+    await expect(api().deleteDocument(input)).rejects.toThrow('غير مفعّل');
+    expect(fake.from).not.toHaveBeenCalled();
+    expect(fake.storageFrom).not.toHaveBeenCalled();
   });
   it("does not upload a file when metadata insert fails", async () => {
     chain.insert.mockResolvedValue({ data: null, error: { message: "insert denied" } });
