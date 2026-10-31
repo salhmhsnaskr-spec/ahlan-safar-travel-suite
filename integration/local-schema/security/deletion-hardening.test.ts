@@ -97,6 +97,23 @@ it('office finalization preserves populated other office, shared account/profile
  expect((await db.query('SELECT name FROM storage.objects')).rows).toEqual([{name:`${other}/f`}]);
  expect((await db.query('SELECT id FROM offices')).rows).toEqual([{id:other}]);
 }));
+it('document job cannot finalize before Storage catalog absence, then removes only its metadata',async()=>transaction(async()=>{
+ await fixture();await db.exec(`INSERT INTO deletion_jobs(id,office_id,kind,target_id,status,attempts,lease_until,entities)
+ VALUES('${job}','${office}','document','${doc}','running',1,now()+interval '5 minutes',
+ '{"customers":[],"requests":[],"bookings":[],"tasks":[],"umrah_participants":[],"documents":["${doc}"]}'); SAVEPOINT file_remains;`);
+ await expect(db.query('SELECT finish_deletion($1,1)',[job])).rejects.toThrow('Storage objects remain');
+ await db.exec(`ROLLBACK TO file_remains; DELETE FROM storage.objects WHERE name='${office}/f';`);
+ await db.query('SELECT finish_deletion($1,1)',[job]);
+ expect((await db.query('SELECT count(*)::int n FROM documents')).rows).toEqual([{n:0}]);
+ expect((await db.query('SELECT count(*)::int n FROM offices')).rows).toEqual([{n:2}]);
+ expect((await db.query('SELECT name FROM storage.objects')).rows).toEqual([{name:`${other}/f`}]);
+}));
+it('approved member-role RPC preserves the last active administrator (mock admin dependency, real guard)',async()=>transaction(async()=>{
+ await fixture();await db.exec(`CREATE OR REPLACE FUNCTION public.is_office_admin(_office uuid) RETURNS boolean LANGUAGE sql AS 'SELECT true'; SAVEPOINT last_admin;`);
+ await expect(db.query('SELECT set_member_role($1,$2,$3)',[office,other,'employee'])).rejects.toMatchObject({code:'42501'});
+ await db.exec('ROLLBACK TO last_admin');
+ expect((await db.query('SELECT role FROM office_members WHERE office_id=$1',[office])).rows).toEqual([{role:'admin'}]);
+}));
 it('effective TRUNCATE remains denied for clients/PUBLIC and inheritance gate rejects added privilege paths',async()=>transaction(async()=>{
  expect((await db.query(`SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
  WHERE n.nspname='public' AND c.relkind='r' AND (has_table_privilege('anon',c.oid,'TRUNCATE') OR has_table_privilege('authenticated',c.oid,'TRUNCATE'))`)).rows).toEqual([]);
