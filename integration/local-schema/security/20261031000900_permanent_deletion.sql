@@ -85,6 +85,12 @@ BEGIN
  'requests',(SELECT coalesce(jsonb_agg(id),'[]') FROM r),'bookings',(SELECT coalesce(jsonb_agg(id),'[]') FROM b),
  'tasks',(SELECT coalesce(jsonb_agg(id),'[]') FROM t),'documents',(SELECT coalesce(jsonb_agg(id),'[]') FROM d),
  'umrah_participants',(SELECT coalesce(jsonb_agg(id),'[]') FROM u)) INTO e;
+ -- Cascade is not a route around existing child DELETE permissions.
+ IF _kind='customer' AND NOT public.is_office_admin(_office) AND (
+ jsonb_array_length(e->'bookings')>0 OR jsonb_array_length(e->'tasks')>0 OR
+ EXISTS(SELECT 1 FROM public.documents WHERE office_id=_office AND id::text IN (SELECT jsonb_array_elements_text(e->'documents')) AND uploaded_by IS DISTINCT FROM auth.uid()) OR
+ EXISTS(SELECT 1 FROM storage.objects o JOIN public.documents d ON d.storage_path=o.name WHERE d.office_id=_office AND d.id::text IN (SELECT jsonb_array_elements_text(e->'documents')) AND o.bucket_id='documents' AND o.owner IS DISTINCT FROM auth.uid())
+ ) THEN RAISE EXCEPTION 'Cascade requires authority over protected dependents; ask office admin' USING ERRCODE='42501'; END IF;
  -- Refuse corrupted cross-office references BEFORE any irreversible file removal.
  IF EXISTS(SELECT 1 FROM public.requests WHERE office_id<>_office AND customer_id::text IN (SELECT jsonb_array_elements_text(e->'customers')))
  OR EXISTS(SELECT 1 FROM public.bookings WHERE office_id<>_office AND (customer_id::text IN (SELECT jsonb_array_elements_text(e->'customers')) OR request_id::text IN (SELECT jsonb_array_elements_text(e->'requests'))))

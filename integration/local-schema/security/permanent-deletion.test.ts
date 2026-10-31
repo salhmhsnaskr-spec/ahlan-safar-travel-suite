@@ -13,6 +13,8 @@ const customer = '00000000-0000-0000-0000-000000000003';
 const job = '00000000-0000-0000-0000-000000000004';
 const request = '00000000-0000-0000-0000-000000000005';
 const document = '00000000-0000-0000-0000-000000000006';
+const booking = '00000000-0000-0000-0000-000000000007';
+const task = '00000000-0000-0000-0000-000000000008';
 beforeAll(async () => {
  db = new PGlite({ extensions: { pgcrypto, uuid_ossp } });
  await db.exec(await readFile(new URL('validation/managed-dependencies.sql', root), 'utf8'));
@@ -30,12 +32,14 @@ async function fixture(kind: 'customer' | 'office', withFile=false) {
  await db.exec(`INSERT INTO offices(id,name,created_by) VALUES('${office}','isolated','${other}'),('${other}','untouched','${other}');
  INSERT INTO customers(id,office_id,full_name) VALUES('${customer}','${office}','test');
  INSERT INTO requests(id,office_id,customer_id) VALUES('${request}','${office}','${customer}');
+ INSERT INTO bookings(id,office_id,customer_id,request_id) VALUES('${booking}','${office}','${customer}','${request}');
+ INSERT INTO tasks(id,office_id,title,booking_id) VALUES('${task}','${office}','indirect task','${booking}');
  INSERT INTO documents(id,office_id,request_id,file_name,storage_path) VALUES('${document}','${office}','${request}','test.pdf','${office}/test.pdf');
  INSERT INTO office_members(office_id,user_id,role) VALUES('${office}','${other}','admin');
  INSERT INTO umrah_trips(office_id,name) VALUES('${office}','group');
  INSERT INTO umrah_participants(office_id,trip_id,customer_id) SELECT '${office}',id,'${customer}' FROM umrah_trips;
  INSERT INTO deletion_jobs(id,office_id,kind,target_id,status,attempts,lease_until,entities) VALUES('${job}','${office}','${kind}','${kind==='office'?office:customer}','running',1,now()+interval '5 minutes',
- jsonb_build_object('customers',jsonb_build_array('${customer}'),'requests',jsonb_build_array('${request}'),'documents',jsonb_build_array('${document}'),'bookings','[]'::jsonb,'tasks','[]'::jsonb,'umrah_participants',(SELECT jsonb_agg(id) FROM umrah_participants)));`);
+ jsonb_build_object('customers',jsonb_build_array('${customer}'),'requests',jsonb_build_array('${request}'),'documents',jsonb_build_array('${document}'),'bookings',jsonb_build_array('${booking}'),'tasks',jsonb_build_array('${task}'),'umrah_participants',(SELECT jsonb_agg(id) FROM umrah_participants)));`);
  if(withFile) await db.exec(`INSERT INTO storage.objects(id,bucket_id,name) VALUES('${job}','documents','${office}/test.pdf');`);
 }
 for (const kind of ['customer','office'] as const) it(`permanently finalizes ${kind} closure and preserves another office`,async()=>{
@@ -43,7 +47,7 @@ for (const kind of ['customer','office'] as const) it(`permanently finalizes ${k
  try {
   await fixture(kind);
   await db.query('SELECT finish_deletion($1,1)',[job]);
-  for(const table of ['customers','requests','documents','umrah_participants','activity_log']) {
+  for(const table of ['customers','requests','bookings','tasks','documents','umrah_participants','activity_log']) {
    const expected=table==='activity_log' && kind==='customer' ? 1 : 0; // shared trip's audit is not customer-owned
    expect((await db.query(`SELECT count(*)::int n FROM ${table} WHERE office_id=$1`,[office])).rows,table).toEqual([{n:expected}]);
   }

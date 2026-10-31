@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { assertCustomerHasNoDependents, assertDocumentDeletion } from "@/lib/data/deletion";
+import { assertDocumentDeletion } from "@/lib/data/deletion";
 import type { DocumentRow } from "@/lib/domain";
 
 const fake = vi.hoisted(() => ({ from: vi.fn(), storageFrom: vi.fn() }));
@@ -35,8 +35,7 @@ describe("local deletion rules (mock transport, not real Storage/RLS)", () => {
       expect(chain.delete).not.toHaveBeenCalled();
     });
   }
-  it("accepts no dependents and rejects employee deletion of another uploader's file", () => {
-    expect(() => assertCustomerHasNoDependents([[], [], [], [], []])).not.toThrow();
+  it("preserves document deletion authority", () => {
     expect(() => assertDocumentDeletion("employee", "employee", "other")).toThrow();
     expect(() => assertDocumentDeletion("employee", "employee", "employee")).not.toThrow();
     expect(() => assertDocumentDeletion("admin", "admin", "other")).not.toThrow();
