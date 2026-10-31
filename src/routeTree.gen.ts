@@ -32,6 +32,7 @@ import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppActivityRouteImport } from './routes/_authenticated/app.activity'
 import { Route as AuthenticatedAppDocumentsRouteImport } from './routes/_authenticated/app.documents'
 import { Route as AuthenticatedAppNotificationsRouteImport } from './routes/_authenticated/app.notifications'
+import { Route as AuthenticatedAppOfficeRouteImport } from './routes/_authenticated/app.office'
 import { Route as AuthenticatedAppPartnersRouteImport } from './routes/_authenticated/app.partners'
 import { Route as AuthenticatedAppReportsRouteImport } from './routes/_authenticated/app.reports'
 import { Route as AuthenticatedAppRequestsRouteImport } from './routes/_authenticated/app.requests'
@@ -169,6 +170,11 @@ const AuthenticatedAppNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const AuthenticatedAppOfficeRoute = AuthenticatedAppOfficeRouteImport.update({
+  id: '/office',
+  path: '/office',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
 const AuthenticatedAppPartnersRoute =
   AuthenticatedAppPartnersRouteImport.update({
     id: '/partners',
@@ -296,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/app/activity': typeof AuthenticatedAppActivityRoute
   '/app/documents': typeof AuthenticatedAppDocumentsRoute
   '/app/notifications': typeof AuthenticatedAppNotificationsRoute
+  '/app/office': typeof AuthenticatedAppOfficeRoute
   '/app/partners': typeof AuthenticatedAppPartnersRoute
   '/app/reports': typeof AuthenticatedAppReportsRoute
   '/app/requests': typeof AuthenticatedAppRequestsRoute
@@ -337,6 +344,7 @@ export interface FileRoutesByTo {
   '/app/activity': typeof AuthenticatedAppActivityRoute
   '/app/documents': typeof AuthenticatedAppDocumentsRoute
   '/app/notifications': typeof AuthenticatedAppNotificationsRoute
+  '/app/office': typeof AuthenticatedAppOfficeRoute
   '/app/partners': typeof AuthenticatedAppPartnersRoute
   '/app/reports': typeof AuthenticatedAppReportsRoute
   '/app/requests': typeof AuthenticatedAppRequestsRoute
@@ -382,6 +390,7 @@ export interface FileRoutesById {
   '/_authenticated/app/activity': typeof AuthenticatedAppActivityRoute
   '/_authenticated/app/documents': typeof AuthenticatedAppDocumentsRoute
   '/_authenticated/app/notifications': typeof AuthenticatedAppNotificationsRoute
+  '/_authenticated/app/office': typeof AuthenticatedAppOfficeRoute
   '/_authenticated/app/partners': typeof AuthenticatedAppPartnersRoute
   '/_authenticated/app/reports': typeof AuthenticatedAppReportsRoute
   '/_authenticated/app/requests': typeof AuthenticatedAppRequestsRoute
@@ -427,6 +436,7 @@ export interface FileRouteTypes {
     | '/app/activity'
     | '/app/documents'
     | '/app/notifications'
+    | '/app/office'
     | '/app/partners'
     | '/app/reports'
     | '/app/requests'
@@ -468,6 +478,7 @@ export interface FileRouteTypes {
     | '/app/activity'
     | '/app/documents'
     | '/app/notifications'
+    | '/app/office'
     | '/app/partners'
     | '/app/reports'
     | '/app/requests'
@@ -512,6 +523,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/activity'
     | '/_authenticated/app/documents'
     | '/_authenticated/app/notifications'
+    | '/_authenticated/app/office'
     | '/_authenticated/app/partners'
     | '/_authenticated/app/reports'
     | '/_authenticated/app/requests'
@@ -706,6 +718,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppNotificationsRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/office': {
+      id: '/_authenticated/app/office'
+      path: '/office'
+      fullPath: '/app/office'
+      preLoaderRoute: typeof AuthenticatedAppOfficeRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/partners': {
       id: '/_authenticated/app/partners'
       path: '/partners'
@@ -846,6 +865,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppActivityRoute: typeof AuthenticatedAppActivityRoute
   AuthenticatedAppDocumentsRoute: typeof AuthenticatedAppDocumentsRoute
   AuthenticatedAppNotificationsRoute: typeof AuthenticatedAppNotificationsRoute
+  AuthenticatedAppOfficeRoute: typeof AuthenticatedAppOfficeRoute
   AuthenticatedAppPartnersRoute: typeof AuthenticatedAppPartnersRoute
   AuthenticatedAppReportsRoute: typeof AuthenticatedAppReportsRoute
   AuthenticatedAppRequestsRoute: typeof AuthenticatedAppRequestsRoute
@@ -866,6 +886,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppActivityRoute: AuthenticatedAppActivityRoute,
   AuthenticatedAppDocumentsRoute: AuthenticatedAppDocumentsRoute,
   AuthenticatedAppNotificationsRoute: AuthenticatedAppNotificationsRoute,
+  AuthenticatedAppOfficeRoute: AuthenticatedAppOfficeRoute,
   AuthenticatedAppPartnersRoute: AuthenticatedAppPartnersRoute,
   AuthenticatedAppReportsRoute: AuthenticatedAppReportsRoute,
   AuthenticatedAppRequestsRoute: AuthenticatedAppRequestsRoute,

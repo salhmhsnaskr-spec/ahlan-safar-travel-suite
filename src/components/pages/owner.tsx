@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { EmptyState, Loading, PageHeader } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/domain";
+import { OwnerOfficeDelete } from '@/components/office-delete';
 
 export type PlatformStats = {
   offices: number; active_offices_30d: number; customers: number;
@@ -64,6 +65,7 @@ export function OwnerDashboard() {
             <li key={o.id} className="flex flex-wrap justify-between gap-2 p-3 text-sm">
               <span className="font-medium">{o.name}</span>
               <span className="text-muted-foreground">{[o.city, o.country].filter(Boolean).join("، ") || "—"} · {o.members} عضو · {formatDate(o.created_at)}</span>
+              <OwnerOfficeDelete id={o.id} name={o.name}/>
             </li>
           ))}
         </ul>

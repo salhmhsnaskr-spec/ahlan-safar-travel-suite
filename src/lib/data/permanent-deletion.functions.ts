@@ -18,3 +18,12 @@ export const permanentDelete = createServerFn({ method: 'POST' })
     // Database authorization uses the caller session, never a role supplied by the browser.
     return runLocalDeletion(data, context.supabase);
   });
+
+export const deletionStatus = createServerFn({method:'POST'})
+ .middleware([independentOnly,requireSupabaseAuth])
+ .inputValidator(z.object({officeId:z.string().uuid()}))
+ .handler(async({data,context})=>{
+  const result=await context.supabase.rpc('deletion_status' as never,{_office:data.officeId} as never);
+  if(result.error)throw new Error('تعذّر التحقق من حالة الحذف');
+  return result.data as unknown as {pending:boolean;status:string|null};
+ });

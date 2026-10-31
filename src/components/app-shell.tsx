@@ -42,6 +42,7 @@ export function AppShell({ children, footer }: { children: ReactNode; footer?: R
   ];
   if (isOwner) items.push({ to: "/owner", label: "لوحة مالك المنصة", icon: ShieldCheck });
   if (api.mode === "cloud" && api.role === "admin") items.push({ to: "/app/team", label: "إدارة الفريق", icon: UserCog });
+  if (api.mode === "cloud" && api.role === "admin") items.push({ to: "/app/office", label: "إدارة المكتب", icon: Briefcase });
 
   const nav = (
     <nav className="flex flex-col gap-1">
