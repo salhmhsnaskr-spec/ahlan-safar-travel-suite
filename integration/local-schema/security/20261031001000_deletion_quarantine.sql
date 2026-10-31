@@ -23,13 +23,18 @@ REVOKE ALL ON FUNCTION public.deletion_status(uuid) FROM PUBLIC,anon,authenticat
 GRANT EXECUTE ON FUNCTION public.deletion_status(uuid) TO authenticated;
 -- SECURITY DEFINER reports also need quarantine: RLS alone cannot hide their reads.
 DO $$ DECLARE f text; definition text; BEGIN
- FOREACH f IN ARRAY ARRAY['team_performance','team_last_activity','team_performance'] LOOP
- IF f='team_performance' AND EXISTS(SELECT 1 FROM pg_proc WHERE proname='deletion_report_marker') THEN CONTINUE; END IF;
+ FOREACH f IN ARRAY ARRAY['team_performance','team_last_activity'] LOOP
  definition:=pg_get_functiondef(('public.'||f||'(uuid)')::regprocedure);
  IF strpos(definition,'Office deletion pending')=0 THEN
  definition:=regexp_replace(definition,'BEGIN','BEGIN IF public.deletion_pending(_office) THEN RAISE EXCEPTION ''Office deletion pending'' USING ERRCODE=''42501''; END IF;','i');
  EXECUTE definition;
  END IF;
  END LOOP;
+END $$;
+-- Owner statistics must not expose office data quarantined by a privileged RPC.
+DO $$ DECLARE definition text; BEGIN
+ definition:=pg_get_functiondef('public.platform_stats()'::regprocedure);
+ definition:=regexp_replace(definition,'BEGIN','BEGIN IF EXISTS(SELECT 1 FROM public.deletion_jobs WHERE status<>''completed'') THEN RAISE EXCEPTION ''Office deletion pending'' USING ERRCODE=''42501''; END IF;','i');
+ EXECUTE definition;
 END $$;
 COMMIT;
