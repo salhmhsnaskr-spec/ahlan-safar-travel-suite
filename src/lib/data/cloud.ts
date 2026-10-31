@@ -1,8 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { DataApi } from "./api";
-import type { AppRole, Member, DocumentRow } from "@/lib/domain";
+import type { AppRole, Member } from "@/lib/domain";
 import type { PerformanceData } from "@/lib/performance";
-import { assertDocumentDeletion } from "./deletion";
 import { assertLocalDeletionEnvironment } from "./permanent-deletion";
 import { permanentDelete } from "./permanent-deletion.functions";
 

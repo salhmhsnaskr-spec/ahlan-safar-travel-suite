@@ -22,10 +22,12 @@ export function localDeletionTransport(admin: SupabaseClient): DeletionTransport
     return result.data;
   };
   return {
+    renew: async job => { await rpc('renew_deletion', job.id, job.attempts); },
     claim: async id => await rpc('claim_deletion', id) as DeletionJob,
     paths: async job => {
       const paths: string[] = [];
       for (let offset = 0; ; offset += 500) {
+        await rpc('renew_deletion', job.id, job.attempts);
         const result = await admin.rpc('deletion_paths', { _job: job.id }).range(offset, offset + 499);
         if (result.error || !Array.isArray(result.data)) throw new Error('Cannot enumerate Storage paths');
         paths.push(...result.data.map((row: { path: string }) => row.path));
@@ -43,6 +45,7 @@ export function localDeletionTransport(admin: SupabaseClient): DeletionTransport
       }
     },
     remaining: async job => {
+      await rpc('renew_deletion', job.id, job.attempts);
       const paths = await rpc('deletion_remaining', job.id) as { path: string }[];
       return paths.map(row => row.path);
     },

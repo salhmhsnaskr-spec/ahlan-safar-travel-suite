@@ -7,6 +7,7 @@ export interface DeletionTransport {
   remaining(job: DeletionJob): Promise<string[]>;
   finish(id: string, attempt: number): Promise<void>;
   failed(id: string, attempt: number): Promise<void>;
+  renew?(job: DeletionJob): Promise<void>;
 }
 
 export function assertLocalDeletionEnvironment(enabled: string | undefined, url: string | undefined) {
@@ -24,6 +25,7 @@ export async function processDeletion(id: string, transport: DeletionTransport) 
     if (!job.office_id || !job.target_id) throw new Error('Invalid deletion scope');
     const paths = await transport.paths(job);
     for (let offset = 0; offset < paths.length; offset += 100) {
+      await transport.renew?.(job);
       const batch = paths.slice(offset, offset + 100);
       if (batch.some(path => !path.startsWith(`${job.office_id}/`) || path.includes('..') || path.includes('\\'))) throw new Error('Invalid Storage scope');
       await transport.remove(batch);

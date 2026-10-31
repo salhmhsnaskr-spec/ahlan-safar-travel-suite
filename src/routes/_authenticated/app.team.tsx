@@ -125,7 +125,8 @@ function Team() {
               <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" variant="outline" onClick={() => setSelected(m)}>ملف الموظف</Button>
                 <NativeSelect aria-label="الدور" className="h-8 w-28 text-xs" value={m.role} onChange={async (e) => {
-                  const { error } = await supabase.from("office_members").update({ role: e.target.value as "admin" | "employee" }).eq("office_id", office.id).eq("user_id", m.user_id);
+                  // Standalone overlay RPC is not present on hosted Cloud; fail closed there.
+                  const { error } = await supabase.rpc("set_member_role" as never, { _office: office.id, _user: m.user_id, _role: e.target.value } as never);
                   if (error) toast.error(error.message); refresh();
                 }}><option value="employee">موظف</option><option value="admin">مدير</option></NativeSelect>
                 {m.status === "suspended"
