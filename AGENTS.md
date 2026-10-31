@@ -34,3 +34,4 @@
 ## Independent reconstruction
 - `integration/` has its own `AGENTS.md`; read it before changing files there, because local-only reconstruction must stay outside hosted migration paths.
 - Preserve the captured six-file reconstruction and catalog as immutable provenance; independent security overlays and their focused tests live outside the baseline migration directory, so source comparison never mistakes hardening for an exact hosted clone.
+- Document operations persist scoped cleanup metadata before upload, delete the canonical file before its row and retain the row on failure; customer deletion refuses all dependents in DataApi and requires separate RESTRICT FK hardening to close direct-API and concurrency bypasses.
