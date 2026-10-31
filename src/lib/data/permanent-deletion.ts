@@ -1,5 +1,5 @@
 /** Browser-safe orchestration. Adapters own authorization, durable state and file verification. */
-export type DeletionJob = { id: string; office_id: string | null; kind: "customer" | "office"; target_id: string | null; status: string; attempts: number };
+export type DeletionJob = { id: string; office_id: string | null; kind: "customer" | "office" | "document"; target_id: string | null; status: string; attempts: number };
 export interface DeletionTransport {
   claim(id: string): Promise<DeletionJob>;
   paths(job: DeletionJob): Promise<string[]>;

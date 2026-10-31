@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { assertStorageAbsent } from './storage-absence';
 import { assertLocalDeletionEnvironment, processDeletion, type DeletionJob, type DeletionTransport } from './permanent-deletion';
 
 function localAdmin() {
@@ -10,7 +11,7 @@ function localAdmin() {
     const headers = new Headers(init?.headers);
     if (key.startsWith('sb_') && headers.get('Authorization') === `Bearer ${key}`) headers.delete('Authorization');
     headers.set('apikey', key);
-    return fetch(input, { ...init, headers });
+    return fetch(input, { ...init, headers, signal: AbortSignal.any([AbortSignal.timeout(30_000), ...(init?.signal ? [init.signal] : [])]) });
   } } });
 }
 
@@ -38,7 +39,7 @@ export function localDeletionTransport(admin: SupabaseClient): DeletionTransport
       // Confirm through Storage itself as well as the database catalog.
       for (const path of paths) {
         const check = await admin.storage.from('documents').exists(path);
-        if (check.error || check.data) throw new Error('Storage physical absence unverified');
+        assertStorageAbsent(check);
       }
     },
     remaining: async job => {
@@ -50,9 +51,11 @@ export function localDeletionTransport(admin: SupabaseClient): DeletionTransport
   };
 }
 
-export async function runLocalDeletion(input: { officeId: string; targetId: string; kind: 'customer' | 'office' }, caller: SupabaseClient) {
+export async function runLocalDeletion(input: { officeId: string; targetId: string; kind: 'customer' | 'office' | 'document' }, caller: SupabaseClient) {
   const admin = localAdmin();
-  const result = await caller.rpc('begin_permanent_deletion', { _office: input.officeId, _kind: input.kind, _target: input.targetId });
+  const result = input.kind === 'document'
+    ? await caller.rpc('begin_document_deletion', { _office: input.officeId, _document: input.targetId })
+    : await caller.rpc('begin_permanent_deletion', { _office: input.officeId, _kind: input.kind, _target: input.targetId });
   if (result.error || typeof result.data !== 'string') throw new Error('تعذّر بدء الحذف؛ تحقق من الصلاحية أو العملية المعلقة.');
   try { await processDeletion(result.data, localDeletionTransport(admin)); }
   catch { throw new Error('الحذف لم يكتمل. حُفظت العملية لإعادة المحاولة؛ لا تُعد البيانات محذوفة بالكامل.'); }

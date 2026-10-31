@@ -13,7 +13,7 @@ const independentOnly = createMiddleware().server(async ({ next }) => {
 
 export const permanentDelete = createServerFn({ method: 'POST' })
   .middleware([independentOnly, requireSupabaseAuth])
-  .inputValidator(z.object({ officeId: z.string().uuid(), targetId: z.string().uuid(), kind: z.enum(['customer', 'office']) }))
+  .inputValidator(z.object({ officeId: z.string().uuid(), targetId: z.string().uuid(), kind: z.enum(['customer', 'office', 'document']) }))
   .handler(async ({ data, context }) => {
     const { runLocalDeletion } = await import('./permanent-deletion.server');
     // Database authorization uses the caller session, never a role supplied by the browser.
