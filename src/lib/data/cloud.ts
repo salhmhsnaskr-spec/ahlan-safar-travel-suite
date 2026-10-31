@@ -26,11 +26,11 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
         ? must(await supabase.from("customers").update(rest).eq("id", id).select().single())
         : must(await supabase.from("customers").insert({ ...rest, office_id: officeId }).select().single()),
     deleteCustomer: async (id) => {
-      assertLocalDeletionEnvironment(import.meta.env.VITE_LOCAL_PERMANENT_DELETION, import.meta.env.VITE_SUPABASE_URL);
+      assertLocalDeletionEnvironment(import.meta.env['VITE_LOCAL_PERMANENT_DELETION'], import.meta.env['VITE_SUPABASE_URL']);
       await permanentDelete({ data: { officeId, targetId: id, kind: "customer" } });
     },
     deleteOffice: async () => {
-      assertLocalDeletionEnvironment(import.meta.env.VITE_LOCAL_PERMANENT_DELETION, import.meta.env.VITE_SUPABASE_URL);
+      assertLocalDeletionEnvironment(import.meta.env['VITE_LOCAL_PERMANENT_DELETION'], import.meta.env['VITE_SUPABASE_URL']);
       await permanentDelete({ data: { officeId, targetId: officeId, kind: "office" } });
     },
     listRequests: async () =>

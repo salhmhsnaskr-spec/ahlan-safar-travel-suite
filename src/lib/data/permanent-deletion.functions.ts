@@ -6,7 +6,7 @@ import { z } from 'zod';
 // Gate BEFORE authentication: even a direct RPC call cannot contact hosted Auth.
 const independentOnly = createMiddleware().server(async ({ next }) => {
   assertLocalDeletionEnvironment(process.env['LOCAL_PERMANENT_DELETION'], process.env['SUPABASE_URL']);
-  assertLocalDeletionEnvironment(process.env['LOCAL_PERMANENT_DELETION'], import.meta.env.VITE_SUPABASE_URL);
+  assertLocalDeletionEnvironment(process.env['LOCAL_PERMANENT_DELETION'], import.meta.env['VITE_SUPABASE_URL']);
   return next();
 });
 

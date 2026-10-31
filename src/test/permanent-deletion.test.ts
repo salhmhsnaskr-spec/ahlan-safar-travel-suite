@@ -5,9 +5,9 @@ function transport() {
  const remaining = new Set(['office/file.pdf']);
  const state = { status: 'pending', attempts: 0 };
  const t: DeletionTransport = {
-  claim: vi.fn(async () => ({id:'job',office_id:'office',target_id:'customer',kind:'customer',...state,attempts:++state.attempts})),
+  claim: vi.fn(async () => ({id:'job',office_id:'office',target_id:'customer',kind:'customer' as const,...state,attempts:++state.attempts})),
   paths: vi.fn(async () => ['office/file.pdf']),
-  remove: vi.fn(async paths => { paths.forEach(path => remaining.delete(path)); }),
+  remove: vi.fn(async (paths: string[]) => { paths.forEach(path => remaining.delete(path)); }),
   remaining: vi.fn(async () => [...remaining]),
   finish: vi.fn(async () => {state.status='completed';}),
   failed: vi.fn(async () => {state.status='pending';}),
