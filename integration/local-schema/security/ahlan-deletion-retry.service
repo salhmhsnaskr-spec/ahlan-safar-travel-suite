@@ -1,0 +1,26 @@
+[Unit]
+Description=Ahlan Safar independent local deletion retries
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+# Replace these two absolute paths on the independent existing machine only.
+WorkingDirectory=/opt/ahlan-independent
+Environment=DELETION_LOCAL_ENV_FILE=/etc/ahlan-independent/deletion-local.env
+ExecStart=/bin/bash /opt/ahlan-independent/integration/local-schema/security/start-retry-worker.sh
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+KillMode=control-group
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+
+[Install]
+WantedBy=multi-user.target
