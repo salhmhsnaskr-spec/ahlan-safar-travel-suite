@@ -40,4 +40,33 @@ it('old unassigned rows remain unassigned and creator grants no inferred owner',
     await db.exec(`INSERT INTO offices(id,name,created_by) VALUES('${office}','offline','${other}'); INSERT INTO customers(id,office_id,full_name,created_by) VALUES('${target}','${office}','legacy','${other}');`);
     expect((await db.query(`SELECT work_owner('${office}','customers','${target}') owner_id`)).rows).toEqual([{ owner_id: null }]);
   } finally { await db.exec('ROLLBACK'); }
+});const A = '00000000-0000-0000-0000-0000000000a1';
+const B = '00000000-0000-0000-0000-0000000000b1';
+async function asUser(id: string, sql: string) {
+  await db.exec(`SELECT set_config('request.jwt.claim.sub','${id}',true)`);
+  return db.query(sql);
+}
+async function roleFixture() {
+  await db.exec(`INSERT INTO auth.users(id,email,email_confirmed_at) VALUES('${A}','a@x',now()),('${B}','b@x',now()) ON CONFLICT DO NOTHING;
+    INSERT INTO offices(id,name,created_by) VALUES('${office}','roles','${A}');
+    INSERT INTO office_members(office_id,user_id,role) VALUES('${office}','${A}','admin'),('${office}','${B}','employee');`);
+}
+it('employee cannot change roles through the RPC', async () => {
+  await db.exec('BEGIN');
+  try { await roleFixture(); await expect(asUser(B, `SELECT set_member_role('${office}','${B}','admin')`)).rejects.toThrow(/Forbidden/); }
+  finally { await db.exec('ROLLBACK'); }
+});
+it('admin promotes an employee and the change is audited once', async () => {
+  await db.exec('BEGIN');
+  try {
+    await roleFixture();
+    await asUser(A, `SELECT set_member_role('${office}','${B}','admin')`);
+    expect((await db.query(`SELECT role FROM office_members WHERE user_id='${B}'`)).rows).toEqual([{ role: 'admin' }]);
+    expect((await db.query(`SELECT count(*)::int n FROM activity_log WHERE action='role_changed' AND entity_id='${B}'`)).rows).toEqual([{ n: 1 }]);
+  } finally { await db.exec('ROLLBACK'); }
+});
+it('sole admin cannot demote themselves', async () => {
+  await db.exec('BEGIN');
+  try { await roleFixture(); await expect(asUser(A, `SELECT set_member_role('${office}','${A}','employee')`)).rejects.toThrow(); }
+  finally { await db.exec('ROLLBACK'); }
 });
