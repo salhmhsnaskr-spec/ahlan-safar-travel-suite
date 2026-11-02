@@ -68,6 +68,12 @@ BEGIN
  IF assignee IS DISTINCT FROM before_id THEN
  IF NOT public.is_office_admin(OLD.office_id) THEN RAISE EXCEPTION 'Admin reassignment only' USING ERRCODE='42501'; END IF;
  DELETE FROM public.work_record_permissions WHERE office_id=OLD.office_id AND entity=TG_TABLE_NAME AND record_id=OLD.id;
+ -- Derived grants must not revive when an assignee later returns to this record.
+ DELETE FROM public.work_record_permissions p WHERE p.office_id=OLD.office_id AND (
+ (p.entity='umrah_participants' AND TG_TABLE_NAME='customers' AND EXISTS(SELECT 1 FROM public.umrah_participants u WHERE u.id=p.record_id AND u.customer_id=OLD.id AND u.office_id=OLD.office_id)) OR
+ (p.entity='documents' AND EXISTS(SELECT 1 FROM public.documents d LEFT JOIN public.bookings b ON b.id=d.booking_id AND b.office_id=d.office_id WHERE d.id=p.record_id AND d.office_id=OLD.office_id AND (
+ (TG_TABLE_NAME='customers' AND (d.customer_id=OLD.id OR EXISTS(SELECT 1 FROM public.requests r WHERE r.id=coalesce(d.request_id,b.request_id) AND r.customer_id=OLD.id AND r.office_id=d.office_id) OR b.customer_id=OLD.id)) OR
+ (TG_TABLE_NAME='requests' AND (d.request_id=OLD.id OR b.request_id=OLD.id)) OR (TG_TABLE_NAME='bookings' AND d.booking_id=OLD.id)))));
  INSERT INTO public.activity_log(office_id,actor_id,entity,entity_id,action,summary,old_values,new_values) VALUES(OLD.office_id,auth.uid(),TG_TABLE_NAME,OLD.id,'reassigned',TG_TABLE_NAME,jsonb_build_object(field,before_id),jsonb_build_object(field,assignee));
  END IF;
  IF NOT public.is_office_admin(OLD.office_id) AND
@@ -76,6 +82,21 @@ BEGIN
  IF assignee IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.office_members WHERE office_id=NEW.office_id AND user_id=assignee AND status='active') THEN RAISE EXCEPTION 'Inactive assignee'; END IF;
  RETURN NEW;
 END $$;
+CREATE FUNCTION public.guard_derived_work_scope() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+BEGIN
+ IF NEW.id IS DISTINCT FROM OLD.id OR NEW.office_id IS DISTINCT FROM OLD.office_id THEN RAISE EXCEPTION 'Immutable derived scope' USING ERRCODE='42501'; END IF;
+ IF TG_TABLE_NAME='documents' THEN
+ IF NEW.storage_path IS DISTINCT FROM OLD.storage_path OR NEW.uploaded_by IS DISTINCT FROM OLD.uploaded_by THEN RAISE EXCEPTION 'Immutable document identity' USING ERRCODE='42501'; END IF;
+ END IF;
+ IF to_jsonb(NEW)->'customer_id' IS DISTINCT FROM to_jsonb(OLD)->'customer_id' OR to_jsonb(NEW)->'request_id' IS DISTINCT FROM to_jsonb(OLD)->'request_id' OR to_jsonb(NEW)->'booking_id' IS DISTINCT FROM to_jsonb(OLD)->'booking_id' THEN
+ IF NOT public.is_office_admin(OLD.office_id) THEN RAISE EXCEPTION 'Admin relationship change only' USING ERRCODE='42501'; END IF;
+ DELETE FROM public.work_record_permissions WHERE office_id=OLD.office_id AND entity=TG_TABLE_NAME AND record_id=OLD.id;
+ END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER b_derived_scope BEFORE UPDATE ON public.documents FOR EACH ROW EXECUTE FUNCTION public.guard_derived_work_scope();
+CREATE TRIGGER b_derived_scope BEFORE UPDATE ON public.umrah_participants FOR EACH ROW EXECUTE FUNCTION public.guard_derived_work_scope();
+REVOKE ALL ON FUNCTION public.guard_derived_work_scope() FROM PUBLIC,anon,authenticated;
 DO $$ DECLARE t text; p record; BEGIN
  FOREACH t IN ARRAY ARRAY['customers','requests','bookings','tasks','documents','umrah_participants','umrah_trips'] LOOP
  FOR p IN SELECT policyname FROM pg_policies WHERE schemaname='public' AND tablename=t AND permissive='PERMISSIVE' LOOP EXECUTE format('DROP POLICY %I ON public.%I',p.policyname,t); END LOOP;
