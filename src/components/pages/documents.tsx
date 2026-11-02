@@ -3,15 +3,28 @@ import { Download, ExternalLink, FileText, Search, Trash2, Upload } from "lucide
 import { Link } from "@tanstack/react-router";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useBookings, useCustomers, useData, useDeleteDocument, useDocuments, useMembers, usePaths, useUploadDocument } from "@/lib/data/context";
+import { useBookings, useCustomers, useData, useDeleteDocument, useDocuments, useMembers, usePaths, useRequests, useUploadDocument } from "@/lib/data/context";
 import { EmptyState, Field, Loading, NativeSelect, PageHeader } from "@/components/kit";
 import { ConfirmDelete } from "@/components/confirm";
 import { Button } from "@/components/ui/button";
 import { formatBytes, formatDate, type DocumentRow } from "@/lib/domain";
 import type { DocumentLinks } from "@/lib/data/api";
+import { documentWorkOwner } from '@/lib/data/derived-owner';
+import { useWorkAccess, WorkPermissionControl } from '@/components/work-permission-control';
+
+function useDocumentWork() {
+  const api = useData();
+  const customers = useCustomers(); const requests = useRequests(); const bookings = useBookings();
+  return (d: DocumentRow) => {
+    try { return { id: d.id, office_id: d.office_id, assigned_to: documentWorkOwner(api.officeId ?? '', d, { customers: customers.data ?? [], requests: requests.data ?? [], bookings: bookings.data ?? [] }) }; }
+    catch { return null; }
+  };
+}
 
 /** Upload/download/delete files linked to a customer or booking. Files are isolated per office. */
 export function DocumentsPanel({ links, filter }: { links: DocumentLinks; filter: (d: DocumentRow) => boolean }) {
+  const work = useDocumentWork();
+  const allowed = useWorkAccess();
   const api = useData();
   const { data, isLoading } = useDocuments();
   const members = new Map((useMembers().data ?? []).map((m) => [m.user_id, m.full_name || m.email || "—"]));
@@ -45,7 +58,8 @@ export function DocumentsPanel({ links, filter }: { links: DocumentLinks; filter
       {isLoading ? <Loading /> : list.length === 0 ? <EmptyState title="لا توجد وثائق" body="ارفع جواز السفر أو التذاكر أو أي مستند متعلق." /> : (
         <ul className="divide-y rounded-xl border bg-card">
           {list.map((d) => {
-            const canDelete = api.role === "admin" || d.uploaded_by === api.userId;
+            const record = work(d);
+            const canDelete = record && allowed('documents', record, 'delete');
             return (
               <li key={d.id} className="flex items-center gap-3 px-4 py-3">
                 <FileText className="size-5 shrink-0 text-primary" />
@@ -55,6 +69,7 @@ export function DocumentsPanel({ links, filter }: { links: DocumentLinks; filter
                 </div>
                 <Button size="icon" variant="ghost" aria-label="تنزيل" onClick={() => download(d)}><Download /></Button>
                 {canDelete && <Button size="icon" variant="ghost" aria-label="حذف الوثيقة" className="text-danger" onClick={() => setToDelete(d)}><Trash2 /></Button>}
+                {record && <WorkPermissionControl entity="documents" record={record} label="الوثيقة" />}
               </li>
             );
           })}
@@ -79,6 +94,8 @@ const kindLabels: Record<string, string> = { pdf: "PDF", image: "صورة", doc:
 
 /** Office-wide documents page. Reuses the same DataApi/query cache as the embedded panels, so changes sync everywhere. */
 export function DocumentsPage() {
+  const work = useDocumentWork();
+  const allowed = useWorkAccess();
   const api = useData();
   const docs = useDocuments();
   const customers = useCustomers().data ?? [];
@@ -185,7 +202,8 @@ export function DocumentsPage() {
           <p className="mb-2 text-sm text-muted-foreground">{list.length} مستند</p>
           <ul className="divide-y rounded-xl border bg-card">
             {list.map((d) => {
-              const canDelete = api.role === "admin" || d.uploaded_by === api.userId;
+              const record = work(d);
+              const canDelete = record && allowed('documents', record, 'delete');
               const b = d.booking_id ? bookMap.get(d.booking_id) : undefined;
               return (
                 <li key={d.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
@@ -210,6 +228,7 @@ export function DocumentsPage() {
                     <Button size="icon" variant="ghost" aria-label="فتح" onClick={() => open(d, false)}><ExternalLink /></Button>
                     <Button size="icon" variant="ghost" aria-label="تنزيل" onClick={() => open(d, true)}><Download /></Button>
                     {canDelete && <Button size="icon" variant="ghost" aria-label="حذف الوثيقة" className="text-danger" onClick={() => setToDelete(d)}><Trash2 /></Button>}
+                    {record && <WorkPermissionControl entity="documents" record={record} label="الوثيقة" />}
                   </div>
                 </li>
               );

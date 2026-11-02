@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { assertStorageAbsent } from './storage-absence';
 import { assertLocalDeletionEnvironment, processDeletion, type DeletionJob, type DeletionTransport } from './permanent-deletion';
+import { runDeletionBatch } from './deletion-worker';
 
 function localAdmin() {
   const url = process.env['SUPABASE_URL'];
@@ -69,12 +70,10 @@ export async function runLocalDeletion(input: { officeId: string; targetId: stri
 /** Invoked by the independent local worker, not by browser page load or production cron. */
 export async function retryLocalDeletions() {
   const admin = localAdmin();
-  const now=new Date().toISOString();
-  const result = await admin.from('deletion_jobs').select('id').neq('status', 'completed').lte('retry_at', now).or(`lease_until.is.null,lease_until.lte.${now}`).order('retry_at').limit(100);
-  if (result.error) throw new Error('Cannot read independent deletion queue');
-  for (const job of result.data ?? []) {
-    try { await processDeletion(job.id, localDeletionTransport(admin)); }
-    catch { /* persisted pending state or lease recovery; never report completion */ }
-  }
-  return result.data?.length ?? 0;
+  return runDeletionBatch({ due: async limit => {
+    const now = new Date().toISOString();
+    const result = await admin.from('deletion_jobs').select('id').neq('status', 'completed').lte('retry_at', now).or(`lease_until.is.null,lease_until.lte.${now}`).order('retry_at').limit(limit);
+    if (result.error) throw new Error('Cannot read independent deletion queue');
+    return (result.data ?? []).map(job => job.id);
+  } }, localDeletionTransport(admin));
 }

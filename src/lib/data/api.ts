@@ -30,6 +30,7 @@ export interface DataApi {
   role: AppRole;
   userId: string;
   officeName: string;
+  officeId?: string;
   listWorkPermissions(): Promise<WorkPermission[]>;
   setWorkPermission(input: { entity: WorkEntity; recordId: string; granteeId: string; operation: WorkOperation; allow: boolean; ownerId?: string | null }): Promise<void>;
   listCustomers(): Promise<Customer[]>;

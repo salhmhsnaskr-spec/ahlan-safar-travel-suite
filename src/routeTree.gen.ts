@@ -52,6 +52,7 @@ import { Route as AuthenticatedAppCustomersIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedAppCustomersIdRouteImport } from './routes/_authenticated/app.customers.$id'
 import { Route as AuthenticatedAppTransactionsIdRouteImport } from './routes/_authenticated/app.transactions.$id'
 import { Route as AuthenticatedAppTransactionsNewRouteImport } from './routes/_authenticated/app.transactions.new'
+import { Route as ApiPublicJobsDeletionRetryRouteImport } from './routes/api/public/jobs/deletion-retry'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -279,6 +280,12 @@ const AuthenticatedAppTransactionsNewRoute =
     path: '/transactions/new',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const ApiPublicJobsDeletionRetryRoute =
+  ApiPublicJobsDeletionRetryRouteImport.update({
+    id: '/api/public/jobs/deletion-retry',
+    path: '/api/public/jobs/deletion-retry',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -321,6 +328,7 @@ export interface FileRoutesByFullPath {
   '/app/customers/$id': typeof AuthenticatedAppCustomersIdRoute
   '/app/transactions/$id': typeof AuthenticatedAppTransactionsIdRoute
   '/app/transactions/new': typeof AuthenticatedAppTransactionsNewRoute
+  '/api/public/jobs/deletion-retry': typeof ApiPublicJobsDeletionRetryRoute
   '/app/bookings/': typeof AuthenticatedAppBookingsIndexRoute
   '/app/customers/': typeof AuthenticatedAppCustomersIndexRoute
 }
@@ -363,6 +371,7 @@ export interface FileRoutesByTo {
   '/app/customers/$id': typeof AuthenticatedAppCustomersIdRoute
   '/app/transactions/$id': typeof AuthenticatedAppTransactionsIdRoute
   '/app/transactions/new': typeof AuthenticatedAppTransactionsNewRoute
+  '/api/public/jobs/deletion-retry': typeof ApiPublicJobsDeletionRetryRoute
   '/app/bookings': typeof AuthenticatedAppBookingsIndexRoute
   '/app/customers': typeof AuthenticatedAppCustomersIndexRoute
 }
@@ -409,6 +418,7 @@ export interface FileRoutesById {
   '/_authenticated/app/customers/$id': typeof AuthenticatedAppCustomersIdRoute
   '/_authenticated/app/transactions/$id': typeof AuthenticatedAppTransactionsIdRoute
   '/_authenticated/app/transactions/new': typeof AuthenticatedAppTransactionsNewRoute
+  '/api/public/jobs/deletion-retry': typeof ApiPublicJobsDeletionRetryRoute
   '/_authenticated/app/bookings/': typeof AuthenticatedAppBookingsIndexRoute
   '/_authenticated/app/customers/': typeof AuthenticatedAppCustomersIndexRoute
 }
@@ -455,6 +465,7 @@ export interface FileRouteTypes {
     | '/app/customers/$id'
     | '/app/transactions/$id'
     | '/app/transactions/new'
+    | '/api/public/jobs/deletion-retry'
     | '/app/bookings/'
     | '/app/customers/'
   fileRoutesByTo: FileRoutesByTo
@@ -497,6 +508,7 @@ export interface FileRouteTypes {
     | '/app/customers/$id'
     | '/app/transactions/$id'
     | '/app/transactions/new'
+    | '/api/public/jobs/deletion-retry'
     | '/app/bookings'
     | '/app/customers'
   id:
@@ -542,6 +554,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/customers/$id'
     | '/_authenticated/app/transactions/$id'
     | '/_authenticated/app/transactions/new'
+    | '/api/public/jobs/deletion-retry'
     | '/_authenticated/app/bookings/'
     | '/_authenticated/app/customers/'
   fileRoutesById: FileRoutesById
@@ -553,6 +566,7 @@ export interface RootRouteChildren {
   DemoRoute: typeof DemoRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   InviteTokenRoute: typeof InviteTokenRoute
+  ApiPublicJobsDeletionRetryRoute: typeof ApiPublicJobsDeletionRetryRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -858,6 +872,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppTransactionsNewRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/api/public/jobs/deletion-retry': {
+      id: '/api/public/jobs/deletion-retry'
+      path: '/api/public/jobs/deletion-retry'
+      fullPath: '/api/public/jobs/deletion-retry'
+      preLoaderRoute: typeof ApiPublicJobsDeletionRetryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -968,6 +989,7 @@ const rootRouteChildren: RootRouteChildren = {
   DemoRoute: DemoRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   InviteTokenRoute: InviteTokenRoute,
+  ApiPublicJobsDeletionRetryRoute: ApiPublicJobsDeletionRetryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

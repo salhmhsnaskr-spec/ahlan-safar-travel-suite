@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate, requestCode, type UmrahParticipant, type UmrahTrip } from "@/lib/domain";
 import { pilgrimStatusLabels, stayDuration, stayLabel, tripStatusLabels, validateParticipantDates } from "@/lib/umrah";
+import { useWorkAccess, WorkPermissionControl } from '@/components/work-permission-control';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -28,6 +29,7 @@ export function UmrahPage() {
 }
 
 function UmrahContent() {
+  const api = useData();
   const trips = useTrips().data ?? [];
   const participants = useParticipants().data ?? [];
   const [selected, setSelected] = useState<string | null>(null);
@@ -38,7 +40,7 @@ function UmrahContent() {
       <PageHeader
         title="رحلات العمرة"
         subtitle="المعتمر هو عميل المكتب؛ طلب العمرة الفردي يُنشأ من «معاملة جديدة» بخدمة «عمرة»، والرحلات الجماعية تُدار هنا."
-        actions={<Button onClick={() => setEditTrip({})}><Plus /> رحلة جماعية جديدة</Button>}
+        actions={api.role === 'admin' && <Button onClick={() => setEditTrip({})}><Plus /> رحلة جماعية جديدة</Button>}
       />
       {trips.length === 0 ? (
         <EmptyState title="لا توجد رحلات عمرة بعد" body="أنشئ رحلة جماعية ثم أضف إليها المعتمرين من عملاء المكتب." />
@@ -93,6 +95,7 @@ function TripDialog({ initial, onClose, onSaved }: { initial: Partial<UmrahTrip>
 }
 
 function TripDetail({ trip, onEdit, onDeleted }: { trip: UmrahTrip; onEdit: () => void; onDeleted: () => void }) {
+  const allowed = useWorkAccess();
   const api = useData();
   const p = usePaths();
   const list = (useParticipants().data ?? []).filter((x) => x.trip_id === trip.id);
@@ -109,7 +112,7 @@ function TripDetail({ trip, onEdit, onDeleted }: { trip: UmrahTrip; onEdit: () =
           <p className="text-xs text-muted-foreground">حالة الرحلة: {tripStatusLabels[trip.status]} · {list.length} معتمر</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={onEdit}><Pencil /> تعديل الرحلة</Button>
+          {api.role === 'admin' && <Button size="sm" variant="outline" onClick={onEdit}><Pencil /> تعديل الرحلة</Button>}
           <Button size="sm" onClick={() => setEdit({ trip_id: trip.id })}><UserPlus /> إضافة معتمر</Button>
           {api.role === "admin" && (
             <Button size="sm" variant="ghost" className="text-danger" onClick={() => { if (confirm("حذف الرحلة وجميع سجلات مشاركة المعتمرين فيها؟ لن يُحذف العملاء.")) del.mutate(trip.id, { onSuccess: onDeleted }); }}><Trash2 /> حذف</Button>
@@ -120,6 +123,7 @@ function TripDetail({ trip, onEdit, onDeleted }: { trip: UmrahTrip; onEdit: () =
         <ul className="divide-y rounded-lg border">
           {list.map((x) => {
             const stay = stayDuration(x.actual_entry, x.actual_exit, today());
+            const record = { id: x.id, office_id: x.office_id, assigned_to: customers.find(c => c.id === x.customer_id)?.assigned_to ?? null };
             return (
               <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-sm">
                 <div className="min-w-0">
@@ -129,8 +133,9 @@ function TripDetail({ trip, onEdit, onDeleted }: { trip: UmrahTrip; onEdit: () =
                   </p>
                 </div>
                 <div className="flex gap-1">
-                  <Button size="sm" variant="ghost" aria-label="تعديل المعتمر" onClick={() => setEdit(x)}><Pencil /></Button>
-                  <Button size="sm" variant="ghost" aria-label="إزالة من الرحلة" className="text-danger" onClick={() => { if (confirm("إزالة المعتمر من هذه الرحلة؟ لن يُحذف سجل العميل.")) remove.mutate(x.id); }}><Trash2 /></Button>
+                  <Button size="sm" variant="ghost" disabled={!allowed('umrah_participants', record, 'edit')} aria-label="تعديل المعتمر" onClick={() => setEdit(x)}><Pencil /></Button>
+                  <Button size="sm" variant="ghost" disabled={!allowed('umrah_participants', record, 'delete')} aria-label="إزالة من الرحلة" className="text-danger" onClick={() => { if (confirm("إزالة المعتمر من هذه الرحلة؟ لن يُحذف سجل العميل.")) remove.mutate(x.id); }}><Trash2 /></Button>
+                  <WorkPermissionControl entity="umrah_participants" record={record} label="المعتمر" />
                 </div>
               </li>
             );
@@ -165,12 +170,13 @@ function ParticipantDialog({ initial, onClose }: { initial: Partial<UmrahPartici
   return (
     <FormDialog open={!!initial} onOpenChange={(o) => !o && onClose()} title={initial?.id ? "تعديل بيانات المعتمر في الرحلة" : "إضافة معتمر إلى الرحلة"} pending={save.isPending}
       onSubmit={() => {
+        if (!initial?.trip_id) return setErr('اختر الرحلة.');
         if (!f.customer_id) return setErr("اختر المعتمر.");
         if (taken.has(f.customer_id)) return setErr("هذا المعتمر مضاف مسبقًا إلى هذه الرحلة.");
         const dates = { planned_entry: f.planned_entry || null, planned_exit: f.planned_exit || null, actual_entry: f.actual_entry || null, actual_exit: f.actual_exit || null };
         const v = validateParticipantDates(dates);
         if (v) return setErr(v);
-        save.mutate({ id: initial?.id, trip_id: initial!.trip_id!, customer_id: f.customer_id, request_id: f.request_id || null, status: f.status, notes: f.notes.trim() || null, ...dates },
+        save.mutate({ id: initial.id, trip_id: initial.trip_id, customer_id: f.customer_id, request_id: f.request_id || null, status: f.status, notes: f.notes.trim() || null, ...dates },
           { onSuccess: onClose });
       }}>
       <Field label="المعتمر (من عملاء المكتب) *" className="sm:col-span-2">

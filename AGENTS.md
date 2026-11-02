@@ -10,7 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Architecture rules
-- All app pages talk to the `DataApi` interface (src/lib/data/api.ts); demo mode uses a localStorage implementation and the real app a per-office cloud implementation, so both render identical screens and demo data never reaches the database.
+- Pages use DataApi; demo stays in localStorage, cloud stays office-scoped, and neither may mix data.
 - Every office-owned table carries `office_id` and is isolated by RLS via `is_office_member` / `is_office_admin` security-definer functions; roles live only in `office_members`.
 - Services with `office_id IS NULL` are the shared base catalog; offices extend it with their own rows instead of hardcoded enums.
 - Bookings and tasks are their own office-scoped tables linked by foreign keys (never copies of customer/service data); a shared trigger rejects cross-office references and employees may only change task status/notes — keeps office isolation and roles enforced in the database, not just the UI.
@@ -34,7 +34,8 @@
 ## Independent reconstruction
 - `integration/` has its own `AGENTS.md`; read it before changing files there, because local-only reconstruction must stay outside hosted migration paths.
 - Preserve the captured six-file reconstruction and catalog as immutable provenance; independent security overlays and their focused tests live outside the baseline migration directory, so source comparison never mistakes hardening for an exact hosted clone.
-- Permanent deletion uses durable frozen jobs, restrictive read quarantine, Storage-first cleanup and service-only finalization; the loopback-only retry worker is supervised independently, never hosted startup. Pending data stays unavailable; shared identities survive. SQL stays outside hosted paths.
+- Deletion uses durable jobs, scoped quarantine, Storage-first cleanup and fenced service finalization; shared identities survive. The authenticated callback is bounded and disabled before service access pending independent acceptance. No hosted schedule is enabled.
 - Documents use the same durable deletion queue; direct metadata deletion is revoked and trigger-blocked. Membership role changes use an authorized RPC, not direct DML. Local hardening overlays must be applied in order before independent API exposure.
 - Staged deletion locks shared office barrier then customer then job; office erasure uses an exclusive barrier. NOWAIT guards and fenced leases need real concurrency acceptance.
 - Work rights use assignment and record/operation grants, never creator fallback. DataApi guards are UX; independent SQL is the security boundary, unapplied until acceptance and approval.
+- Document ownership validates office/customer links, then follows booking/request/customer, or uploader for unlinked files; record controls share these rules.

@@ -215,6 +215,7 @@ export function createDemoApi(actor: { userId: string; role: 'admin' | 'employee
     role: actor.role,
     userId: actor.userId,
     officeName: "مكتب تجريبي",
+    officeId: DEMO_OFFICE,
     listWorkPermissions: async () => load().permissions ?? [],
     setWorkPermission: async input => {
       const db = load();

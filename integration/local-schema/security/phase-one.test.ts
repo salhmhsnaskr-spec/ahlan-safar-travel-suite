@@ -70,3 +70,39 @@ it('sole admin cannot demote themselves', async () => {
   try { await roleFixture(); await expect(asUser(A, `SELECT set_member_role('${office}','${A}','employee')`)).rejects.toThrow(); }
   finally { await db.exec('ROLLBACK'); }
 });
+it('SQL rejects self-grants even for an office administrator', async () => {
+  await db.exec('BEGIN');
+  try {
+    await roleFixture();
+    await asUser(A, `INSERT INTO customers(id,office_id,full_name,assigned_to) VALUES('${target}','${office}','test','${A}')`);
+    await expect(asUser(A, `SELECT set_work_permission('${office}','customers','${target}','${A}','delete',true)`)).rejects.toThrow(/Invalid permission/);
+  } finally { await db.exec('ROLLBACK'); }
+});
+it('SQL disallows trip delegation even for an administrator', async () => {
+  await db.exec('BEGIN');
+  try {
+    await roleFixture();
+    await expect(asUser(A, `SELECT set_work_permission('${office}','umrah_trips','${target}','${B}','edit',true)`)).rejects.toThrow(/Invalid permission/);
+  } finally { await db.exec('ROLLBACK'); }
+});
+it('derived document permission is erased permanently by reassignment', async () => {
+  await db.exec('BEGIN');
+  try {
+    await roleFixture();
+    await asUser(A, `INSERT INTO customers(id,office_id,full_name,assigned_to) VALUES('${target}','${office}','test','${A}')`);
+    await asUser(A, `INSERT INTO documents(id,office_id,customer_id,file_name,storage_path,uploaded_by) VALUES('${other}','${office}','${target}','f','${office}/file','${B}')`);
+    await asUser(A, `SELECT set_work_permission('${office}','documents','${other}','${B}','delete',true)`);
+    expect((await db.query(`SELECT count(*)::int n FROM work_record_permissions`)).rows).toEqual([{n:1}]);
+    await asUser(A, `UPDATE customers SET assigned_to='${B}' WHERE id='${target}'`);
+    await asUser(A, `UPDATE customers SET assigned_to='${A}' WHERE id='${target}'`);
+    expect((await db.query(`SELECT count(*)::int n FROM work_record_permissions`)).rows).toEqual([{n:0}]);
+  } finally { await db.exec('ROLLBACK'); }
+});
+it('document path cannot be forged through an administrator update', async () => {
+  await db.exec('BEGIN');
+  try {
+    await roleFixture();
+    await asUser(A, `INSERT INTO documents(id,office_id,file_name,storage_path,uploaded_by) VALUES('${other}','${office}','f','${office}/file','${A}');`);
+    await expect(asUser(A, `UPDATE documents SET storage_path='${office}/other' WHERE id='${other}'`)).rejects.toThrow(/Immutable document identity/);
+  } finally { await db.exec('ROLLBACK'); }
+});
