@@ -1,4 +1,7 @@
 import type { DataApi } from "./api";
+import { authorizeWorkApi } from './authorized-api';
+import { customerClosure } from './customer-closure';
+import { workOwner, type WorkPermission } from './work-permissions';
 import { buildDemoPerformance } from "@/lib/performance";
 import { emptyWorkAttribution, emptyTerminalAttribution, stampDemoWork, auditAction, safeAuditValues } from "@/lib/attribution";
 import type { ActivityRow, DocumentRow, Booking, Customer, Member, Partner, Service, Task, TravelRequest, UmrahParticipant, UmrahTrip } from "@/lib/domain";
@@ -12,6 +15,7 @@ const DEMO_KEY = "ahlan-safar-demo-v1";
 const DEMO_OFFICE = "demo-office";
 
 type DemoDB = {
+  permissions?: WorkPermission[];
   activity?: ActivityRow[];
   seq: number;
   customers: Customer[];
@@ -173,7 +177,7 @@ export function exportDemoData() {
   return { version: 1, exported_at: new Date().toISOString(), customers: db.customers, requests: db.requests, partners: db.partners, services: db.services.filter((s) => s.office_id) };
 }
 
-function mutate<T>(fn: (db: DemoDB) => T): Promise<T> {
+function mutateAs<T>(fn: (db: DemoDB) => T, actor: { userId: string; role: 'admin' | 'employee' }): Promise<T> {
   const db = load();
   const collections = ['customers','requests','bookings','tasks','documents','trips','participants'] as const;
   const before = structuredClone(db);
@@ -187,28 +191,42 @@ function mutate<T>(fn: (db: DemoDB) => T): Promise<T> {
       const old = previous.get(row.id);
       if (old && JSON.stringify(old) === JSON.stringify(row)) { previous.delete(row.id); continue; }
       if (collection === 'customers' || collection === 'requests' || collection === 'bookings' || collection === 'tasks') {
-        Object.assign(row, stampDemoWork(old, row, 'demo-admin', now));
+        if (old && workOwner(old) !== workOwner(row)) db.permissions = (db.permissions ?? []).filter(p => !(p.entity === collection && p.record_id === row.id));
+        Object.assign(row, stampDemoWork(old, row, actor.userId, now));
       }
       const entity = collection === 'trips' ? 'umrah_trips' : collection === 'participants' ? 'umrah_participants' : collection;
       const changed = [...new Set([...Object.keys(old ?? {}), ...Object.keys(row)])].filter((key) => JSON.stringify((old as Record<string, unknown> | undefined)?.[key]) !== JSON.stringify((row as Record<string, unknown>)[key]));
-      db.activity.push({ id: uid(), office_id: DEMO_OFFICE, actor_id: 'demo-admin', actor_name: 'أنت (المدير)', entity, entity_id: row.id, action: auditAction(old, row), summary: 'number' in row ? `${entity === 'bookings' ? 'BK' : 'REQ'}-${String(row.number).padStart(4,'0')}` : entity, old_values: safeAuditValues(old), new_values: safeAuditValues(row), result: 'success', changed_fields: changed, created_at: now });
+      db.activity.push({ id: uid(), office_id: DEMO_OFFICE, actor_id: actor.userId, actor_name: db.members.find(m => m.user_id === actor.userId)?.full_name ?? null, entity, entity_id: row.id, action: auditAction(old, row), summary: 'number' in row ? `${entity === 'bookings' ? 'BK' : 'REQ'}-${String(row.number).padStart(4,'0')}` : entity, old_values: safeAuditValues(old), new_values: safeAuditValues(row), result: 'success', changed_fields: changed, created_at: now });
       previous.delete(row.id);
     }
     for (const old of previous.values()) {
-      db.activity.push({ id: uid(), office_id: DEMO_OFFICE, actor_id: 'demo-admin', actor_name: 'أنت (المدير)', entity: collection, entity_id: old.id, action: 'deleted', summary: collection, old_values: safeAuditValues(old), new_values: null, result: 'success', changed_fields: Object.keys(old), created_at: now });
+      db.activity.push({ id: uid(), office_id: DEMO_OFFICE, actor_id: actor.userId, actor_name: db.members.find(m => m.user_id === actor.userId)?.full_name ?? null, entity: collection, entity_id: old.id, action: 'deleted', summary: collection, old_values: safeAuditValues(old), new_values: null, result: 'success', changed_fields: Object.keys(old), created_at: now });
     }
   }
   save(db);
   return Promise.resolve(result);
 }
 
-export function createDemoApi(): DataApi {
-  return {
+export function createDemoApi(actor: { userId: string; role: 'admin' | 'employee' } = { userId: 'demo-admin', role: 'admin' }): DataApi {
+  const mutate = <T,>(fn: (db: DemoDB) => T) => mutateAs(fn, actor);
+  const api: DataApi = {
     mode: "demo",
     key: "demo",
-    role: "admin",
-    userId: "demo-admin",
+    role: actor.role,
+    userId: actor.userId,
     officeName: "مكتب تجريبي",
+    listWorkPermissions: async () => load().permissions ?? [],
+    setWorkPermission: async input => {
+      const db = load();
+      const collections = { customers: db.customers, requests: db.requests, bookings: db.bookings, tasks: db.tasks, documents: db.documents ?? [], umrah_participants: db.participants ?? [], umrah_trips: db.trips ?? [] };
+      const row = collections[input.entity].find(r => r.id === input.recordId);
+      if (!row || !db.members.some(m => m.user_id === input.granteeId && (m.status ?? 'active') === 'active')) throw new Error('السجل أو الموظف غير متاح.');
+      db.permissions = (db.permissions ?? []).filter(p => !(p.entity === input.entity && p.record_id === input.recordId && p.operation === input.operation && p.grantee_id === input.granteeId));
+      if (input.allow) db.permissions.push({ office_id: DEMO_OFFICE, entity: input.entity, record_id: input.recordId, operation: input.operation, grantee_id: input.granteeId, granted_by: actor.userId, owner_id: workOwner(row) });
+      db.activity ??= [];
+      db.activity.push({ id: uid(), office_id: DEMO_OFFICE, actor_id: actor.userId, actor_name: db.members.find(m => m.user_id === actor.userId)?.full_name ?? null, entity: input.entity, entity_id: input.recordId, action: input.allow ? 'permission_granted' : 'permission_revoked', summary: input.operation, result: 'success', old_values: null, new_values: null, changed_fields: null, created_at: new Date().toISOString() });
+      save(db);
+    },
     listCustomers: async () => load().customers.slice().sort((a, b) => (a.created_at < b.created_at ? 1 : -1)),
     saveCustomer: (input) =>
       mutate((db) => {
@@ -229,8 +247,9 @@ export function createDemoApi(): DataApi {
     deleteCustomer: (id) =>
       Promise.resolve().then(() => {
         const db = load();
-        const requests = new Set(db.requests.filter(r => r.customer_id === id).map(r => r.id));
-        const bookings = new Set(db.bookings.filter(b => b.customer_id === id || (b.request_id && requests.has(b.request_id))).map(b => b.id));
+        const closure = customerClosure(DEMO_OFFICE, id, { requests: db.requests, bookings: db.bookings, tasks: db.tasks, documents: db.documents ?? [], participants: db.participants ?? [] });
+        const requests = closure.requests;
+        const bookings = closure.bookings;
         const linked = (r: { customer_id?: string | null; request_id?: string | null; booking_id?: string | null }) =>
           r.customer_id === id || Boolean(r.request_id && requests.has(r.request_id)) || Boolean(r.booking_id && bookings.has(r.booking_id));
         const entities = new Map<string, Set<string>>([
@@ -246,6 +265,7 @@ export function createDemoApi(): DataApi {
         db.participants = (db.participants ?? []).filter(r => !linked(r));
         db.activity = (db.activity ?? []).filter(r => !r.entity_id || !entities.get(r.entity)?.has(r.entity_id));
         db.customers = db.customers.filter((c) => c.id !== id);
+        db.permissions = (db.permissions ?? []).filter(p => !entities.get(p.entity)?.has(p.record_id));
         save(db);
       }),
     deleteOffice: async () => {
@@ -430,4 +450,5 @@ export function createDemoApi(): DataApi {
       }),
     deleteParticipant: (id) => mutate((db) => void (db.participants = (db.participants ?? []).filter((p) => p.id !== id))),
   };
+  return authorizeWorkApi(api, DEMO_OFFICE);
 }

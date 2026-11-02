@@ -1,15 +1,30 @@
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Pencil, Plus, Search, Trash2, Phone } from "lucide-react";
-import { useCustomers, useDeleteCustomer, useMembers, usePartners, usePaths, useRequests } from "@/lib/data/context";
+import { Pencil, Plus, Search, Trash2, Phone, KeyRound } from "lucide-react";
+import { useCustomers, useData, useDeleteCustomer, useMembers, usePartners, usePaths, useRequests } from "@/lib/data/context";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { canManageWork } from '@/lib/data/work-permissions';
+import { toast } from 'sonner';
 import { EmptyState, Loading, NativeSelect, PageHeader } from "@/components/kit";
 import { CustomerDialog } from "@/components/forms";
 import { ConfirmDelete } from "@/components/confirm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { customerSourceLabels, formatDate, type Customer } from "@/lib/domain";
 
 export function CustomersPage() {
+  const api = useData();
+  const qc = useQueryClient();
+  const permissions = useQuery({ queryKey: [api.key, 'work-permissions'], queryFn: api.listWorkPermissions });
+  const [delegating, setDelegating] = useState<Customer | null>(null);
+  const [grantee, setGrantee] = useState('');
+  const [operation, setOperation] = useState<'edit' | 'delete'>('edit');
+  const grant = useMutation({ mutationFn: (allow: boolean) => {
+    if (!delegating || !grantee) throw new Error('اختر الموظف.');
+    return api.setWorkPermission({ entity: 'customers', recordId: delegating.id, granteeId: grantee, operation, allow });
+  }, onSuccess: () => { qc.invalidateQueries({ queryKey: [api.key] }); toast.success('تم تحديث الإذن'); }, onError: (error: Error) => toast.error(error.message) });
+  const allowed = (c: Customer, op: 'edit' | 'delete') => canManageWork({ userId: api.userId, officeId: c.office_id, role: api.role, active: true }, 'customers', c, op, permissions.data ?? []);
   const p = usePaths();
   const { data, isLoading } = useCustomers();
   const requests = useRequests().data ?? [];
@@ -72,8 +87,9 @@ export function CustomersPage() {
                   <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground" dir="ltr"><Phone className="size-3" />{c.phone || "—"}</p>
                 </Link>
                 <div className="flex shrink-0 gap-1">
-                  <Button size="icon" variant="ghost" aria-label="تعديل" onClick={() => { setEditing(c); setOpen(true); }}><Pencil /></Button>
-                  <Button size="icon" variant="ghost" aria-label="حذف" className="text-danger" onClick={() => setToDelete(c)}><Trash2 /></Button>
+                  <Button size="icon" variant="ghost" aria-label="تعديل" disabled={!allowed(c, 'edit')} onClick={() => { setEditing(c); setOpen(true); }}><Pencil /></Button>
+                  <Button size="icon" variant="ghost" aria-label="حذف" disabled={!allowed(c, 'delete')} className="text-danger" onClick={() => setToDelete(c)}><Trash2 /></Button>
+                  {(api.role === 'admin' || c.assigned_to === api.userId) && <Button size="icon" variant="ghost" aria-label="أذونات العميل" title="أذونات العميل" onClick={() => { setDelegating(c); setGrantee(''); }}><KeyRound /></Button>}
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -87,6 +103,13 @@ export function CustomersPage() {
         </div>
       )}
       <CustomerDialog open={open} onOpenChange={setOpen} initial={editing} />
+      <Dialog open={Boolean(delegating)} onOpenChange={o => { if (!o) setDelegating(null); }}>
+        <DialogContent dir="rtl"><DialogHeader><DialogTitle>أذونات {delegating?.full_name}</DialogTitle></DialogHeader>
+          <NativeSelect aria-label="الموظف المفوض" value={grantee} onChange={e => setGrantee(e.target.value)}><option value="">اختر الموظف</option>{members.filter(m => (m.status ?? 'active') === 'active').map(m => <option key={m.user_id} value={m.user_id}>{m.full_name || m.email}</option>)}</NativeSelect>
+          <NativeSelect aria-label="نوع الإذن" value={operation} onChange={e => setOperation(e.target.value === 'delete' ? 'delete' : 'edit')}><option value="edit">تعديل</option><option value="delete">حذف</option></NativeSelect>
+          <div className="flex gap-2"><Button disabled={!grantee || grant.isPending} onClick={() => grant.mutate(true)}>منح الإذن</Button><Button variant="outline" disabled={!grantee || grant.isPending} onClick={() => grant.mutate(false)}>إلغاء الإذن</Button></div>
+        </DialogContent>
+      </Dialog>
       <ConfirmDelete
         open={!!toDelete}
         onOpenChange={(o) => !o && setToDelete(null)}

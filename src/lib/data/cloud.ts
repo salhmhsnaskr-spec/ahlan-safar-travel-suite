@@ -4,6 +4,8 @@ import type { AppRole, Member } from "@/lib/domain";
 import type { PerformanceData } from "@/lib/performance";
 import { assertLocalDeletionEnvironment } from "./permanent-deletion";
 import { permanentDelete } from "./permanent-deletion.functions";
+import { workPermissions, setWorkPermission } from './work-permissions.functions';
+import { authorizeWorkApi } from './authorized-api';
 
 function must<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
@@ -12,12 +14,22 @@ function must<T>(res: { data: T | null; error: { message: string } | null }): T 
 
 /** Cloud data source. Every query is additionally protected by row-level security on the server. */
 export function createCloudApi(officeId: string, officeName: string, role: AppRole, userId: string): DataApi {
-  return {
+  const api: DataApi = {
     mode: "cloud",
     key: "cloud-" + officeId,
     role,
     userId,
     officeName,
+    listWorkPermissions: async () => {
+      // Unapplied schema must not create failed reads against the shared backend.
+      if (import.meta.env['VITE_LOCAL_PERMANENT_DELETION'] !== '1') return [];
+      assertLocalDeletionEnvironment(import.meta.env['VITE_LOCAL_PERMANENT_DELETION'], import.meta.env['VITE_SUPABASE_URL']);
+      return workPermissions({ data: { officeId } });
+    },
+    setWorkPermission: async input => {
+      assertLocalDeletionEnvironment(import.meta.env['VITE_LOCAL_PERMANENT_DELETION'], import.meta.env['VITE_SUPABASE_URL']);
+      await setWorkPermission({ data: { officeId, ...input } });
+    },
     listCustomers: async () =>
       must(await supabase.from("customers").select("*").eq("office_id", officeId).order("created_at", { ascending: false })),
     saveCustomer: async ({ id, ...rest }) =>
@@ -164,4 +176,5 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
       }));
     },
   };
+  return authorizeWorkApi(api, officeId);
 }

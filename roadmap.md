@@ -1,3 +1,8 @@
+# Approved phase one — 2026-11-02
+- [ ] Implement assignment-based permissions, record/operation delegation and customer-scoped deletion locally; keep production activation disabled until independent acceptance and restorable backup evidence.
+- [x] Local partial delivery: shared assignment/operation checks, customer permission UI/demo, scoped closure, two staged SQL overlays; 13 new offline tests and localhost-only permission UI passed. See integration/local-schema/security/PHASE-ONE-RESULTS.md; SQL security/concurrency/reporting acceptance and remaining record surfaces are not complete.
+- [ ] Real Auth/Storage/concurrency/restoration acceptance — blocked: no verified independent full-stack environment or restorable database-plus-files backup supplied.
+- [ ] Production activation — blocked: separate explicit approval required; no migrations or publication authorized.
 # Security completion
 - [ ] Approved independent acceptance plan — prerequisite check completed: Docker/Podman and systemd unavailable locally; Supabase CLI alone cannot start full Auth/Storage. Await user-approved existing Docker host/runner and any external cost gate before setup, accounts or tests. No external resource or production access performed.
 - [x] Focused deletion hardening: local absence handling, durable document path, admin-only customer deletion, scoped nonlocking freeze checks, fail-fast locks, fenced renewal and membership RPC. 24 focused checks/scenarios passed including two-connection local PostgreSQL lock/retry; report security/HARDENING-RESULTS.md. Production worker is design only; full independent Auth/Storage still blocked.
