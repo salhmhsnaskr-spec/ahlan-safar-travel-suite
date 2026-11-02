@@ -1,5 +1,5 @@
 import type { DataApi } from './api';
-import { assertAssignmentUnchanged, canManageWork, type WorkEntity, type WorkRecord } from './work-permissions';
+import { assertAssignmentUnchanged, canManageWork, type WorkRecord } from './work-permissions';
 
 /** UX/API guard only: database policies remain the direct-access security boundary. */
 export function authorizeWorkApi(api: DataApi, officeId: string): DataApi {
@@ -34,9 +34,9 @@ export function authorizeWorkApi(api: DataApi, officeId: string): DataApi {
     deleteBooking: guardDelete('bookings', api.deleteBooking), deleteTask: guardDelete('tasks', api.deleteTask),
     deleteOffice: async () => { if (actor.role !== 'admin') throw new Error('حذف المكتب متاح لمديره فقط.'); await api.deleteOffice(); },
     setWorkPermission: async input => {
-      await check(input.entity as WorkEntity & keyof typeof lists, input.recordId, input.operation);
-      const row = (await lists[input.entity as keyof typeof lists]?.())?.find(r => r.id === input.recordId);
-      if (!row || (actor.role !== 'admin' && (row.assigned_to ?? ('assigned_employee_id' in row ? row.assigned_employee_id : null)) !== actor.userId)) throw new Error('منح الإذن متاح للمسؤول الحالي أو مدير المكتب فقط.');
+      if (input.entity !== 'customers' && input.entity !== 'requests' && input.entity !== 'bookings' && input.entity !== 'tasks') throw new Error('تفويض هذا النوع غير مفعّل بعد.');
+      const row = await check(input.entity, input.recordId, input.operation);
+      if (actor.role !== 'admin' && (('assigned_employee_id' in row ? row.assigned_employee_id : row.assigned_to) !== actor.userId)) throw new Error('منح الإذن متاح للمسؤول الحالي أو مدير المكتب فقط.');
       await api.setWorkPermission(input);
     },
   };
