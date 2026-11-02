@@ -22,7 +22,7 @@ BEGIN
  SELECT CASE WHEN d.customer_id IS NULL AND d.request_id IS NULL AND d.booking_id IS NULL THEN d.uploaded_by
  ELSE coalesce(b.assigned_employee_id,r.assigned_to,c.assigned_to) END INTO owner_id
  FROM public.documents d LEFT JOIN public.bookings b ON b.id=d.booking_id AND b.office_id=d.office_id
- LEFT JOIN public.requests r ON r.id=d.request_id AND r.office_id=d.office_id
+ LEFT JOIN public.requests r ON r.id=coalesce(d.request_id,b.request_id) AND r.office_id=d.office_id
  LEFT JOIN public.customers c ON c.id=coalesce(d.customer_id,r.customer_id,b.customer_id) AND c.office_id=d.office_id
  WHERE d.office_id=_office AND d.id=_record;
  WHEN 'umrah_participants' THEN SELECT c.assigned_to INTO owner_id FROM public.umrah_participants p JOIN public.customers c ON c.id=p.customer_id AND c.office_id=p.office_id WHERE p.office_id=_office AND p.id=_record;
@@ -37,6 +37,7 @@ BEGIN
  IF _operation NOT IN ('edit','delete') OR _entity NOT IN ('customers','requests','bookings','tasks','documents','umrah_participants','umrah_trips') OR NOT public.is_office_member(_office) THEN RETURN false; END IF;
  EXECUTE format('SELECT EXISTS(SELECT 1 FROM public.%I WHERE office_id=$1 AND id=$2)',_entity) INTO present USING _office,_record;
  IF NOT present THEN RETURN false; END IF;
+ IF _entity='umrah_trips' THEN RETURN public.is_office_admin(_office); END IF;
  owner_id:=public.work_owner(_office,_entity,_record);
  RETURN public.is_office_admin(_office) OR owner_id=auth.uid() OR EXISTS(SELECT 1 FROM public.work_record_permissions p WHERE p.office_id=_office AND p.entity=_entity AND p.record_id=_record AND p.operation=_operation AND p.grantee_id=auth.uid() AND p.owner_id IS NOT DISTINCT FROM owner_id);
 END $$;

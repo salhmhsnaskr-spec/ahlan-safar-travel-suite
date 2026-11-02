@@ -23,7 +23,9 @@ export async function processDeletion(id: string, transport: DeletionTransport, 
   if (job.status === 'completed') return;
   try {
     if (!job.office_id || !job.target_id) throw new Error('Invalid deletion scope');
-    const paths = await transport.paths(job);
+    const declaredPaths = await transport.paths(job);
+    const paths = budget ? await transport.remaining(job) : declaredPaths;
+    if (paths.some(path => !declaredPaths.includes(path))) throw new Error('Undeclared deletion path');
     for (let offset = 0; offset < paths.length; offset += 100) {
       if (budget && (offset >= budget.maxPaths || (budget.now ?? Date.now)() >= budget.deadline)) throw new Error('Deletion batch budget exhausted; resume durably');
       await transport.renew?.(job);

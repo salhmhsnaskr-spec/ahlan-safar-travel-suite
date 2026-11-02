@@ -70,3 +70,18 @@ it('sole admin cannot demote themselves', async () => {
   try { await roleFixture(); await expect(asUser(A, `SELECT set_member_role('${office}','${A}','employee')`)).rejects.toThrow(); }
   finally { await db.exec('ROLLBACK'); }
 });
+it('SQL rejects self-grants even for an office administrator', async () => {
+  await db.exec('BEGIN');
+  try {
+    await roleFixture();
+    await asUser(A, `INSERT INTO customers(id,office_id,full_name,assigned_to) VALUES('${target}','${office}','test','${A}')`);
+    await expect(asUser(A, `SELECT set_work_permission('${office}','customers','${target}','${A}','delete',true)`)).rejects.toThrow(/Invalid permission/);
+  } finally { await db.exec('ROLLBACK'); }
+});
+it('SQL disallows trip delegation even for an administrator', async () => {
+  await db.exec('BEGIN');
+  try {
+    await roleFixture();
+    await expect(asUser(A, `SELECT set_work_permission('${office}','umrah_trips','${target}','${B}','edit',true)`)).rejects.toThrow(/Invalid permission/);
+  } finally { await db.exec('ROLLBACK'); }
+});
