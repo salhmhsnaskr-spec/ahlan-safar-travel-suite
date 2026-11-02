@@ -45,7 +45,9 @@ BEGIN
  SELECT (row_data->>'customer_id')::uuid v UNION SELECT CASE WHEN TG_TABLE_NAME='customers' THEN (row_data->>'id')::uuid END
  UNION SELECT customer_id FROM public.requests WHERE id=(row_data->>'request_id')::uuid AND office_id=o
  UNION SELECT customer_id FROM public.bookings WHERE id=(row_data->>'booking_id')::uuid AND office_id=o
- UNION SELECT CASE WHEN TG_OP='UPDATE' THEN (to_jsonb(OLD)->>'customer_id')::uuid END) roots WHERE v IS NOT NULL ORDER BY v LOOP
+ UNION SELECT CASE WHEN TG_OP='UPDATE' THEN (to_jsonb(OLD)->>'customer_id')::uuid END
+ UNION SELECT customer_id FROM public.requests WHERE TG_OP='UPDATE' AND id=(to_jsonb(OLD)->>'request_id')::uuid AND office_id=o
+ UNION SELECT customer_id FROM public.bookings WHERE TG_OP='UPDATE' AND id=(to_jsonb(OLD)->>'booking_id')::uuid AND office_id=o) roots WHERE v IS NOT NULL ORDER BY v LOOP
  PERFORM id FROM public.customers WHERE id=customer AND office_id=o FOR UPDATE NOWAIT;
  IF public.deletion_record_pending(o,'customers',customer) THEN RAISE EXCEPTION 'Customer deletion pending' USING ERRCODE='42501'; END IF;
  END LOOP;
@@ -98,8 +100,30 @@ BEGIN
  OR EXISTS(SELECT 1 FROM public.umrah_participants WHERE office_id<>_office AND (customer_id::text IN (SELECT jsonb_array_elements_text(e->'customers')) OR request_id::text IN (SELECT jsonb_array_elements_text(e->'requests')))) THEN
  RAISE EXCEPTION 'Cross-office reference corruption; no deletion started' USING ERRCODE='42501'; END IF;
  INSERT INTO public.deletion_jobs(office_id,kind,target_id,requested_by,entities) VALUES(_office,_kind,_target,auth.uid(),e) RETURNING * INTO j;
+ INSERT INTO public.activity_log(office_id,actor_id,entity,entity_id,action,summary) VALUES(_office,auth.uid(),CASE WHEN _kind='customer' THEN 'customers' ELSE 'offices' END,_target,'deletion_requested','durable deletion');
  RETURN j.id;
 END $$;
+CREATE OR REPLACE FUNCTION public.begin_document_deletion(_office uuid,_document uuid) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+DECLARE d public.documents; j public.deletion_jobs; root uuid;
+BEGIN
+ IF NOT coalesce(public.work_allowed(_office,'documents',_document,'delete'),false) THEN RAISE EXCEPTION 'Forbidden' USING ERRCODE='42501'; END IF;
+ PERFORM pg_advisory_xact_lock_shared(hashtextextended(_office::text,0));
+ SELECT * INTO d FROM public.documents WHERE office_id=_office AND id=_document;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Document not found'; END IF;
+ FOR root IN SELECT DISTINCT id FROM public.customers WHERE office_id=_office AND (id=d.customer_id OR id IN (SELECT customer_id FROM public.requests WHERE id=d.request_id AND office_id=_office) OR id IN (SELECT customer_id FROM public.bookings WHERE id=d.booking_id AND office_id=_office)) ORDER BY id LOOP
+ PERFORM id FROM public.customers WHERE id=root FOR UPDATE NOWAIT;
+ IF public.deletion_record_pending(_office,'customers',root) THEN RAISE EXCEPTION 'Customer deletion pending'; END IF;
+ END LOOP;
+ PERFORM id FROM public.documents WHERE office_id=_office AND id=_document FOR UPDATE NOWAIT;
+ IF EXISTS(SELECT 1 FROM public.documents WHERE storage_path=d.storage_path AND id<>d.id) THEN RAISE EXCEPTION 'Shared file; no deletion started'; END IF;
+ SELECT * INTO j FROM public.deletion_jobs WHERE office_id=_office AND status<>'completed' AND (kind='office' OR entities->'documents' @> jsonb_build_array(_document));
+ IF FOUND THEN IF j.kind='document' AND j.target_id=_document THEN RETURN j.id; END IF; RAISE EXCEPTION 'Overlapping deletion'; END IF;
+ INSERT INTO public.deletion_jobs(office_id,kind,target_id,requested_by,entities) VALUES(_office,'document',_document,auth.uid(),jsonb_build_object('customers','[]'::jsonb,'requests','[]'::jsonb,'bookings','[]'::jsonb,'tasks','[]'::jsonb,'umrah_participants','[]'::jsonb,'documents',jsonb_build_array(_document))) RETURNING id INTO j.id;
+ INSERT INTO public.activity_log(office_id,actor_id,entity,entity_id,action,summary) VALUES(_office,auth.uid(),'documents',_document,'deletion_requested','durable deletion');
+ RETURN j.id;
+END $$;
+CREATE POLICY document_storage_write_scope ON storage.objects AS RESTRICTIVE FOR INSERT TO authenticated WITH CHECK(bucket_id<>'documents' OR EXISTS(SELECT 1 FROM public.documents d WHERE d.storage_path=name AND (public.is_office_admin(d.office_id) OR public.work_allowed(d.office_id,'documents',d.id,'edit'))));
+CREATE POLICY document_storage_update_scope ON storage.objects AS RESTRICTIVE FOR UPDATE TO authenticated USING(bucket_id<>'documents') WITH CHECK(bucket_id<>'documents');
 CREATE OR REPLACE FUNCTION public.finish_deletion(_job uuid, _attempt integer) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
 DECLARE j public.deletion_jobs; t text;
 BEGIN

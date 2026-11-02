@@ -191,6 +191,7 @@ function mutateAs<T>(fn: (db: DemoDB) => T, actor: { userId: string; role: 'admi
       const old = previous.get(row.id);
       if (old && JSON.stringify(old) === JSON.stringify(row)) { previous.delete(row.id); continue; }
       if (collection === 'customers' || collection === 'requests' || collection === 'bookings' || collection === 'tasks') {
+        if (old && workOwner(old) !== workOwner(row)) db.permissions = (db.permissions ?? []).filter(p => !(p.entity === collection && p.record_id === row.id));
         Object.assign(row, stampDemoWork(old, row, actor.userId, now));
       }
       const entity = collection === 'trips' ? 'umrah_trips' : collection === 'participants' ? 'umrah_participants' : collection;
