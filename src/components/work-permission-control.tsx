@@ -12,7 +12,7 @@ export function useWorkAccess() {
   const api = useData();
   const grants = useQuery({ queryKey: [api.key, 'work-permissions'], queryFn: api.listWorkPermissions });
   return (entity: WorkEntity, row: WorkRecord, operation: 'edit' | 'delete') => canManageWork(
-    { userId: api.userId, officeId: api.office.id, role: api.role, active: true }, entity, row, operation, grants.data ?? [],
+    { userId: api.userId, officeId: api.officeId ?? '', role: api.role, active: true }, entity, row, operation, grants.data ?? [],
   );
 }
 
@@ -25,7 +25,7 @@ export function WorkPermissionControl({ entity, record, label }: { entity: WorkE
   const [operation, setOperation] = useState<'edit' | 'delete'>('edit');
   const grant = useMutation({ mutationFn: (allow: boolean) => api.setWorkPermission({ entity, recordId: record.id, granteeId: grantee, operation, allow }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: [api.key] }); toast.success('تم تحديث الإذن'); }, onError: (error: Error) => toast.error(error.message) });
-  if (entity === 'umrah_trips' || record.office_id !== api.office.id || (api.role !== 'admin' && workOwner(record) !== api.userId)) return null;
+  if (entity === 'umrah_trips' || record.office_id !== api.officeId || (api.role !== 'admin' && workOwner(record) !== api.userId)) return null;
   return <>
     <Button size="icon" variant="ghost" aria-label={`أذونات ${label}`} title={`أذونات ${label}`} onClick={() => { setOpen(true); setGrantee(''); }}><KeyRound /></Button>
     <Dialog open={open} onOpenChange={setOpen}><DialogContent dir="rtl"><DialogHeader><DialogTitle>أذونات {label}</DialogTitle></DialogHeader>

@@ -12,8 +12,10 @@ import {
   type Task, type TaskStatus,
 } from "@/lib/domain";
 import { cn } from "@/lib/utils";
+import { useWorkAccess, WorkPermissionControl } from '@/components/work-permission-control';
 
 export function TaskList({ list, emptyTitle = "لا توجد مهام" }: { list: Task[]; emptyTitle?: string }) {
+  const allowed = useWorkAccess();
   const api = useData();
   const p = usePaths();
   const isAdmin = api.role === "admin";
@@ -32,7 +34,7 @@ export function TaskList({ list, emptyTitle = "لا توجد مهام" }: { list
         {list.map((t) => {
           const overdue = isOpenTask(t.status) && t.due_at && t.due_at < now;
           const bk = t.booking_id ? bookings.get(t.booking_id) : undefined;
-          const canUpdate = isAdmin || t.assigned_to === api.userId;
+          const canUpdate = allowed('tasks', t, 'edit');
           return (
             <div key={t.id} className={cn("rounded-xl border bg-card p-4", overdue && "border-danger/50")}>
               <div className="flex items-start justify-between gap-2">
@@ -63,7 +65,8 @@ export function TaskList({ list, emptyTitle = "لا توجد مهام" }: { list
                 </NativeSelect>
                 <div className="ms-auto flex gap-1">
                   {canUpdate && <Button size="icon" variant="ghost" aria-label="تعديل المهمة" onClick={() => setEditing(t)}><Pencil /></Button>}
-                  {isAdmin && <Button size="icon" variant="ghost" aria-label="حذف المهمة" className="text-danger" onClick={() => setToDelete(t)}><Trash2 /></Button>}
+                  {allowed('tasks', t, 'delete') && <Button size="icon" variant="ghost" aria-label="حذف المهمة" className="text-danger" onClick={() => setToDelete(t)}><Trash2 /></Button>}
+                  <WorkPermissionControl entity="tasks" record={t} label="المهمة" />
                 </div>
               </div>
             </div>
@@ -103,7 +106,7 @@ export function TasksPage() {
     <>
       <PageHeader
         title="المهام"
-        subtitle={isAdmin ? "وزّع المهام التشغيلية على فريقك وتابع تنفيذها" : "المهام المسندة إليك"}
+        subtitle="مهام المكتب"
         actions={isAdmin && <Button onClick={() => setOpen(true)}><Plus /> مهمة جديدة</Button>}
       />
       <div className="mb-3 flex gap-2 overflow-x-auto pb-1">

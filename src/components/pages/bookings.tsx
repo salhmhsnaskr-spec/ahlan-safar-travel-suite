@@ -16,6 +16,7 @@ import {
 } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 import { WorkAttribution } from "@/components/work-attribution";
+import { useWorkAccess, WorkPermissionControl } from '@/components/work-permission-control';
 
 export function BookingBadge({ status }: { status: BookingStatus }) {
   return (
@@ -39,6 +40,7 @@ function useLookups() {
 }
 
 export function BookingTable({ list, emptyTitle = "لا توجد حجوزات" }: { list: Booking[]; emptyTitle?: string }) {
+  const allowed = useWorkAccess();
   const p = usePaths();
   const L = useLookups();
   const save = useSaveBooking();
@@ -63,6 +65,7 @@ export function BookingTable({ list, emptyTitle = "لا توجد حجوزات" }
               <td className="px-4 py-3">
                 <NativeSelect
                   aria-label="تغيير حالة الحجز"
+                  disabled={!allowed('bookings', b, 'edit')}
                   className={cn("h-8 w-auto text-xs font-medium ring-1 ring-inset", bookingStatusTone[b.status])}
                   value={b.status}
                   onChange={(e) => save.mutate({ id: b.id, customer_id: b.customer_id, status: e.target.value as BookingStatus })}
@@ -131,6 +134,7 @@ export function BookingsPage() {
 }
 
 export function BookingDetailPage({ id }: { id: string }) {
+  const allowed = useWorkAccess();
   const p = usePaths();
   const api = useData();
   const navigate = useNavigate();
@@ -166,13 +170,14 @@ export function BookingDetailPage({ id }: { id: string }) {
           <p className="text-sm text-muted-foreground">آخر تحديث {formatDate(b.updated_at)}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <NativeSelect aria-label="تغيير حالة الحجز" className="w-auto" value={b.status} onChange={(e) => save.mutate({ id: b.id, customer_id: b.customer_id, status: e.target.value as BookingStatus })}>
+          <NativeSelect aria-label="تغيير حالة الحجز" disabled={!allowed('bookings', b, 'edit')} className="w-auto" value={b.status} onChange={(e) => save.mutate({ id: b.id, customer_id: b.customer_id, status: e.target.value as BookingStatus })}>
             {bookingStatusOrder.map((s) => <option key={s} value={s}>{bookingStatusLabels[s]}</option>)}
           </NativeSelect>
-          <Button variant="outline" onClick={() => setEdit(true)}><Pencil /> تعديل</Button>
+          <Button variant="outline" disabled={!allowed('bookings', b, 'edit')} onClick={() => setEdit(true)}><Pencil /> تعديل</Button>
           {api.role === "admin" && <Button variant="outline" onClick={() => setNewTask(true)}><ListTodo /> مهمة للحجز</Button>}
-          {b.status !== "cancelled" && <Button variant="outline" className="text-danger" onClick={() => setCancel(true)}><Ban /> إلغاء الحجز</Button>}
-          {api.role === "admin" && <Button variant="ghost" size="icon" aria-label="حذف" className="text-danger" onClick={() => setRemove(true)}><Trash2 /></Button>}
+          {b.status !== "cancelled" && <Button variant="outline" disabled={!allowed('bookings', b, 'edit')} className="text-danger" onClick={() => setCancel(true)}><Ban /> إلغاء الحجز</Button>}
+          <Button variant="ghost" size="icon" disabled={!allowed('bookings', b, 'delete')} aria-label="حذف" className="text-danger" onClick={() => setRemove(true)}><Trash2 /></Button>
+          <WorkPermissionControl entity="bookings" record={b} label="الحجز" />
         </div>
       </div>
       <dl className="grid gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-2">

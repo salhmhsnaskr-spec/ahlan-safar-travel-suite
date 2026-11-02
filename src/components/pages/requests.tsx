@@ -12,8 +12,10 @@ import {
   bookingCode, bookingStatusLabels, formatDate, priorityLabels, priorityTone, requestCode, requestSourceLabels, statusLabels, statusOrder, statusTone, type TravelRequest,
 } from "@/lib/domain";
 import { cn } from "@/lib/utils";
+import { useWorkAccess, WorkPermissionControl } from '@/components/work-permission-control';
 
 export function RequestRow({ r, onEdit, onDelete }: { r: TravelRequest; onEdit: () => void; onDelete: () => void }) {
+  const allowed = useWorkAccess();
   const p = usePaths();
   const customers = useCustomers().data ?? [];
   const services = useServices().data ?? [];
@@ -56,6 +58,7 @@ export function RequestRow({ r, onEdit, onDelete }: { r: TravelRequest; onEdit: 
       <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
         <NativeSelect
           aria-label="تغيير الحالة"
+          disabled={!allowed('requests', r, 'edit')}
           className={cn("h-8 w-auto text-xs font-medium ring-1 ring-inset", statusTone[r.status])}
           value={r.status}
           onChange={(e) => save.mutate({ id: r.id, customer_id: r.customer_id, status: e.target.value as TravelRequest["status"] })}
@@ -68,8 +71,9 @@ export function RequestRow({ r, onEdit, onDelete }: { r: TravelRequest; onEdit: 
           </Button>
         )}
         <div className="ms-auto flex gap-1">
-          <Button size="icon" variant="ghost" aria-label="تعديل" onClick={onEdit}><Pencil /></Button>
-          <Button size="icon" variant="ghost" aria-label="حذف" className="text-danger" onClick={onDelete}><Trash2 /></Button>
+          <Button size="icon" variant="ghost" aria-label="تعديل" disabled={!allowed('requests', r, 'edit')} onClick={onEdit}><Pencil /></Button>
+          <Button size="icon" variant="ghost" aria-label="حذف" disabled={!allowed('requests', r, 'delete')} className="text-danger" onClick={onDelete}><Trash2 /></Button>
+          <WorkPermissionControl entity="requests" record={r} label="الطلب" />
         </div>
       </div>
       <BookingDialog open={book} onOpenChange={setBook} initial={book ? { customer_id: r.customer_id, request_id: r.id, service_id: r.service_id, service_date: r.service_date, assigned_employee_id: r.assigned_to } : null} />

@@ -20,6 +20,7 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
     role,
     userId,
     officeName,
+    officeId,
     listWorkPermissions: async () => {
       // Unapplied schema must not create failed reads against the shared backend.
       if (import.meta.env['VITE_LOCAL_PERMANENT_DELETION'] !== '1') return [];

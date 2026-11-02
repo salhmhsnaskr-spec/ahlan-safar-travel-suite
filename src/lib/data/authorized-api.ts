@@ -1,6 +1,7 @@
 import type { DataApi, DocumentLinks } from './api';
 import type { DocumentRow, UmrahParticipant } from '@/lib/domain';
 import { assertAssignmentUnchanged, canManageWork, workOwner, type WorkEntity, type WorkOperation, type WorkRecord } from './work-permissions';
+import { documentWorkOwner } from './derived-owner';
 
 const DENIED = 'لا تملك إذن هذه العملية على هذا السجل.';
 
@@ -21,12 +22,8 @@ export function authorizeWorkApi(api: DataApi, officeId: string): DataApi {
   }
   /** Document owner: booking assignee, else request assignee, else customer assignee; unlinked files belong to their uploader. */
   async function documentOwner(links: DocumentLinks & { uploaded_by?: string | null }): Promise<string | null> {
-    if (!links.customer_id && !links.request_id && !links.booking_id) return links.uploaded_by ?? null;
-    const booking = links.booking_id ? await find('bookings', links.booking_id) : undefined;
-    const request = links.request_id ? await find('requests', links.request_id) : undefined;
-    const customerId = links.customer_id ?? (request as { customer_id?: string } | undefined)?.customer_id ?? (booking as { customer_id?: string } | undefined)?.customer_id;
-    const customer = customerId ? await find('customers', customerId) : undefined;
-    return (booking && workOwner(booking)) ?? (request && workOwner(request)) ?? (customer && workOwner(customer)) ?? null;
+    const [customers, requests, bookings] = await Promise.all([api.listCustomers(), api.listRequests(), api.listBookings()]);
+    return documentWorkOwner(officeId, links, { customers, requests, bookings });
   }
   async function participantOwner(customerId: string) {
     const customer = await find('customers', customerId);
@@ -43,6 +40,13 @@ export function authorizeWorkApi(api: DataApi, officeId: string): DataApi {
       if (input.id) {
         const row = await check(entity, input.id, 'edit');
         assertAssignmentUnchanged(actor, row, { ...row, ...input } as WorkRecord);
+        if (actor.role !== 'admin') {
+          const before = row as WorkRecord & DocumentLinks;
+          const after = input as I & DocumentLinks;
+          for (const field of ['customer_id', 'request_id', 'booking_id'] as const) {
+            if (Object.prototype.hasOwnProperty.call(after, field) && after[field] !== before[field]) throw new Error('تغيير علاقات العمل متاح لمدير المكتب فقط.');
+          }
+        }
       } else if (actor.role !== 'admin') {
         const assignment = input as I & { assigned_to?: string | null; assigned_employee_id?: string | null };
         const id = assignment.assigned_employee_id ?? assignment.assigned_to;
@@ -63,6 +67,7 @@ export function authorizeWorkApi(api: DataApi, officeId: string): DataApi {
     deleteBooking: guardDelete('bookings', api.deleteBooking), deleteTask: guardDelete('tasks', api.deleteTask),
     deleteOffice: async () => { adminOnly('حذف المكتب متاح لمديره فقط.'); await api.deleteOffice(); },
     uploadDocument: async (file, links) => {
+      if (links.customer_id || links.request_id || links.booking_id) await documentOwner(links);
       if (actor.role !== 'admin' && (links.customer_id || links.request_id || links.booking_id)) {
         const owner = await documentOwner(links);
         if (owner !== actor.userId) {
@@ -73,8 +78,10 @@ export function authorizeWorkApi(api: DataApi, officeId: string): DataApi {
       await api.uploadDocument(file, links);
     },
     deleteDocument: async (doc: DocumentRow) => {
-      await derived('documents', doc.id, await documentOwner(doc), 'delete');
-      await api.deleteDocument(doc);
+      const stored = (await api.listDocuments()).find(d => d.id === doc.id && d.office_id === officeId);
+      if (!stored) throw new Error(DENIED);
+      await derived('documents', stored.id, await documentOwner(stored), 'delete');
+      await api.deleteDocument(stored);
     },
     saveTrip: async input => { adminOnly('إدارة رحلات العمرة متاحة لمدير المكتب فقط.'); return api.saveTrip(input); },
     deleteTrip: async id => { adminOnly('حذف رحلات العمرة متاح لمدير المكتب فقط.'); await api.deleteTrip(id); },
