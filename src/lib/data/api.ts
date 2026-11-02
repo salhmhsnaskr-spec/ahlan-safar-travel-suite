@@ -1,6 +1,7 @@
 import type { ActivityRow, AppRole, Booking, DocumentRow, Customer, Member, Partner, Service, Task, TravelRequest, UmrahParticipant, UmrahTrip } from "@/lib/domain";
 import type { TeamActivity } from "@/lib/staff";
 import type { PerformanceData } from "@/lib/performance";
+import type { WorkPermission, WorkEntity, WorkOperation } from './work-permissions';
 
 type WorkSystemFields = "id" | "office_id" | "created_at" | "updated_at" | "created_by" | "updated_by" | "completed_by" | "completed_at" | "cancelled_by" | "cancelled_at";
 export type CustomerInput = Partial<Omit<Customer, WorkSystemFields>> & { id?: string | undefined;
@@ -29,6 +30,8 @@ export interface DataApi {
   role: AppRole;
   userId: string;
   officeName: string;
+  listWorkPermissions(): Promise<WorkPermission[]>;
+  setWorkPermission(input: { entity: WorkEntity; recordId: string; granteeId: string; operation: WorkOperation; allow: boolean }): Promise<void>;
   listCustomers(): Promise<Customer[]>;
   saveCustomer(input: CustomerInput): Promise<Customer>;
   deleteCustomer(id: string): Promise<void>;
