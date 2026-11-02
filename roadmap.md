@@ -1,6 +1,7 @@
 # Approved phase one — 2026-11-02
 - [ ] Implement assignment-based permissions, record/operation delegation and customer-scoped deletion locally; keep production activation disabled until independent acceptance and restorable backup evidence.
 - [x] Local partial delivery: shared assignment/operation checks, customer permission UI/demo, scoped closure, two staged SQL overlays; 13 new offline tests and localhost-only permission UI passed. See integration/local-schema/security/PHASE-ONE-RESULTS.md; SQL security/concurrency/reporting acceptance and remaining record surfaces are not complete.
+- [x] Local round 2: document/pilgrim/trip guards, self-grant block, role RPC offline tests (5+3 new passing). Still simulation only.
 - [ ] Real Auth/Storage/concurrency/restoration acceptance — blocked: no verified independent full-stack environment or restorable database-plus-files backup supplied.
 - [ ] Production activation — blocked: separate explicit approval required; no migrations or publication authorized.
 # Security completion
