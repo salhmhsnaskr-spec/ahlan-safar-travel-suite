@@ -18,18 +18,20 @@ export function assertLocalDeletionEnvironment(enabled: string | undefined, url:
   }
 }
 
-export async function processDeletion(id: string, transport: DeletionTransport) {
+export async function processDeletion(id: string, transport: DeletionTransport, budget?: { maxPaths: number; deadline: number; now?: () => number }) {
   const job = await transport.claim(id);
   if (job.status === 'completed') return;
   try {
     if (!job.office_id || !job.target_id) throw new Error('Invalid deletion scope');
     const paths = await transport.paths(job);
     for (let offset = 0; offset < paths.length; offset += 100) {
+      if (budget && (offset >= budget.maxPaths || (budget.now ?? Date.now)() >= budget.deadline)) throw new Error('Deletion batch budget exhausted; resume durably');
       await transport.renew?.(job);
       const batch = paths.slice(offset, offset + 100);
       if (batch.some(path => !path.startsWith(`${job.office_id}/`) || path.includes('..') || path.includes('\\'))) throw new Error('Invalid Storage scope');
       await transport.remove(batch, job);
     }
+    if (budget && (budget.now ?? Date.now)() >= budget.deadline) throw new Error('Deletion deadline reached; resume durably');
     if ((await transport.remaining(job)).length) throw new Error('Storage deletion not confirmed');
     await transport.finish(id, job.attempts);
   } catch (error) {

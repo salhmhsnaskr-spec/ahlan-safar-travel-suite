@@ -44,7 +44,7 @@ CREATE FUNCTION public.set_work_permission(_office uuid,_entity text,_record uui
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
 DECLARE owner_id uuid; present boolean;
 BEGIN
- IF _entity NOT IN ('customers','requests','bookings','tasks','documents','umrah_participants','umrah_trips') OR _operation NOT IN ('edit','delete') OR _allow IS NULL THEN RAISE EXCEPTION 'Invalid permission'; END IF;
+ IF _entity NOT IN ('customers','requests','bookings','tasks','documents','umrah_participants') OR _operation NOT IN ('edit','delete') OR _allow IS NULL OR _grantee IS NOT DISTINCT FROM auth.uid() THEN RAISE EXCEPTION 'Invalid permission'; END IF;
  IF NOT public.is_office_member(_office) THEN RAISE EXCEPTION 'Forbidden' USING ERRCODE='42501'; END IF;
  EXECUTE format('SELECT true FROM public.%I WHERE office_id=$1 AND id=$2 FOR UPDATE NOWAIT',_entity) INTO present USING _office,_record;
  IF present IS DISTINCT FROM true THEN RAISE EXCEPTION 'Record not found'; END IF;
@@ -69,6 +69,8 @@ BEGIN
  DELETE FROM public.work_record_permissions WHERE office_id=OLD.office_id AND entity=TG_TABLE_NAME AND record_id=OLD.id;
  INSERT INTO public.activity_log(office_id,actor_id,entity,entity_id,action,summary,old_values,new_values) VALUES(OLD.office_id,auth.uid(),TG_TABLE_NAME,OLD.id,'reassigned',TG_TABLE_NAME,jsonb_build_object(field,before_id),jsonb_build_object(field,assignee));
  END IF;
+ IF NOT public.is_office_admin(OLD.office_id) AND
+ (to_jsonb(NEW)->'customer_id' IS DISTINCT FROM to_jsonb(OLD)->'customer_id' OR to_jsonb(NEW)->'request_id' IS DISTINCT FROM to_jsonb(OLD)->'request_id' OR to_jsonb(NEW)->'booking_id' IS DISTINCT FROM to_jsonb(OLD)->'booking_id') THEN RAISE EXCEPTION 'Admin relationship change only' USING ERRCODE='42501'; END IF;
  ELSIF NOT public.is_office_admin(NEW.office_id) AND assignee IS NOT NULL AND assignee IS DISTINCT FROM auth.uid() THEN RAISE EXCEPTION 'Cannot assign colleagues on insert' USING ERRCODE='42501'; END IF;
  IF assignee IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.office_members WHERE office_id=NEW.office_id AND user_id=assignee AND status='active') THEN RAISE EXCEPTION 'Inactive assignee'; END IF;
  RETURN NEW;
