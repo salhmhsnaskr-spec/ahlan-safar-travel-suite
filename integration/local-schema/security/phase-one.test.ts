@@ -89,9 +89,12 @@ it('derived document permission is erased permanently by reassignment', async ()
   await db.exec('BEGIN');
   try {
     await roleFixture();
-    await asUser(A, `INSERT INTO customers(id,office_id,full_name,assigned_to) VALUES('${target}','${office}','test','${A}'); INSERT INTO documents(id,office_id,customer_id,file_name,storage_path,uploaded_by) VALUES('${other}','${office}','${target}','f','${office}/file','${B}'); SELECT set_work_permission('${office}','documents','${other}','${B}','delete',true);`);
+    await asUser(A, `INSERT INTO customers(id,office_id,full_name,assigned_to) VALUES('${target}','${office}','test','${A}')`);
+    await asUser(A, `INSERT INTO documents(id,office_id,customer_id,file_name,storage_path,uploaded_by) VALUES('${other}','${office}','${target}','f','${office}/file','${B}')`);
+    await asUser(A, `SELECT set_work_permission('${office}','documents','${other}','${B}','delete',true)`);
     expect((await db.query(`SELECT count(*)::int n FROM work_record_permissions`)).rows).toEqual([{n:1}]);
-    await asUser(A, `UPDATE customers SET assigned_to='${B}' WHERE id='${target}'; UPDATE customers SET assigned_to='${A}' WHERE id='${target}';`);
+    await asUser(A, `UPDATE customers SET assigned_to='${B}' WHERE id='${target}'`);
+    await asUser(A, `UPDATE customers SET assigned_to='${A}' WHERE id='${target}'`);
     expect((await db.query(`SELECT count(*)::int n FROM work_record_permissions`)).rows).toEqual([{n:0}]);
   } finally { await db.exec('ROLLBACK'); }
 });
