@@ -42,12 +42,12 @@ BEGIN
 END $$;
 CREATE FUNCTION public.set_work_permission(_office uuid,_entity text,_record uuid,_grantee uuid,_operation text,_allow boolean) RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
-DECLARE owner_id uuid;
+DECLARE owner_id uuid; present boolean;
 BEGIN
  IF _entity NOT IN ('customers','requests','bookings','tasks','documents','umrah_participants','umrah_trips') OR _operation NOT IN ('edit','delete') OR _allow IS NULL THEN RAISE EXCEPTION 'Invalid permission'; END IF;
  IF NOT public.is_office_member(_office) THEN RAISE EXCEPTION 'Forbidden' USING ERRCODE='42501'; END IF;
- EXECUTE format('SELECT id FROM public.%I WHERE office_id=$1 AND id=$2 FOR UPDATE NOWAIT',_entity) USING _office,_record;
- IF NOT FOUND THEN RAISE EXCEPTION 'Record not found'; END IF;
+ EXECUTE format('SELECT true FROM public.%I WHERE office_id=$1 AND id=$2 FOR UPDATE NOWAIT',_entity) INTO present USING _office,_record;
+ IF present IS DISTINCT FROM true THEN RAISE EXCEPTION 'Record not found'; END IF;
  owner_id:=public.work_owner(_office,_entity,_record);
  IF NOT public.is_office_admin(_office) AND owner_id IS DISTINCT FROM auth.uid() THEN RAISE EXCEPTION 'Forbidden' USING ERRCODE='42501'; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.office_members WHERE office_id=_office AND user_id=_grantee AND status='active') THEN RAISE EXCEPTION 'Inactive grantee'; END IF;
@@ -80,6 +80,10 @@ DO $$ DECLARE t text; p record; BEGIN
  IF t IN ('customers','requests','bookings','tasks') THEN
  EXECUTE format('CREATE POLICY work_insert ON public.%I FOR INSERT TO authenticated WITH CHECK(public.is_office_member(office_id))',t);
  EXECUTE format('CREATE TRIGGER b_work_assignment BEFORE INSERT OR UPDATE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.guard_work_assignment()',t);
+ ELSIF t='documents' THEN
+ EXECUTE format('CREATE POLICY work_insert ON public.%I FOR INSERT TO authenticated WITH CHECK(public.is_office_member(office_id) AND (public.is_office_admin(office_id) OR (customer_id IS NOT NULL AND public.work_allowed(office_id,''customers'',customer_id,''edit'')) OR (request_id IS NOT NULL AND public.work_allowed(office_id,''requests'',request_id,''edit'')) OR (booking_id IS NOT NULL AND public.work_allowed(office_id,''bookings'',booking_id,''edit'')) OR (customer_id IS NULL AND request_id IS NULL AND booking_id IS NULL AND uploaded_by=auth.uid())))',t);
+ ELSIF t='umrah_participants' THEN
+ EXECUTE format('CREATE POLICY work_insert ON public.%I FOR INSERT TO authenticated WITH CHECK(public.work_allowed(office_id,''customers'',customer_id,''edit''))',t);
  ELSE
  EXECUTE format('CREATE POLICY work_insert ON public.%I FOR INSERT TO authenticated WITH CHECK(public.is_office_admin(office_id))',t);
  END IF;

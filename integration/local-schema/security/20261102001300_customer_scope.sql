@@ -63,11 +63,12 @@ BEGIN
  ELSIF _kind='customer' THEN
  IF NOT coalesce(public.work_allowed(_office,'customers',_target,'delete'),false) THEN RAISE EXCEPTION 'Forbidden customer deletion' USING ERRCODE='42501'; END IF;
  ELSE RAISE EXCEPTION 'Invalid kind'; END IF;
- PERFORM pg_advisory_xact_lock_shared(hashtextextended(_office::text,0));
  IF _kind='office' THEN
  PERFORM pg_advisory_xact_lock(hashtextextended(_office::text,0));
  PERFORM id FROM public.offices WHERE id=_office FOR UPDATE NOWAIT;
- ELSE PERFORM id FROM public.customers WHERE office_id=_office AND id=_target FOR UPDATE NOWAIT; END IF;
+ ELSE
+ PERFORM pg_advisory_xact_lock_shared(hashtextextended(_office::text,0));
+ PERFORM id FROM public.customers WHERE office_id=_office AND id=_target FOR UPDATE NOWAIT; END IF;
  IF NOT FOUND THEN RAISE EXCEPTION 'Office not found'; END IF;
  SELECT * INTO j FROM public.deletion_jobs WHERE office_id=_office AND status <> 'completed' AND (kind='office' OR _kind='office' OR (kind=_kind AND target_id=_target) OR (kind='document' AND entities->'customers' @> jsonb_build_array(_target)));
  IF FOUND THEN IF j.kind=_kind AND j.target_id=_target THEN RETURN j.id; END IF; RAISE EXCEPTION 'Another deletion is pending'; END IF;
@@ -105,10 +106,11 @@ BEGIN
  SELECT * INTO j FROM public.deletion_jobs WHERE id=_job;
  IF j.status='completed' THEN RETURN; END IF;
  -- Office first, then job; fail fast rather than waiting on row-trigger inversions.
- PERFORM pg_advisory_xact_lock_shared(hashtextextended(j.office_id::text,0));
  IF j.kind='office' THEN PERFORM pg_advisory_xact_lock(hashtextextended(j.office_id::text,0)); PERFORM id FROM public.offices WHERE id=j.office_id FOR UPDATE NOWAIT;
- ELSIF j.kind='customer' THEN PERFORM id FROM public.customers WHERE id=j.target_id AND office_id=j.office_id FOR UPDATE NOWAIT;
- ELSE PERFORM id FROM public.documents WHERE id=j.target_id AND office_id=j.office_id FOR UPDATE NOWAIT; END IF;
+ ELSE
+ PERFORM pg_advisory_xact_lock_shared(hashtextextended(j.office_id::text,0));
+ IF j.kind='customer' THEN PERFORM id FROM public.customers WHERE id=j.target_id AND office_id=j.office_id FOR UPDATE NOWAIT;
+ ELSE PERFORM id FROM public.documents WHERE id=j.target_id AND office_id=j.office_id FOR UPDATE NOWAIT; END IF; END IF;
  SELECT * INTO j FROM public.deletion_jobs WHERE id=_job FOR UPDATE NOWAIT;
  IF NOT FOUND THEN RAISE EXCEPTION 'Job not found'; END IF;
  IF j.status='completed' THEN RETURN; END IF;

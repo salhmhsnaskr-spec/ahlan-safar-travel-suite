@@ -177,7 +177,7 @@ export function exportDemoData() {
   return { version: 1, exported_at: new Date().toISOString(), customers: db.customers, requests: db.requests, partners: db.partners, services: db.services.filter((s) => s.office_id) };
 }
 
-function mutate<T>(fn: (db: DemoDB) => T): Promise<T> {
+function mutateAs<T>(fn: (db: DemoDB) => T, actor: { userId: string; role: 'admin' | 'employee' }): Promise<T> {
   const db = load();
   const collections = ['customers','requests','bookings','tasks','documents','trips','participants'] as const;
   const before = structuredClone(db);
@@ -191,15 +191,15 @@ function mutate<T>(fn: (db: DemoDB) => T): Promise<T> {
       const old = previous.get(row.id);
       if (old && JSON.stringify(old) === JSON.stringify(row)) { previous.delete(row.id); continue; }
       if (collection === 'customers' || collection === 'requests' || collection === 'bookings' || collection === 'tasks') {
-        Object.assign(row, stampDemoWork(old, row, 'demo-admin', now));
+        Object.assign(row, stampDemoWork(old, row, actor.userId, now));
       }
       const entity = collection === 'trips' ? 'umrah_trips' : collection === 'participants' ? 'umrah_participants' : collection;
       const changed = [...new Set([...Object.keys(old ?? {}), ...Object.keys(row)])].filter((key) => JSON.stringify((old as Record<string, unknown> | undefined)?.[key]) !== JSON.stringify((row as Record<string, unknown>)[key]));
-      db.activity.push({ id: uid(), office_id: DEMO_OFFICE, actor_id: 'demo-admin', actor_name: 'أنت (المدير)', entity, entity_id: row.id, action: auditAction(old, row), summary: 'number' in row ? `${entity === 'bookings' ? 'BK' : 'REQ'}-${String(row.number).padStart(4,'0')}` : entity, old_values: safeAuditValues(old), new_values: safeAuditValues(row), result: 'success', changed_fields: changed, created_at: now });
+      db.activity.push({ id: uid(), office_id: DEMO_OFFICE, actor_id: actor.userId, actor_name: db.members.find(m => m.user_id === actor.userId)?.full_name ?? null, entity, entity_id: row.id, action: auditAction(old, row), summary: 'number' in row ? `${entity === 'bookings' ? 'BK' : 'REQ'}-${String(row.number).padStart(4,'0')}` : entity, old_values: safeAuditValues(old), new_values: safeAuditValues(row), result: 'success', changed_fields: changed, created_at: now });
       previous.delete(row.id);
     }
     for (const old of previous.values()) {
-      db.activity.push({ id: uid(), office_id: DEMO_OFFICE, actor_id: 'demo-admin', actor_name: 'أنت (المدير)', entity: collection, entity_id: old.id, action: 'deleted', summary: collection, old_values: safeAuditValues(old), new_values: null, result: 'success', changed_fields: Object.keys(old), created_at: now });
+      db.activity.push({ id: uid(), office_id: DEMO_OFFICE, actor_id: actor.userId, actor_name: db.members.find(m => m.user_id === actor.userId)?.full_name ?? null, entity: collection, entity_id: old.id, action: 'deleted', summary: collection, old_values: safeAuditValues(old), new_values: null, result: 'success', changed_fields: Object.keys(old), created_at: now });
     }
   }
   save(db);
@@ -207,6 +207,7 @@ function mutate<T>(fn: (db: DemoDB) => T): Promise<T> {
 }
 
 export function createDemoApi(actor: { userId: string; role: 'admin' | 'employee' } = { userId: 'demo-admin', role: 'admin' }): DataApi {
+  const mutate = <T,>(fn: (db: DemoDB) => T) => mutateAs(fn, actor);
   const api: DataApi = {
     mode: "demo",
     key: "demo",
