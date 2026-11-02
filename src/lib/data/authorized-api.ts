@@ -10,7 +10,7 @@ export function authorizeWorkApi(api: DataApi, officeId: string): DataApi {
     if (!row || !canManageWork(actor, entity, row, operation, await api.listWorkPermissions())) throw new Error('لا تملك إذن هذه العملية على هذا السجل.');
     return row;
   }
-  function guardSave<I extends { id?: string }, O>(entity: keyof typeof lists, save: (input: I) => Promise<O>) {
+  function guardSave<I extends { id?: string | undefined }, O>(entity: keyof typeof lists, save: (input: I) => Promise<O>) {
     return async (input: I) => {
       if (input.id) {
         const row = await check(entity, input.id, 'edit');
