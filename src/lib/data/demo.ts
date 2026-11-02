@@ -222,7 +222,7 @@ export function createDemoApi(actor: { userId: string; role: 'admin' | 'employee
       const row = collections[input.entity].find(r => r.id === input.recordId);
       if (!row || !db.members.some(m => m.user_id === input.granteeId && (m.status ?? 'active') === 'active')) throw new Error('السجل أو الموظف غير متاح.');
       db.permissions = (db.permissions ?? []).filter(p => !(p.entity === input.entity && p.record_id === input.recordId && p.operation === input.operation && p.grantee_id === input.granteeId));
-      if (input.allow) db.permissions.push({ office_id: DEMO_OFFICE, entity: input.entity, record_id: input.recordId, operation: input.operation, grantee_id: input.granteeId, granted_by: actor.userId, owner_id: workOwner(row) });
+      if (input.allow) db.permissions.push({ office_id: DEMO_OFFICE, entity: input.entity, record_id: input.recordId, operation: input.operation, grantee_id: input.granteeId, granted_by: actor.userId, owner_id: input.ownerId !== undefined ? input.ownerId : workOwner(row) });
       db.activity ??= [];
       db.activity.push({ id: uid(), office_id: DEMO_OFFICE, actor_id: actor.userId, actor_name: db.members.find(m => m.user_id === actor.userId)?.full_name ?? null, entity: input.entity, entity_id: input.recordId, action: input.allow ? 'permission_granted' : 'permission_revoked', summary: input.operation, result: 'success', old_values: null, new_values: null, changed_fields: null, created_at: new Date().toISOString() });
       save(db);
@@ -387,7 +387,7 @@ export function createDemoApi(actor: { userId: string; role: 'admin' | 'employee
         db.documents = db.documents ?? [];
         db.documents.push({
           id: uid(), office_id: DEMO_OFFICE, storage_path: "demo/" + uid(), file_name: file.name, size_bytes: file.size, mime_type: file.type || null,
-          uploaded_by: "demo-admin", customer_id: links.customer_id ?? null, booking_id: links.booking_id ?? null, request_id: links.request_id ?? null,
+          uploaded_by: actor.userId, customer_id: links.customer_id ?? null, booking_id: links.booking_id ?? null, request_id: links.request_id ?? null,
           created_at: new Date().toISOString(), data_url,
         });
       });

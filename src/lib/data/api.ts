@@ -31,7 +31,7 @@ export interface DataApi {
   userId: string;
   officeName: string;
   listWorkPermissions(): Promise<WorkPermission[]>;
-  setWorkPermission(input: { entity: WorkEntity; recordId: string; granteeId: string; operation: WorkOperation; allow: boolean }): Promise<void>;
+  setWorkPermission(input: { entity: WorkEntity; recordId: string; granteeId: string; operation: WorkOperation; allow: boolean; ownerId?: string | null }): Promise<void>;
   listCustomers(): Promise<Customer[]>;
   saveCustomer(input: CustomerInput): Promise<Customer>;
   deleteCustomer(id: string): Promise<void>;

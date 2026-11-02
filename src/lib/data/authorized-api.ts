@@ -109,7 +109,7 @@ export function authorizeWorkApi(api: DataApi, officeId: string): DataApi {
         owner = await participantOwner(p.customer_id);
       } else throw new Error('رحلات العمرة تُدار من مدير المكتب ولا تُفوّض.');
       if (actor.role !== 'admin' && owner !== actor.userId) throw new Error('منح الإذن متاح للمسؤول الحالي أو مدير المكتب فقط.');
-      await api.setWorkPermission(input);
+      await api.setWorkPermission({ ...input, ownerId: owner });
     },
   };
 }
