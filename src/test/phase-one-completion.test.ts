@@ -39,7 +39,7 @@ function transport(paths: string[]): DeletionTransport {
   const job: DeletionJob = { id: 'j', office_id: 'o', target_id: 'c', kind: 'customer', status: 'running', attempts: 2 };
   const remaining = new Set(paths);
   return { claim: vi.fn(async () => job), paths: async () => paths,
-    remove: vi.fn(async batch => { batch.forEach(p => remaining.delete(p)); }),
+    remove: vi.fn(async (batch: string[]) => { batch.forEach(p => remaining.delete(p)); }),
     remaining: async () => [...remaining], renew: vi.fn(async () => {}), finish: vi.fn(async () => {}), failed: vi.fn(async () => {}) };
 }
 it('worker resumes a 101-file job without repeating already removed files', async () => {
