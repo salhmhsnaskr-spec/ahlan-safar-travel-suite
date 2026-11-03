@@ -48,7 +48,7 @@ export function OfficeSettings() {
               <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="hidden" aria-label="ملف الشعار"
                 onChange={(e) => { const file = e.target.files?.[0]; if (file) upload.mutate(file); e.target.value = ''; }} />
               <Button size="sm" disabled={upload.isPending} onClick={() => fileRef.current?.click()}><ImagePlus /> {logo ? 'استبدال الشعار' : 'رفع شعار'}</Button>
-              {logo && <Button size="sm" variant="outline" className="text-danger" disabled={removeLogo.isPending} onClick={() => removeLogo.mutate()}><Trash2 /> حذف الشعار</Button>}
+              {logo && <Button size="sm" variant="outline" className="text-danger" disabled={removeLogo.isPending} onClick={() => removeLogo.mutate(undefined)}><Trash2 /> حذف الشعار</Button>}
             </div>
           </div>
         </section>

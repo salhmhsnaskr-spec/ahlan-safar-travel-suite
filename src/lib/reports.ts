@@ -9,7 +9,7 @@ export type ReportSource = {
   activity: ActivityRow[]; trips: UmrahTrip[]; participants: UmrahParticipant[]; partners: Partner[];
 };
 
-export type ReportFilters = { from?: string; to?: string; employee?: string; serviceId?: string; status?: string; action?: string };
+export type ReportFilters = { from?: string | undefined; to?: string | undefined; employee?: string | undefined; serviceId?: string | undefined; status?: string | undefined; action?: string | undefined };
 export type ReportKind = "customers" | "requests" | "bookings" | "flights" | "umrah" | "staff" | "activity" | "partners";
 export const reportKindLabels: Record<ReportKind, string> = {
   customers: "العملاء", requests: "الطلبات والمعاملات", bookings: "الحجوزات", flights: "تذاكر الطيران",

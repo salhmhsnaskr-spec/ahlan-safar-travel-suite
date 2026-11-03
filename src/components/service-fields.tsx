@@ -17,7 +17,7 @@ export function ServiceDetailFields({ fields, d, setD, customerId, selfId }: {
   return (
     <div className="mt-4 grid gap-3 sm:grid-cols-2">
       {shown.map((f) => (
-        <Field key={f.key} label={f.label + (f.required ? " *" : "")} className={f.type === "textarea" ? "sm:col-span-2" : undefined}>
+        <Field key={f.key} label={f.label + (f.required ? " *" : "")} {...(f.type === "textarea" ? { className: "sm:col-span-2" } : {})}>
           {f.type === "request" ? (() => {
             const opts = (requests.data ?? []).filter((x) => x.id !== selfId && x.customer_id === customerId && f.linkCodes?.includes(allServices.find((s) => s.id === x.service_id)?.code ?? ""));
             return !customerId ? <p className="text-sm text-muted-foreground">اختر العميل أولًا.</p>
