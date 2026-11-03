@@ -29,7 +29,6 @@ export function UmrahPage() {
 }
 
 function UmrahContent() {
-  const api = useData();
   const trips = useTrips().data ?? [];
   const participants = useParticipants().data ?? [];
   const [selected, setSelected] = useState<string | null>(null);
@@ -40,7 +39,7 @@ function UmrahContent() {
       <PageHeader
         title="رحلات العمرة"
         subtitle="المعتمر هو عميل المكتب؛ طلب العمرة الفردي يُنشأ من «معاملة جديدة» بخدمة «عمرة»، والرحلات الجماعية تُدار هنا."
-        actions={api.role === 'admin' && <Button onClick={() => setEditTrip({})}><Plus /> رحلة جماعية جديدة</Button>}
+        actions={<Button onClick={() => setEditTrip({})}><Plus /> رحلة جماعية جديدة</Button>}
       />
       {trips.length === 0 ? (
         <EmptyState title="لا توجد رحلات عمرة بعد" body="أنشئ رحلة جماعية ثم أضف إليها المعتمرين من عملاء المكتب." />
@@ -104,6 +103,8 @@ function TripDetail({ trip, onEdit, onDeleted }: { trip: UmrahTrip; onEdit: () =
   const remove = useDeleteParticipant();
   const [edit, setEdit] = useState<Partial<UmrahParticipant> | null>(null);
   const name = (id: string) => customers.find((c) => c.id === id)?.full_name ?? "—";
+  const tripRecord = { id: trip.id, office_id: trip.office_id, created_by: trip.created_by };
+  const tripEdit = allowed('umrah_trips', tripRecord, 'edit');
   return (
     <section className="mt-6 rounded-xl border bg-card p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -112,9 +113,10 @@ function TripDetail({ trip, onEdit, onDeleted }: { trip: UmrahTrip; onEdit: () =
           <p className="text-xs text-muted-foreground">حالة الرحلة: {tripStatusLabels[trip.status]} · {list.length} معتمر</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {api.role === 'admin' && <Button size="sm" variant="outline" onClick={onEdit}><Pencil /> تعديل الرحلة</Button>}
+          {tripEdit && <Button size="sm" variant="outline" onClick={onEdit}><Pencil /> تعديل الرحلة</Button>}
+          <WorkPermissionControl entity="umrah_trips" record={tripRecord} label="الرحلة" />
           <Button size="sm" onClick={() => setEdit({ trip_id: trip.id })}><UserPlus /> إضافة معتمر</Button>
-          {api.role === "admin" && (
+          {allowed('umrah_trips', tripRecord, 'delete') && (
             <Button size="sm" variant="ghost" className="text-danger" onClick={() => { if (confirm("حذف الرحلة وجميع سجلات مشاركة المعتمرين فيها؟ لن يُحذف العملاء.")) del.mutate(trip.id, { onSuccess: onDeleted }); }}><Trash2 /> حذف</Button>
           )}
         </div>
@@ -123,18 +125,21 @@ function TripDetail({ trip, onEdit, onDeleted }: { trip: UmrahTrip; onEdit: () =
         <ul className="divide-y rounded-lg border">
           {list.map((x) => {
             const stay = stayDuration(x.actual_entry, x.actual_exit, today());
-            const record = { id: x.id, office_id: x.office_id, assigned_to: customers.find(c => c.id === x.customer_id)?.assigned_to ?? null };
+            const cust = customers.find(c => c.id === x.customer_id);
+            const record = { id: x.id, office_id: x.office_id, assigned_to: cust?.assigned_to ?? null, created_by: cust?.created_by ?? null };
+            const can = (op: 'edit' | 'delete') => allowed('umrah_participants', record, op) || allowed('umrah_trips', tripRecord, op);
             return (
               <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-sm">
                 <div className="min-w-0">
                   <Link to={p.customer} params={{ id: x.customer_id }} className="font-medium text-primary">{name(x.customer_id)}</Link>
+                  {cust?.phone && <p className="text-xs text-muted-foreground" dir="ltr">{cust.phone}</p>}
                   <p className="text-xs text-muted-foreground">
-                    {pilgrimStatusLabels[x.status]} · الدخول الفعلي: {x.actual_entry ? formatDate(x.actual_entry) : "—"} · المغادرة الفعلية: {x.actual_exit ? formatDate(x.actual_exit) : "—"} · <b>{stayLabel(stay)}</b>
+                    {pilgrimStatusLabels[x.status]} · الدخول المخطط: {x.planned_entry ? formatDate(x.planned_entry) : "—"} · المغادرة المخططة: {x.planned_exit ? formatDate(x.planned_exit) : "—"} · الدخول الفعلي: {x.actual_entry ? formatDate(x.actual_entry) : "—"} · المغادرة الفعلية: {x.actual_exit ? formatDate(x.actual_exit) : "—"} · <b>{stayLabel(stay)}</b>
                   </p>
                 </div>
                 <div className="flex gap-1">
-                  <Button size="sm" variant="ghost" disabled={!allowed('umrah_participants', record, 'edit')} aria-label="تعديل المعتمر" onClick={() => setEdit(x)}><Pencil /></Button>
-                  <Button size="sm" variant="ghost" disabled={!allowed('umrah_participants', record, 'delete')} aria-label="إزالة من الرحلة" className="text-danger" onClick={() => { if (confirm("إزالة المعتمر من هذه الرحلة؟ لن يُحذف سجل العميل.")) remove.mutate(x.id); }}><Trash2 /></Button>
+                  <Button size="sm" variant="ghost" disabled={!can('edit')} aria-label="تعديل المعتمر" onClick={() => setEdit(x)}><Pencil /></Button>
+                  <Button size="sm" variant="ghost" disabled={!can('delete')} aria-label="إزالة من الرحلة" className="text-danger" onClick={() => { if (confirm("إزالة المعتمر من هذه الرحلة؟ لن يُحذف سجل العميل.")) remove.mutate(x.id); }}><Trash2 /></Button>
                   <WorkPermissionControl entity="umrah_participants" record={record} label="المعتمر" />
                 </div>
               </li>
