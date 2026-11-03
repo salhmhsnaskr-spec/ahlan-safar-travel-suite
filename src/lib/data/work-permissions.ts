@@ -6,9 +6,9 @@ export type WorkPermission = { office_id: string; entity: WorkEntity; record_id:
 export type WorkRecord = { id: string; office_id: string; assigned_to?: string | null; assigned_employee_id?: string | null; created_by?: string | null };
 export type WorkActor = { userId: string; officeId: string; role: AppRole; active: boolean };
 
-/** Attribution is deliberately never an ownership fallback. */
+/** Current assignee manages the work; unassigned work belongs to whoever created it (mirrors public.work_owner). */
 export function workOwner(record: WorkRecord): string | null {
-  return record.assigned_employee_id ?? record.assigned_to ?? null;
+  return record.assigned_employee_id ?? record.assigned_to ?? record.created_by ?? null;
 }
 
 export function canReadWork(actor: WorkActor, record: WorkRecord): boolean {

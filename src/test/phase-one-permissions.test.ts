@@ -10,9 +10,11 @@ it('reads colleague work but never another office', () => {
   expect(canReadWork(actor, row)).toBe(true);
   expect(canReadWork(actor, { ...row, office_id: 'two' })).toBe(false);
 });
-it('creator never substitutes for the current assignee, including unassigned old rows', () => {
+it('current assignee wins over creator; unassigned work belongs to its creator; unknown owner only to admin', () => {
   expect(canManageWork(actor, 'customers', row, 'edit', [])).toBe(false);
-  expect(canManageWork(actor, 'customers', { ...row, assigned_to: null }, 'delete', [])).toBe(false);
+  expect(canManageWork(actor, 'customers', { ...row, assigned_to: null }, 'delete', [])).toBe(true);
+  expect(canManageWork(actor, 'customers', { ...row, assigned_to: null, created_by: null }, 'edit', [])).toBe(false);
+  expect(canManageWork({ ...actor, role: 'admin' }, 'customers', { ...row, assigned_to: null, created_by: null }, 'delete', [])).toBe(true);
 });
 it('edit permission does not grant delete or another record', () => {
   expect(canManageWork(actor, 'customers', row, 'edit', [permission])).toBe(true);
