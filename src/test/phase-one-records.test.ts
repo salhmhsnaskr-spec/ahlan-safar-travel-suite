@@ -25,11 +25,14 @@ it('document delete follows the linked customer owner; edit permission alone doe
   await khaled().deleteDocument(doc);
   expect((await sara().listDocuments()).some(d => d.id === doc.id)).toBe(false);
 });
-it('Umrah trips are admin-only and cannot be delegated', async () => {
-  await expect(sara().saveTrip({ name: 'رحلة' } as never)).rejects.toThrow();
-  const trip = await admin().saveTrip({ name: 'رحلة' } as never);
-  await expect(sara().deleteTrip(trip.id)).rejects.toThrow();
-  await expect(admin().setWorkPermission({ entity: 'umrah_trips', recordId: trip.id, granteeId: 'demo-emp-1', operation: 'edit', allow: true })).rejects.toThrow();
+it('employees create and manage their own Umrah trips; colleagues need an explicit permission', async () => {
+  const trip = await sara().saveTrip({ name: 'رحلة سارة' } as never);
+  await sara().saveTrip({ id: trip.id, name: 'رحلة سارة المعدلة' } as never);
+  await expect(khaled().saveTrip({ id: trip.id, name: 'x' } as never)).rejects.toThrow();
+  await sara().setWorkPermission({ entity: 'umrah_trips', recordId: trip.id, granteeId: 'demo-emp-2', operation: 'edit', allow: true });
+  await khaled().saveTrip({ id: trip.id, name: 'بإذن' } as never);
+  await expect(khaled().deleteTrip(trip.id)).rejects.toThrow();
+  await sara().deleteTrip(trip.id);
 });
 it('pilgrim add/remove follows the customer owner', async () => {
   const trip = await admin().saveTrip({ name: 'رحلة' } as never);

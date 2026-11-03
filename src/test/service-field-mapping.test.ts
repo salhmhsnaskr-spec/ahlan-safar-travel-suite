@@ -14,8 +14,8 @@ describe("existing service type field mapping", () => {
       .toEqual({ [expected]: "test" });
   });
 
-  it("does not invent fields for unclassified custom services", () => {
-    expect(fieldsFor({ code: "custom" })).toEqual([]);
+  it("custom services get generic description fields only", () => {
+    expect(fieldsFor({ code: "custom" }).map((f) => f.key)).toEqual(["service_description", "service_location", "requested_date", "quantity"]);
   });
 });
 describe("security approval and visit visa", () => {

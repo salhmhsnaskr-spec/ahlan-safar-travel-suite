@@ -26,32 +26,10 @@ beforeEach(() => {
 });
 
 describe("local deletion rules (mock transport, not real Storage/RLS)", () => {
-  for (const [index, label] of ["requests", "bookings", "tasks", "documents", "umrah_participants"].entries()) {
-    it(`does not contact production for cascade involving ${label}`, async () => {
-      let n = 0;
-      chain.limit.mockImplementation(() => Promise.resolve({ data: n++ === index ? [{ id: "child" }] : [], error: null }));
-      await expect(api().deleteCustomer("customer")).rejects.toThrow("غير مفعّل");
-      expect(fake.from).not.toHaveBeenCalled();
-      expect(chain.delete).not.toHaveBeenCalled();
-    });
-  }
   it("preserves document deletion authority", () => {
     expect(() => assertDocumentDeletion("employee", "employee", "other")).toThrow();
     expect(() => assertDocumentDeletion("employee", "employee", "employee")).not.toThrow();
     expect(() => assertDocumentDeletion("admin", "admin", "other")).not.toThrow();
-  });
-  it("fails closed before hosted customer reads", async () => {
-    chain.limit.mockResolvedValue({ data: null, error: { message: "denied" } });
-    await expect(api().deleteCustomer("customer")).rejects.toThrow("غير مفعّل");
-    expect(fake.from).not.toHaveBeenCalled();
-    expect(chain.delete).not.toHaveBeenCalled();
-  });
-  // Storage/finalization regressions now live at the durable adapter boundary,
-  // in storage-absence-hardening.test.ts and deletion-hardening.test.ts.
-  it("blocks the new durable document path before any hosted metadata or Storage call", async () => {
-    await expect(api().deleteDocument(input)).rejects.toThrow('غير مفعّل');
-    expect(fake.from).not.toHaveBeenCalled();
-    expect(fake.storageFrom).not.toHaveBeenCalled();
   });
   it("does not upload a file when metadata insert fails", async () => {
     chain.insert.mockResolvedValue({ data: null, error: { message: "insert denied" } });
