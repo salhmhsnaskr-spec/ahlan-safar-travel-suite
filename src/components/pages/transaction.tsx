@@ -233,7 +233,6 @@ export function TransactionDetailPage({ id }: { id: string }) {
 
 function TransactionDetailContent({ id }: { id: string }) {
   const p = usePaths();
-  const api = useData();
   const requests = useRequests();
   const customers = useCustomers().data ?? [];
   const bookings = (useBookings().data ?? []).filter((b) => b.request_id === id);
