@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Pencil, Plus, Trash2, UserPlus, Users } from "lucide-react";
 import {
-  useCustomers, useData, useDeleteParticipant, useDeleteTrip, useParticipants, usePaths, useRequests, useSaveParticipant, useSaveTrip, useServices, useTrips,
+  useCustomers, useDeleteParticipant, useDeleteTrip, useParticipants, usePaths, useRequests, useSaveParticipant, useSaveTrip, useServices, useTrips,
 } from "@/lib/data/context";
 import { EmptyState, Field, NativeSelect, PageHeader, ReadState } from "@/components/kit";
 import { FormDialog } from "@/components/forms";
@@ -95,7 +95,6 @@ function TripDialog({ initial, onClose, onSaved }: { initial: Partial<UmrahTrip>
 
 function TripDetail({ trip, onEdit, onDeleted }: { trip: UmrahTrip; onEdit: () => void; onDeleted: () => void }) {
   const allowed = useWorkAccess();
-  const api = useData();
   const p = usePaths();
   const list = (useParticipants().data ?? []).filter((x) => x.trip_id === trip.id);
   const customers = useCustomers().data ?? [];
