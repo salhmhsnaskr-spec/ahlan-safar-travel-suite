@@ -9,7 +9,7 @@ import { buildSheet, presetPeriod, reportKindLabels, type ReportFilters, type Re
 import { downloadWorkbook } from "@/lib/excel";
 
 const kinds = Object.keys(reportKindLabels) as ReportKind[];
-const esc = (v: unknown) => String(v ?? "—").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+const esc = (v: unknown) => String(v ?? "—").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
 
 export function periodLabel(f: ReportFilters) {
   return f.from || f.to ? `${f.from || "البداية"} ← ${f.to || "اليوم"}` : "كل الفترات";
@@ -19,7 +19,16 @@ export function periodLabel(f: ReportFilters) {
 export function printSheets(sheets: Sheet[], meta: { officeName: string; logoUrl?: string | null | undefined; period: string; title: string }) {
   const w = window.open("", "_blank");
   if (!w) { toast.error("اسمح بفتح النوافذ المنبثقة لطباعة التقرير."); return; }
-  const tables = sheets.map((s) => `<h2>${esc(s.name)} <small>(${s.rows.length})</small></h2>
+  const printable = sheets.flatMap((sheet) => {
+    if (sheet.columns.length <= 12) return [sheet];
+    const parts: Sheet[] = [];
+    for (let offset = 2; offset < sheet.columns.length; offset += 10) {
+      const indexes = [0, 1, ...Array.from({ length: Math.min(10, sheet.columns.length - offset) }, (_, i) => offset + i)];
+      parts.push({ ...sheet, name: `${sheet.name} · ${parts.length + 1}`, columns: indexes.flatMap((i) => sheet.columns[i] ? [sheet.columns[i]] : []), rows: sheet.rows.map((row) => indexes.map((i) => row[i] ?? null)) });
+    }
+    return parts;
+  });
+  const tables = printable.map((s) => `<h2>${esc(s.name)} <small>(${s.rows.length})</small></h2>
     ${(s.totals ?? []).map(([k, v]) => `<span class="t">${esc(k)}: <b>${esc(v)}</b></span>`).join(" ")}
     <table><thead><tr>${s.columns.map((c) => `<th>${esc(c.header)}</th>`).join("")}</tr></thead>
     <tbody>${s.rows.map((r) => `<tr>${r.map((v, i) => `<td${s.columns[i]?.kind === "phone" ? ' dir="ltr"' : ""}>${esc(v)}</td>`).join("")}</tr>`).join("") || `<tr><td colspan="${s.columns.length}">لا توجد سجلات</td></tr>`}</tbody></table>`).join("");
@@ -27,7 +36,7 @@ export function printSheets(sheets: Sheet[], meta: { officeName: string; logoUrl
   <style>@page{size:A4 landscape;margin:12mm}body{font-family:Tahoma,Arial,sans-serif;font-size:10px;color:#111}
   header{display:flex;align-items:center;gap:12px;border-bottom:2px solid #0f5e5a;padding-bottom:8px;margin-bottom:10px}
   header img{height:56px;max-width:120px;object-fit:contain}h1{font-size:18px;margin:0}h2{font-size:13px;margin:16px 0 4px;color:#0f5e5a}
-  table{width:100%;border-collapse:collapse;margin-top:4px}th{background:#0f5e5a;color:#fff;padding:4px}td{border:1px solid #ccc;padding:3px}
+  html,body{margin:0;max-width:100%}body{padding:12px;box-sizing:border-box}table{width:100%;table-layout:fixed;border-collapse:collapse;margin-top:4px}th,td{overflow-wrap:anywhere;word-break:normal}tr{break-inside:avoid}th{background:#0f5e5a;color:#fff;padding:4px}td{border:1px solid #ccc;padding:3px}
   tr:nth-child(even) td{background:#f4f7f7}.t{margin-inline-end:12px}thead{display:table-header-group}</style></head><body>
   <header>${meta.logoUrl ? `<img src="${esc(meta.logoUrl)}" alt="">` : ""}<div><h1>${esc(meta.officeName)}</h1>
   <div>${esc(meta.title)} · الفترة: ${esc(meta.period)} · تاريخ الاستخراج: ${esc(new Date().toLocaleString("ar"))}</div></div></header>
