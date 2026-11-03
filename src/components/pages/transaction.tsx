@@ -22,9 +22,7 @@ const blankCommon: Common = { source: "direct", referring_partner_id: "", servic
 
 /** Service picker + specialised fields + common fields; shared by the new and detail screens. */
 function TransactionFields({ c, setC, d, setD, customerId, selfId }: { c: Common; setC: (f: (s: Common) => Common) => void; d: ServiceDetails; setD: (f: (s: ServiceDetails) => ServiceDetails) => void; customerId?: string | undefined; selfId?: string | undefined }) {
-  const allServices = useServices().data ?? [];
-  const services = allServices.filter((s) => s.is_active || s.id === c.service_id);
-  const requests = useRequests();
+  const services = (useServices().data ?? []).filter((s) => s.is_active || s.id === c.service_id);
   const members = useMembers().data ?? [];
   const partners = usePartners();
   const api = useData();
