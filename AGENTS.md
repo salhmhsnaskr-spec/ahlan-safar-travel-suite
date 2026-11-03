@@ -17,7 +17,7 @@
 - Legacy `requests.booking_ref/booked_at` are deprecated and only read once to backfill `bookings`; new code must use `bookings` so there is one source of truth.
 - Membership removal and demotion must preserve an office administrator through a database trigger that locks the office and a remaining administrator row; this prevents orphaned offices across direct updates and RPC upserts.
 - Employee task guards use an allowlist comparison across the whole row, with timestamps maintained by the database; newly added columns remain protected by default.
-- Security trigger regression tests execute preserved security SQL fixtures in isolated PGlite transactions; this retains coverage when remix migration history is cleared without modifying cloud records, but does not replace live RLS or concurrency tests.
+- Security trigger tests run preserved SQL fixtures in isolated PGlite transactions; coverage survives cleared migration history but is not live RLS/concurrency testing.
 - Remixed migration sets start empty; let the migration tool create journal/snapshots rather than replay copied migrations.
 - A "transaction" is a `requests` row; service-specific fields live in `requests.service_details` (jsonb) defined per service code in src/lib/transaction.ts — avoids a parallel transactions table and keeps bookings/tasks/documents linked via request_id.
 - Reports, notifications, and transaction details use the shared ReadState gate for all required reads; errors precede loading and empty-state calculations, so failed reads never become zero counts or missing records.
@@ -39,4 +39,4 @@
 - Staged deletion locks shared office barrier then customer then job; office erasure uses an exclusive barrier. NOWAIT guards and fenced leases need real concurrency acceptance.
 - Work rights use assignment and record/operation grants, never creator fallback. DataApi guards are UX; independent SQL is the security boundary, unapplied until acceptance and approval.
 - Document ownership validates office/customer links, then follows booking/request/customer, or uploader for unlinked files; record controls share these rules.
-- New public tables grant explicitly; default privileges withhold TRUNCATE/TRIGGER/REFERENCES from app roles, so no table is silently wipeable.
+- New public tables grant explicitly; default privileges withhold TRUNCATE/TRIGGER/REFERENCES from app roles, so tables cannot be wiped.
