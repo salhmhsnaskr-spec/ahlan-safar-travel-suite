@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatDate, formatDateTime } from "@/lib/domain";
 import { OwnerOfficeDelete } from "@/components/office-delete";
-import { isActive, overviewSheet, type OfficeOverview } from "@/lib/reports";
+import { filterOffices, isActive, overviewSheet, type OfficeOverview } from "@/lib/reports";
 import { downloadWorkbook } from "@/lib/excel";
 import { printSheets } from "@/components/report-center";
 
@@ -46,10 +46,7 @@ export function OwnerDashboard() {
   const [search, setSearch] = useState("");
   const [kind, setKind] = useState("");
   const [state, setState] = useState("");
-  const offices = useMemo(() => (q.data?.offices ?? []).filter((o) =>
-    (!search.trim() || o.name.toLowerCase().includes(search.trim().toLowerCase()) || (o.city ?? "").includes(search.trim()))
-    && (!kind || (kind === "partner") === o.is_partner)
-    && (!state || (state === "active") === isActive(o.last_activity_at))), [q.data, search, kind, state]);
+  const offices = useMemo(() => filterOffices(q.data?.offices ?? [], { search, kind, state }), [q.data, search, kind, state]);
 
   if (q.isError) return <div dir="rtl" className="mx-auto max-w-6xl p-4"><EmptyState title="تعذّر تحميل لوحة المالك" body={q.error.message} action={<Button onClick={() => q.refetch()}>إعادة المحاولة</Button>} /></div>;
   if (q.isLoading) return <Loading />;
