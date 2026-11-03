@@ -33,6 +33,18 @@ export function authorizeWorkApi(api: DataApi, officeId: string): DataApi {
   async function derived(entity: WorkEntity, id: string, owner: string | null, operation: WorkOperation) {
     if (!canManageWork(actor, entity, { id, office_id: officeId, assigned_to: owner }, operation, await permissions())) throw new Error(DENIED);
   }
+  async function tripOwner(id: string) {
+    const trip = (await api.listTrips()).find(t => t.id === id && t.office_id === officeId);
+    if (!trip) throw new Error(DENIED);
+    return trip.created_by ?? null;
+  }
+  /** Pilgrim work is manageable by the pilgrim's (customer's) manager or by the trip's manager. */
+  async function participantAllowed(entity: WorkEntity, id: string, customerId: string, tripId: string, operation: WorkOperation) {
+    const perms = await permissions();
+    const viaCustomer = canManageWork(actor, entity, { id, office_id: officeId, assigned_to: await participantOwner(customerId) }, operation, perms);
+    const viaTrip = canManageWork(actor, 'umrah_trips', { id: tripId, office_id: officeId, assigned_to: await tripOwner(tripId) }, operation, perms);
+    if (!viaCustomer && !viaTrip) throw new Error(DENIED);
+  }
   function adminOnly(message: string) { if (actor.role !== 'admin') throw new Error(message); }
 
   function guardSave<I extends { id?: string | undefined }, O>(entity: Direct, save: (input: I) => Promise<O>) {
@@ -83,22 +95,28 @@ export function authorizeWorkApi(api: DataApi, officeId: string): DataApi {
       await derived('documents', stored.id, await documentOwner(stored), 'delete');
       await api.deleteDocument(stored);
     },
-    saveTrip: async input => { adminOnly('إدارة رحلات العمرة متاحة لمدير المكتب فقط.'); return api.saveTrip(input); },
-    deleteTrip: async id => { adminOnly('حذف رحلات العمرة متاح لمدير المكتب فقط.'); await api.deleteTrip(id); },
+    saveTrip: async input => {
+      if (input.id) await derived('umrah_trips', input.id, await tripOwner(input.id), 'edit');
+      return api.saveTrip(input);
+    },
+    deleteTrip: async id => { await derived('umrah_trips', id, await tripOwner(id), 'delete'); await api.deleteTrip(id); },
     saveParticipant: async input => {
       const existing = input.id ? (await api.listParticipants()).find(p => p.id === input.id) : undefined;
       if (input.id && !existing) throw new Error(DENIED);
       const customerId = existing?.customer_id ?? input.customer_id;
       if (existing && input.customer_id && input.customer_id !== existing.customer_id) adminOnly('نقل المعتمر لعميل آخر متاح لمدير المكتب فقط.');
-      await derived(existing ? 'umrah_participants' : 'customers', existing?.id ?? customerId, await participantOwner(customerId), 'edit');
+      await participantAllowed(existing ? 'umrah_participants' : 'customers', existing?.id ?? customerId, customerId, existing?.trip_id ?? input.trip_id, 'edit');
       return api.saveParticipant(input);
     },
     deleteParticipant: async id => {
       const row: UmrahParticipant | undefined = (await api.listParticipants()).find(p => p.id === id);
       if (!row) throw new Error(DENIED);
-      await derived('umrah_participants', id, await participantOwner(row.customer_id), 'delete');
+      await participantAllowed('umrah_participants', id, row.customer_id, row.trip_id, 'delete');
       await api.deleteParticipant(id);
     },
+    saveOffice: async input => { adminOnly('إعدادات المكتب متاحة للمدير فقط.'); await api.saveOffice(input); },
+    uploadLogo: async file => { adminOnly('إعدادات المكتب متاحة للمدير فقط.'); await api.uploadLogo(file); },
+    removeLogo: async () => { adminOnly('إعدادات المكتب متاحة للمدير فقط.'); await api.removeLogo(); },
     setWorkPermission: async input => {
       if (input.granteeId === actor.userId) throw new Error('لا يمكن منح إذن لنفسك.');
       let owner: string | null;
@@ -114,7 +132,7 @@ export function authorizeWorkApi(api: DataApi, officeId: string): DataApi {
         const p = (await api.listParticipants()).find(x => x.id === input.recordId);
         if (!p) throw new Error(DENIED);
         owner = await participantOwner(p.customer_id);
-      } else throw new Error('رحلات العمرة تُدار من مدير المكتب ولا تُفوّض.');
+      } else owner = await tripOwner(input.recordId);
       if (actor.role !== 'admin' && owner !== actor.userId) throw new Error('منح الإذن متاح للمسؤول الحالي أو مدير المكتب فقط.');
       await api.setWorkPermission({ ...input, ownerId: owner });
     },

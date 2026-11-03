@@ -1,6 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from '@tanstack/react-start';
-import { setLocalMemberRole } from '@/lib/data/permanent-deletion.functions';
 import { useState } from "react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -48,7 +46,10 @@ function inviteState(i: Invite) {
 }
 
 function Team() {
-  const changeRole = useServerFn(setLocalMemberRole);
+  const changeRole = async ({ data }: { data: { officeId: string; userId: string; role: 'admin' | 'employee' } }) => {
+    const { error } = await supabase.rpc('set_member_role', { _office: data.officeId, _user: data.userId, _role: data.role });
+    if (error) throw new Error(error.message);
+  };
   const { office } = Route.useRouteContext();
   const api = useData();
   const memberQuery = useMembers();

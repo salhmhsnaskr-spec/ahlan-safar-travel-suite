@@ -1,7 +1,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { DocumentLinks, BookingInput, CustomerInput, DataApi, PartnerInput, ParticipantInput, RequestInput, ServiceInput, TaskInput, TripInput } from "./api";
+import type { OfficeInput, DocumentLinks, BookingInput, CustomerInput, DataApi, PartnerInput, ParticipantInput, RequestInput, ServiceInput, TaskInput, TripInput } from "./api";
 
 export const PATHS = {
   demo: {
@@ -122,7 +122,7 @@ export const useDocuments = () => {
 };
 export const useActivity = (actorId?: string) => {
   const api = useData();
-  const actor = api.role === "employee" ? api.userId : actorId;
+  const actor = actorId;
   return useQuery({ queryKey: [api.key, "activity", actor ?? "all", api.userId], queryFn: () => api.listActivity(actor) });
 };
 export const useTeamActivity = () => {
@@ -147,3 +147,16 @@ export const useSaveTrip = () => useMut((a, i: TripInput) => a.saveTrip(i), "ت�
 export const useDeleteTrip = () => useMut((a, id: string) => a.deleteTrip(id), "تم حذف الرحلة");
 export const useSaveParticipant = () => useMut((a, i: ParticipantInput) => a.saveParticipant(i), "تم حفظ بيانات المعتمر");
 export const useDeleteParticipant = () => useMut((a, id: string) => a.deleteParticipant(id), "تمت إزالة المعتمر من الرحلة");
+
+export const useOffice = () => {
+  const api = useData();
+  return useQuery({ queryKey: [api.key, "office"], queryFn: api.getOffice, staleTime: 300_000 });
+};
+export const useSaveOffice = () => useMut((a, i: OfficeInput) => a.saveOffice(i), "تم حفظ إعدادات المكتب");
+export const useUploadLogo = () => useMut((a, f: File) => a.uploadLogo(f), "تم تحديث الشعار");
+export const useRemoveLogo = () => useMut((a) => a.removeLogo(), "تم حذف الشعار");
+export const usePendingDeletions = () => {
+  const api = useData();
+  return useQuery({ queryKey: [api.key, "pending-deletions"], queryFn: api.listPendingDeletions });
+};
+export const useRetryDeletion = () => useMut((a, id: string) => a.retryDeletion(id), "اكتمل حذف الملفات المتبقية");

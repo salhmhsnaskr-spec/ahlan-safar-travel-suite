@@ -13,17 +13,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate, priorityLabels, requestCode, statusLabels, statusOrder, type Customer, type TravelRequest } from "@/lib/domain";
-import { cleanDetails, deriveServiceDate, fieldsFor, findDuplicateCustomer, searchCustomers, type ServiceDetails } from "@/lib/transaction";
+import { cleanDetails, deriveServiceDate, fieldsFor, findDuplicateCustomer, missingRequired, searchCustomers, type ServiceDetails } from "@/lib/transaction";
 import { WorkAttribution } from "@/components/work-attribution";
+import { ServiceDetailFields } from "@/components/service-fields";
 
 type Common = { source: TravelRequest["source"]; referring_partner_id: string; service_id: string; assigned_to: string; service_date: string; priority: TravelRequest["priority"]; status: TravelRequest["status"]; details: string; notes: string };
 const blankCommon: Common = { source: "direct", referring_partner_id: "", service_id: "", assigned_to: "", service_date: "", priority: "normal", status: "new", details: "", notes: "" };
 
 /** Service picker + specialised fields + common fields; shared by the new and detail screens. */
 function TransactionFields({ c, setC, d, setD, customerId, selfId }: { c: Common; setC: (f: (s: Common) => Common) => void; d: ServiceDetails; setD: (f: (s: ServiceDetails) => ServiceDetails) => void; customerId?: string | undefined; selfId?: string | undefined }) {
-  const allServices = useServices().data ?? [];
-  const services = allServices.filter((s) => s.is_active || s.id === c.service_id);
-  const requests = useRequests();
+  const services = (useServices().data ?? []).filter((s) => s.is_active || s.id === c.service_id);
   const members = useMembers().data ?? [];
   const partners = usePartners();
   const api = useData();
@@ -65,36 +64,7 @@ function TransactionFields({ c, setC, d, setD, customerId, selfId }: { c: Common
             </NativeSelect>
           </Field>
         </div>
-        {fields.length > 0 && (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {fields.map((f) => (
-              <Field key={f.key} label={f.label}>
-                {f.type === "request" ? (
-                  (() => {
-                    const opts = (requests.data ?? []).filter((x) => x.id !== selfId && x.customer_id === customerId && f.linkCodes?.includes(allServices.find((s) => s.id === x.service_id)?.code ?? ""));
-                    return !customerId ? <p className="text-sm text-muted-foreground">اختر العميل أولًا.</p>
-                      : opts.length === 0 && !d[f.key] ? <p className="text-sm text-muted-foreground">لا يوجد طلب تأشيرة زيارة لهذا العميل.</p>
-                      : (
-                        <NativeSelect aria-label={f.label} value={d[f.key] ?? ""} onChange={(e) => setD((s) => ({ ...s, [f.key]: e.target.value }))}>
-                          <option value="">— بدون ربط —</option>
-                          {opts.map((x) => <option key={x.id} value={x.id}>{requestCode(x.number)}</option>)}
-                          {d[f.key] && !opts.some((x) => x.id === d[f.key]) && <option value={d[f.key]}>طلب مرتبط سابقًا</option>}
-                        </NativeSelect>
-                      );
-                  })()
-                ) : f.type === "select" ? (
-                  <NativeSelect aria-label={f.label} value={d[f.key] ?? ""} onChange={(e) => setD((s) => ({ ...s, [f.key]: e.target.value }))}>
-                    <option value="">— اختر —</option>
-                    {f.options?.map((o) => <option key={o} value={o}>{o}</option>)}
-                  </NativeSelect>
-                ) : (
-                  <Input aria-label={f.label} type={f.type} min={f.type === "number" ? 0 : undefined} dir={f.ltr ? "ltr" : undefined} className={f.ltr ? "text-end" : undefined}
-                    value={d[f.key] ?? ""} onChange={(e) => setD((s) => ({ ...s, [f.key]: e.target.value }))} />
-                )}
-              </Field>
-            ))}
-          </div>
-        )}
+        <ServiceDetailFields fields={fields} d={d} setD={setD} customerId={customerId} selfId={selfId} />
       </section>
       <section className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2">
         <Field label="الموظف المسؤول">
@@ -121,6 +91,15 @@ function TransactionFields({ c, setC, d, setD, customerId, selfId }: { c: Common
   );
 }
 
+function useMissing() {
+  const services = useServices().data ?? [];
+  return (c: Common, d: ServiceDetails) => {
+    if (!c.service_id) return "اختر نوع الخدمة.";
+    const miss = missingRequired(fieldsFor(services.find((s) => s.id === c.service_id)), d);
+    return miss.length ? "أكمل الحقول المطلوبة: " + miss.join("، ") : "";
+  };
+}
+
 function usePayload() {
   const services = useServices().data ?? [];
   return (c: Common, d: ServiceDetails) => {
@@ -143,6 +122,7 @@ export function NewTransactionPage() {
   const saveCustomer = useSaveCustomer();
   const saveRequest = useSaveRequest();
   const payload = usePayload();
+  const missing = useMissing();
   const [q, setQ] = useState("");
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [creating, setCreating] = useState(false);
@@ -162,6 +142,7 @@ export function NewTransactionPage() {
   async function submit() {
     setError("");
     if (c.source === "partner" && !c.referring_partner_id) return setError("اختر المكتب المحيل أو غيّر مصدر العميل إلى «مباشر».");
+    const m = missing(c, d); if (m) return setError(m);
     try {
       let cust = customer;
       if (!cust) {
@@ -252,13 +233,13 @@ export function TransactionDetailPage({ id }: { id: string }) {
 
 function TransactionDetailContent({ id }: { id: string }) {
   const p = usePaths();
-  const api = useData();
   const requests = useRequests();
   const customers = useCustomers().data ?? [];
   const bookings = (useBookings().data ?? []).filter((b) => b.request_id === id);
   const tasks = (useTasks().data ?? []).filter((t) => t.request_id === id);
   const save = useSaveRequest();
   const payload = usePayload();
+  const missing = useMissing();
   const r = requests.data?.find((x) => x.id === id);
   const [c, setC] = useState<Common>(blankCommon);
   const [d, setD] = useState<ServiceDetails>({});
@@ -288,13 +269,13 @@ function TransactionDetailContent({ id }: { id: string }) {
         </div>
         <div className="flex flex-wrap gap-2">
           {r.status !== "cancelled" && <Button variant="outline" onClick={() => setBook(true)}><CalendarCheck /> إنشاء حجز</Button>}
-          {api.role === "admin" && <Button variant="outline" onClick={() => setTask(true)}><ListTodo /> مهمة متابعة</Button>}
+          <Button variant="outline" onClick={() => setTask(true)}><ListTodo /> مهمة متابعة</Button>
         </div>
       </div>
       <div className="grid gap-4">
         <TransactionFields c={c} setC={setC} d={d} setD={setD} />
         <div className="flex justify-end">
-          <Button disabled={save.isPending} onClick={() => { if (c.source === "partner" && !c.referring_partner_id) { setErr("اختر المكتب المحيل أو غيّر مصدر العميل إلى «مباشر»."); return; } setErr(""); save.mutate({ id: r.id, customer_id: r.customer_id, ...payload(c, d) }); }}><Save /> حفظ التغييرات</Button>
+          <Button disabled={save.isPending} onClick={() => { if (c.source === "partner" && !c.referring_partner_id) { setErr("اختر المكتب المحيل أو غيّر مصدر العميل إلى «مباشر»."); return; } const m = missing(c, d); if (m) { setErr(m); return; } setErr(""); save.mutate({ id: r.id, customer_id: r.customer_id, ...payload(c, d) }); }}><Save /> حفظ التغييرات</Button>
         </div>
         {err && <p role="alert" className="text-end text-sm text-danger">{err}</p>}
       </div>

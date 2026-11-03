@@ -9,7 +9,7 @@ import {
 /** Platform support line; the link carries no customer or office data. */
 export const SUPPORT_WHATSAPP_URL = "https://wa.me/967716091944";
 import { Logo } from "@/components/brand";
-import { useData, usePaths } from "@/lib/data/context";
+import { useData, useOffice, usePaths } from "@/lib/data/context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { canManageOffice } from "@/lib/staff";
@@ -24,6 +24,7 @@ export function AppShell({ children, footer }: { children: ReactNode; footer?: R
     queryKey: ["is-platform-owner", api.userId], enabled: api.mode === "cloud", staleTime: 300_000,
     queryFn: async () => (await supabase.rpc("is_platform_owner")).data === true,
   }).data === true;
+  const office = useOffice().data;
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const items: NavItem[] = [
@@ -38,11 +39,11 @@ export function AppShell({ children, footer }: { children: ReactNode; footer?: R
     ...(canManageOffice(api.role) ? [{ to: p.services, label: "الخدمات", icon: Briefcase }, { to: p.partners, label: "المكاتب الشريكة", icon: Handshake }] : []),
     { to: p.notifications, label: "الإشعارات", icon: Bell },
     { to: p.reports, label: "التقارير", icon: BarChart3 },
-    { to: p.activity, label: api.role === "admin" ? "سجل النشاط" : "نشاطي", icon: History },
+    { to: p.activity, label: "سجل النشاط", icon: History },
   ];
   if (isOwner) items.push({ to: "/owner", label: "لوحة مالك المنصة", icon: ShieldCheck });
   if (api.mode === "cloud" && api.role === "admin") items.push({ to: "/app/team", label: "إدارة الفريق", icon: UserCog });
-  if (api.mode === "cloud" && api.role === "admin") items.push({ to: "/app/office", label: "إدارة المكتب", icon: Briefcase });
+  if (api.mode === "cloud" && api.role === "admin") items.push({ to: "/app/office", label: "إعدادات المكتب", icon: Briefcase });
 
   const nav = (
     <nav className="flex flex-col gap-1">
@@ -73,7 +74,10 @@ export function AppShell({ children, footer }: { children: ReactNode; footer?: R
       <Link to="/" className="px-1"><Logo light /></Link>
       <div className="rounded-lg bg-sidebar-accent px-3 py-2.5">
         <p className="text-[11px] text-sidebar-foreground/60">{api.mode === "demo" ? "الوضع التجريبي" : api.role === "admin" ? "مدير المكتب" : "موظف"}</p>
-        <p className="truncate text-sm font-semibold text-sidebar-accent-foreground">{api.officeName}</p>
+        <div className="flex items-center gap-2">
+          {office?.logo_url && <img src={office.logo_url} alt="" className="size-8 shrink-0 rounded-md bg-background object-contain" />}
+          <p className="truncate text-sm font-semibold text-sidebar-accent-foreground">{office?.name ?? api.officeName}</p>
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto">{nav}</div>
       <a
