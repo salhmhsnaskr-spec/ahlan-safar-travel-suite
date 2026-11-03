@@ -237,6 +237,59 @@ export type Database = {
           },
         ]
       }
+      deletion_jobs: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          last_error: string | null
+          office_id: string
+          paths: string[]
+          remaining: string[]
+          status: string
+          target_id: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          last_error?: string | null
+          office_id: string
+          paths?: string[]
+          remaining?: string[]
+          status?: string
+          target_id: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          last_error?: string | null
+          office_id?: string
+          paths?: string[]
+          remaining?: string[]
+          status?: string
+          target_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deletion_jobs_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           booking_id: string | null
@@ -422,37 +475,58 @@ export type Database = {
       }
       offices: {
         Row: {
+          address: string | null
           city: string | null
           country: string | null
           created_at: string
           created_by: string
+          description: string | null
           email: string | null
           id: string
+          is_partner: boolean
+          location_url: string | null
+          logo_path: string | null
           name: string
           phone: string | null
           updated_at: string
+          website: string | null
+          whatsapp: string | null
         }
         Insert: {
+          address?: string | null
           city?: string | null
           country?: string | null
           created_at?: string
           created_by?: string
+          description?: string | null
           email?: string | null
           id?: string
+          is_partner?: boolean
+          location_url?: string | null
+          logo_path?: string | null
           name: string
           phone?: string | null
           updated_at?: string
+          website?: string | null
+          whatsapp?: string | null
         }
         Update: {
+          address?: string | null
           city?: string | null
           country?: string | null
           created_at?: string
           created_by?: string
+          description?: string | null
           email?: string | null
           id?: string
+          is_partner?: boolean
+          location_url?: string | null
+          logo_path?: string | null
           name?: string
           phone?: string | null
           updated_at?: string
+          website?: string | null
+          whatsapp?: string | null
         }
         Relationships: []
       }
@@ -934,6 +1008,50 @@ export type Database = {
           },
         ]
       }
+      work_record_permissions: {
+        Row: {
+          created_at: string
+          entity: string
+          granted_by: string
+          grantee_id: string
+          id: string
+          office_id: string
+          operation: string
+          owner_id: string | null
+          record_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity: string
+          granted_by: string
+          grantee_id: string
+          id?: string
+          office_id: string
+          operation: string
+          owner_id?: string | null
+          record_id: string
+        }
+        Update: {
+          created_at?: string
+          entity?: string
+          granted_by?: string
+          grantee_id?: string
+          id?: string
+          office_id?: string
+          operation?: string
+          owner_id?: string | null
+          record_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_record_permissions_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -950,6 +1068,8 @@ export type Database = {
         Returns: string
       }
       audit_safe_values: { Args: { _row: Json }; Returns: Json }
+      begin_customer_deletion: { Args: { _customer: string }; Returns: string }
+      begin_document_deletion: { Args: { _document: string }; Returns: string }
       create_invitation: {
         Args: {
           _email: string
@@ -976,11 +1096,36 @@ export type Database = {
         Args: { _error?: string; _id: string; _status: string }
         Returns: undefined
       }
+      owner_office_detail: { Args: { _office: string }; Returns: Json }
+      owner_offices_overview: { Args: never; Returns: Json }
+      owner_set_office_partner: {
+        Args: { _is_partner: boolean; _office: string }
+        Returns: undefined
+      }
       platform_stats: { Args: never; Returns: Json }
       resend_invitation: { Args: { _id: string }; Returns: Json }
       revoke_invitation: { Args: { _id: string }; Returns: undefined }
+      set_member_role: {
+        Args: {
+          _office: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _user: string
+        }
+        Returns: undefined
+      }
       set_member_status: {
         Args: { _office: string; _status: string; _user: string }
+        Returns: undefined
+      }
+      set_work_permission: {
+        Args: {
+          _allow: boolean
+          _entity: string
+          _grantee: string
+          _office: string
+          _operation: string
+          _record: string
+        }
         Returns: undefined
       }
       shares_office: { Args: { _user: string }; Returns: boolean }
@@ -992,6 +1137,11 @@ export type Database = {
         }[]
       }
       team_performance: { Args: { _office: string }; Returns: Json }
+      work_allowed: {
+        Args: { _entity: string; _id: string; _office: string; _op: string }
+        Returns: boolean
+      }
+      work_owner: { Args: { _entity: string; _id: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "employee"

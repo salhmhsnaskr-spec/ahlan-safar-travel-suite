@@ -78,6 +78,13 @@
       "when": 1793323348418,
       "tag": "0010_invitation_rotation_limits_and_delivery_states",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793721442569,
+      "tag": "0011_office_scope_permissions_owner_deletion",
+      "breakpoints": true
     }
   ]
 }
