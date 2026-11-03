@@ -8,6 +8,8 @@ import {
   customerSourceLabels, priorityLabels, requestSourceLabels, statusLabels, statusOrder,
   type Customer, type Partner, type TravelRequest,
 } from "@/lib/domain";
+import { ServiceDetailFields } from "@/components/service-fields";
+import { cleanDetails, deriveServiceDate, fieldsFor, missingRequired, type ServiceDetails } from "@/lib/transaction";
 import { useCustomers, useMembers, usePartners, useSaveCustomer, useSavePartner, useSaveRequest, useServices } from "@/lib/data/context";
 
 type DialogProps<T> = { open: boolean; onOpenChange: (o: boolean) => void; initial?: Partial<T> | null };
@@ -98,26 +100,39 @@ const blankRequest = {
 
 export function RequestDialog({ open, onOpenChange, initial }: DialogProps<TravelRequest>) {
   const [f, setF] = useState(blankRequest);
+  const [d, setD] = useState<ServiceDetails>({});
+  const [err, setErr] = useState("");
   const customers = useCustomers().data ?? [];
   const partners = usePartners().data ?? [];
   const members = useMembers().data ?? [];
   const services = (useServices().data ?? []).filter((s) => s.is_active || s.id === initial?.service_id);
   const save = useSaveRequest();
   useEffect(() => {
-    if (open) setF({ ...blankRequest, ...Object.fromEntries(Object.entries(initial ?? {}).map(([k, v]) => [k, v ?? ""])) } as typeof blankRequest);
+    if (!open) return;
+    const { service_details, ...rest } = initial ?? {};
+    setF({ ...blankRequest, ...Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, v ?? ""])) } as typeof blankRequest);
+    setD(((service_details ?? {}) as ServiceDetails));
+    setErr("");
   }, [open, initial]);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((s) => ({ ...s, [k]: e.target.value }));
+  const fields = fieldsFor(services.find((s) => s.id === f.service_id));
 
   return (
     <FormDialog
       open={open} onOpenChange={onOpenChange} title={initial?.id ? "تعديل الطلب" : "طلب جديد"} pending={save.isPending}
       onSubmit={() => {
-        if (!f.customer_id) return;
+        if (!f.customer_id) return setErr("اختر العميل.");
+        if (!f.service_id) return setErr("اختر نوع الخدمة.");
+        const miss = missingRequired(fields, d);
+        if (miss.length) return setErr("أكمل الحقول المطلوبة: " + miss.join("، "));
+        if (f.source === "partner" && !f.referring_partner_id) return setErr("اختر المكتب المُحيل.");
+        setErr("");
+        const details = cleanDetails(fields, d);
         save.mutate(
           {
-            id: initial?.id, customer_id: f.customer_id, service_id: f.service_id || null, details: f.details || null,
+            id: initial?.id, customer_id: f.customer_id, service_id: f.service_id || null, details: f.details || null, service_details: details,
             source: f.source, referring_partner_id: f.source === "partner" ? f.referring_partner_id || null : null,
-            assigned_to: f.assigned_to || null, service_date: f.service_date || null, priority: f.priority, status: f.status, notes: f.notes || null,
+            assigned_to: f.assigned_to || null, service_date: f.service_date || deriveServiceDate(fields, details), priority: f.priority, status: f.status, notes: f.notes || null,
           },
           { onSuccess: () => onOpenChange(false) },
         );
@@ -129,12 +144,13 @@ export function RequestDialog({ open, onOpenChange, initial }: DialogProps<Trave
           {customers.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
         </NativeSelect>
       </Field>
-      <Field label="نوع الخدمة">
-        <NativeSelect value={f.service_id} onChange={set("service_id")}>
+      <Field label="نوع الخدمة *">
+        <NativeSelect aria-label="نوع الخدمة" required value={f.service_id} onChange={(e) => { const v = e.target.value; setF((s) => ({ ...s, service_id: v })); setD(() => ({})); }}>
           <option value="">— اختر —</option>
           {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </NativeSelect>
       </Field>
+      {fields.length > 0 && <div className="sm:col-span-2 rounded-lg border bg-muted/30 p-3"><p className="text-sm font-semibold">بيانات الخدمة</p><ServiceDetailFields fields={fields} d={d} setD={setD} customerId={f.customer_id || undefined} selfId={initial?.id} /></div>}
       <Field label="تفاصيل الطلب" className="sm:col-span-2"><Textarea rows={2} value={f.details} onChange={set("details")} /></Field>
       <Field label="مصدر الطلب">
         <NativeSelect value={f.source} onChange={set("source")}>
@@ -167,6 +183,7 @@ export function RequestDialog({ open, onOpenChange, initial }: DialogProps<Trave
         </NativeSelect>
       </Field>
       <Field label="ملاحظات" className="sm:col-span-2"><Textarea rows={2} value={f.notes} onChange={set("notes")} /></Field>
+      {err && <p role="alert" className="text-sm text-danger sm:col-span-2">{err}</p>}
     </FormDialog>
   );
 }
