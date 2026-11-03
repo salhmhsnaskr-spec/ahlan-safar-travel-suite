@@ -3,7 +3,8 @@ import { useMemo, useState } from "react";
 import { Pencil, Plus, Search, Trash2, Phone, KeyRound } from "lucide-react";
 import { useCustomers, useData, useDeleteCustomer, useMembers, usePartners, usePaths, useRequests } from "@/lib/data/context";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { canManageWork } from '@/lib/data/work-permissions';
+import { canManageWork, workOwner } from '@/lib/data/work-permissions';
+import { PendingDeletions } from '@/components/pending-deletions';
 import { toast } from 'sonner';
 import { EmptyState, Loading, NativeSelect, PageHeader } from "@/components/kit";
 import { CustomerDialog } from "@/components/forms";
@@ -61,6 +62,7 @@ export function CustomersPage() {
         subtitle={`${data?.length ?? 0} عميل`}
         actions={<Button onClick={() => { setEditing(null); setOpen(true); }}><Plus /> إضافة عميل</Button>}
       />
+      <PendingDeletions />
       <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_180px_180px]">
         <div className="relative">
           <Search className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -89,7 +91,7 @@ export function CustomersPage() {
                 <div className="flex shrink-0 gap-1">
                   <Button size="icon" variant="ghost" aria-label="تعديل" disabled={!allowed(c, 'edit')} onClick={() => { setEditing(c); setOpen(true); }}><Pencil /></Button>
                   <Button size="icon" variant="ghost" aria-label="حذف" disabled={!allowed(c, 'delete')} className="text-danger" onClick={() => setToDelete(c)}><Trash2 /></Button>
-                  {(api.role === 'admin' || c.assigned_to === api.userId) && <Button size="icon" variant="ghost" aria-label="أذونات العميل" title="أذونات العميل" onClick={() => { setDelegating(c); setGrantee(''); }}><KeyRound /></Button>}
+                  {(api.role === 'admin' || workOwner(c) === api.userId) && <Button size="icon" variant="ghost" aria-label="أذونات العميل" title="أذونات العميل" onClick={() => { setDelegating(c); setGrantee(''); }}><KeyRound /></Button>}
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -105,7 +107,7 @@ export function CustomersPage() {
       <CustomerDialog open={open} onOpenChange={setOpen} initial={editing} />
       <Dialog open={Boolean(delegating)} onOpenChange={o => { if (!o) setDelegating(null); }}>
         <DialogContent dir="rtl"><DialogHeader><DialogTitle>أذونات {delegating?.full_name}</DialogTitle></DialogHeader>
-          <NativeSelect aria-label="الموظف المفوض" value={grantee} onChange={e => setGrantee(e.target.value)}><option value="">اختر الموظف</option>{members.filter(m => (m.status ?? 'active') === 'active').map(m => <option key={m.user_id} value={m.user_id}>{m.full_name || m.email}</option>)}</NativeSelect>
+          <NativeSelect aria-label="الموظف المفوض" value={grantee} onChange={e => setGrantee(e.target.value)}><option value="">اختر الموظف</option>{members.filter(m => (m.status ?? 'active') === 'active' && m.user_id !== api.userId).map(m => <option key={m.user_id} value={m.user_id}>{m.full_name || m.email}</option>)}</NativeSelect>
           <NativeSelect aria-label="نوع الإذن" value={operation} onChange={e => setOperation(e.target.value === 'delete' ? 'delete' : 'edit')}><option value="edit">تعديل</option><option value="delete">حذف</option></NativeSelect>
           <div className="flex gap-2"><Button disabled={!grantee || grant.isPending} onClick={() => grant.mutate(true)}>منح الإذن</Button><Button variant="outline" disabled={!grantee || grant.isPending} onClick={() => grant.mutate(false)}>إلغاء الإذن</Button></div>
         </DialogContent>
@@ -115,7 +117,7 @@ export function CustomersPage() {
         onOpenChange={(o) => !o && setToDelete(null)}
         title={`حذف ${toDelete?.full_name ?? ""}؟`}
         body="سيُحذف العميل وجميع طلباته وحجوزاته ومهامه ووثائقه وملفاته واشتراكاته المرتبطة نهائيًا. لا يمكن التراجع عن الحذف."
-        onConfirm={() => toDelete && del.mutate(toDelete.id, { onSuccess: () => setToDelete(null) })}
+        onConfirm={() => toDelete && del.mutate(toDelete.id, { onSettled: () => setToDelete(null) })}
       />
     </>
   );
