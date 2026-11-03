@@ -39,3 +39,4 @@
 - Staged deletion locks shared office barrier then customer then job; office erasure uses an exclusive barrier. NOWAIT guards and fenced leases need real concurrency acceptance.
 - Work rights use assignment and record/operation grants, never creator fallback. DataApi guards are UX; independent SQL is the security boundary, unapplied until acceptance and approval.
 - Document ownership validates office/customer links, then follows booking/request/customer, or uploader for unlinked files; record controls share these rules.
+- Office-scope RLS and deletion RPCs are regression-tested offline by `integration/local-schema/security/office-scope.test.ts` (reference schema + applied drizzle migrations); new tables must still grant explicitly, since default privileges no longer give anon/authenticated TRUNCATE/TRIGGER/REFERENCES.
