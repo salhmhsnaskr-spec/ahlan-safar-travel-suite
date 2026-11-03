@@ -4,8 +4,15 @@ import type { AppRole, Member } from "@/lib/domain";
 import type { PerformanceData } from "@/lib/performance";
 import { assertLocalDeletionEnvironment } from "./permanent-deletion";
 import { permanentDelete } from "./permanent-deletion.functions";
-import { workPermissions, setWorkPermission } from './work-permissions.functions';
+import { cloudDelete, retryCloudDeletion, type DeletionOutcome } from './cloud-deletion.functions';
+import type { OfficeProfile, PendingDeletion } from './api';
+import type { WorkPermission } from './work-permissions';
 import { authorizeWorkApi } from './authorized-api';
+
+/** Database rows are already gone; report files that Storage has not yet confirmed as removed. */
+function incomplete(r: DeletionOutcome) {
+  if (!r.completed) throw new Error(`حُذفت السجلات، لكن ${r.remaining} ملف لم يتأكد حذفه من التخزين بعد. أعد المحاولة من «عمليات حذف معلقة».`);
+}
 
 function must<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
@@ -21,26 +28,47 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
     userId,
     officeName,
     officeId,
-    listWorkPermissions: async () => {
-      // Unapplied schema must not create failed reads against the shared backend.
-      if (import.meta.env['VITE_LOCAL_PERMANENT_DELETION'] !== '1') return [];
-      assertLocalDeletionEnvironment(import.meta.env['VITE_LOCAL_PERMANENT_DELETION'], import.meta.env['VITE_SUPABASE_URL']);
-      return workPermissions({ data: { officeId } });
+    listWorkPermissions: async () =>
+      must(await supabase.from("work_record_permissions").select("office_id,entity,record_id,operation,grantee_id,granted_by,owner_id").eq("office_id", officeId)) as WorkPermission[],
+    setWorkPermission: async input =>
+      void must(await supabase.rpc("set_work_permission", { _office: officeId, _entity: input.entity, _record: input.recordId, _grantee: input.granteeId, _operation: input.operation, _allow: input.allow })),
+    getOffice: async () => {
+      const o = must(await supabase.from("offices").select("id,name,phone,whatsapp,email,address,city,country,location_url,website,description,logo_path,is_partner").eq("id", officeId).single());
+      let logo_url: string | null = null;
+      if (o.logo_path) logo_url = (await supabase.storage.from("office-logos").createSignedUrl(o.logo_path, 3600)).data?.signedUrl ?? null;
+      return { ...o, logo_url } as OfficeProfile;
     },
-    setWorkPermission: async input => {
-      assertLocalDeletionEnvironment(import.meta.env['VITE_LOCAL_PERMANENT_DELETION'], import.meta.env['VITE_SUPABASE_URL']);
-      await setWorkPermission({ data: { officeId, ...input } });
+    saveOffice: async (input) => {
+      if (!input.name.trim()) throw new Error("اسم المكتب مطلوب.");
+      void must(await supabase.from("offices").update({ ...input, name: input.name.trim() }).eq("id", officeId).select("id").single());
     },
+    uploadLogo: async (file) => {
+      if (!/^image\/(png|jpeg|webp|svg\+xml)$/.test(file.type)) throw new Error("الشعار يجب أن يكون صورة PNG أو JPG أو WEBP أو SVG.");
+      if (file.size > 2 * 1024 * 1024) throw new Error("حجم الشعار يتجاوز 2MB.");
+      const prev = must(await supabase.from("offices").select("logo_path").eq("id", officeId).single()).logo_path;
+      const ext = (file.name.match(/\.[A-Za-z0-9]{1,5}$/)?.[0] ?? ".png").toLowerCase();
+      const path = `${officeId}/logo-${crypto.randomUUID()}${ext}`;
+      const up = await supabase.storage.from("office-logos").upload(path, file, { contentType: file.type, upsert: false });
+      if (up.error) throw new Error("تعذّر رفع الشعار: " + up.error.message);
+      const res = await supabase.from("offices").update({ logo_path: path }).eq("id", officeId);
+      if (res.error) { await supabase.storage.from("office-logos").remove([path]); throw new Error(res.error.message); }
+      if (prev) await supabase.storage.from("office-logos").remove([prev]);
+    },
+    removeLogo: async () => {
+      const prev = must(await supabase.from("offices").select("logo_path").eq("id", officeId).single()).logo_path;
+      void must(await supabase.from("offices").update({ logo_path: null }).eq("id", officeId).select("id").single());
+      if (prev) await supabase.storage.from("office-logos").remove([prev]);
+    },
+    listPendingDeletions: async () =>
+      must(await supabase.from("deletion_jobs").select("id,kind,status,remaining,attempts,last_error,created_at").eq("office_id", officeId).neq("status", "completed").order("created_at", { ascending: false })) as PendingDeletion[],
+    retryDeletion: async (id) => { incomplete(await retryCloudDeletion({ data: { jobId: id } })); },
     listCustomers: async () =>
       must(await supabase.from("customers").select("*").eq("office_id", officeId).order("created_at", { ascending: false })),
     saveCustomer: async ({ id, ...rest }) =>
       id
         ? must(await supabase.from("customers").update(rest).eq("id", id).select().single())
         : must(await supabase.from("customers").insert({ ...rest, office_id: officeId }).select().single()),
-    deleteCustomer: async (id) => {
-      assertLocalDeletionEnvironment(import.meta.env['VITE_LOCAL_PERMANENT_DELETION'], import.meta.env['VITE_SUPABASE_URL']);
-      await permanentDelete({ data: { officeId, targetId: id, kind: "customer" } });
-    },
+    deleteCustomer: async (id) => { incomplete(await cloudDelete({ data: { kind: "customer", targetId: id } })); },
     deleteOffice: async () => {
       assertLocalDeletionEnvironment(import.meta.env['VITE_LOCAL_PERMANENT_DELETION'], import.meta.env['VITE_SUPABASE_URL']);
       await permanentDelete({ data: { officeId, targetId: officeId, kind: "office" } });
@@ -132,14 +160,10 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
       if (r.error) throw new Error(r.error.message);
       return r.data.signedUrl;
     },
-    deleteDocument: async (doc) => {
-      assertLocalDeletionEnvironment(import.meta.env['VITE_LOCAL_PERMANENT_DELETION'], import.meta.env['VITE_SUPABASE_URL']);
-      await permanentDelete({ data: { officeId, targetId: doc.id, kind: 'document' } });
-    },
+    deleteDocument: async (doc) => { incomplete(await cloudDelete({ data: { kind: "document", targetId: doc.id } })); },
     listActivity: async (actorId) => {
       let query = supabase.from("activity_log").select("*").eq("office_id", officeId);
-      const actor = role === "employee" ? userId : actorId;
-      if (actor) query = query.eq("actor_id", actor);
+      if (actorId) query = query.eq("actor_id", actorId);
       return must(await query.order("created_at", { ascending: false }).limit(200));
     },
     listTeamActivity: async () => must(await supabase.rpc("team_last_activity", { _office: officeId })),
