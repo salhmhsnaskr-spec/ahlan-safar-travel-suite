@@ -51,6 +51,8 @@
 - [x] 4 safeguards added to plan.
 # Shared-database rollout (approved 2026-11-03)
 - [ ] Renewed comprehensive request: inspect actual schema/code, complete permission/deletion/dynamic-form/identity/owner/report gaps without rebuilding; test only demo or clearly test-owned data. Impactful shared changes await backup/restore evidence; do not create a backend or publish.
+- [x] 2026-11-03 follow-up: entity/record attribution, dynamic service-detail report columns, normalized owner city filters, unique Excel sheet names and strict Storage absence/save-result handling; 32 focused tests passed. Demo Excel downloaded with RTL sheets; PDF generation checked locally, not live Auth/Storage acceptance.
+- [ ] Shared deletion redesign and permission alignment — blocked by absent newest-backup/export/file-recovery evidence. Current customer/document RPCs delete metadata before files; office erase/leased scheduled worker not present in shared schema, creator fallback differs from assignment-only requirement. No live writes or migrations this round.
 - [x] Office scope, permissions, trips, cascade deletion, owner RPCs, office identity applied (0011); TRUNCATE/default grants closed (0012); signed-out access to protected functions closed (0013). Offline replay 7/7, app tests 144/144.
 - [ ] Signed-in live check of office pages after 0013 — not run: no session available and real office accounts are off-limits for testing.
 - [ ] Backup evidence — user must confirm newest daily backup timestamp (More → Database → Manage → Backups).

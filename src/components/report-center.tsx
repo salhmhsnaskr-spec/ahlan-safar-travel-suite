@@ -9,7 +9,7 @@ import { buildSheet, presetPeriod, reportKindLabels, type ReportFilters, type Re
 import { downloadWorkbook } from "@/lib/excel";
 
 const kinds = Object.keys(reportKindLabels) as ReportKind[];
-const esc = (v: unknown) => String(v ?? "—").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+const esc = (v: unknown) => String(v ?? "—").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
 
 export function periodLabel(f: ReportFilters) {
   return f.from || f.to ? `${f.from || "البداية"} ← ${f.to || "اليوم"}` : "كل الفترات";
@@ -27,7 +27,7 @@ export function printSheets(sheets: Sheet[], meta: { officeName: string; logoUrl
   <style>@page{size:A4 landscape;margin:12mm}body{font-family:Tahoma,Arial,sans-serif;font-size:10px;color:#111}
   header{display:flex;align-items:center;gap:12px;border-bottom:2px solid #0f5e5a;padding-bottom:8px;margin-bottom:10px}
   header img{height:56px;max-width:120px;object-fit:contain}h1{font-size:18px;margin:0}h2{font-size:13px;margin:16px 0 4px;color:#0f5e5a}
-  table{width:100%;border-collapse:collapse;margin-top:4px}th{background:#0f5e5a;color:#fff;padding:4px}td{border:1px solid #ccc;padding:3px}
+  html,body{margin:0;max-width:100%}body{padding:12px;box-sizing:border-box}table{width:100%;table-layout:fixed;border-collapse:collapse;margin-top:4px}th,td{overflow-wrap:anywhere;word-break:normal}th{background:#0f5e5a;color:#fff;padding:4px}td{border:1px solid #ccc;padding:3px}
   tr:nth-child(even) td{background:#f4f7f7}.t{margin-inline-end:12px}thead{display:table-header-group}</style></head><body>
   <header>${meta.logoUrl ? `<img src="${esc(meta.logoUrl)}" alt="">` : ""}<div><h1>${esc(meta.officeName)}</h1>
   <div>${esc(meta.title)} · الفترة: ${esc(meta.period)} · تاريخ الاستخراج: ${esc(new Date().toLocaleString("ar"))}</div></div></header>
