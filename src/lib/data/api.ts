@@ -22,6 +22,9 @@ export type ParticipantInput = Partial<Omit<UmrahParticipant, "id" | "office_id"
  * Shared contract for the demo (browser-only, isolated) and cloud (per-office, RLS) data sources.
  * Every page talks to this interface, so the demo and the real app render identical screens.
  */
+export type OfficeProfile = { id: string; name: string; phone: string | null; whatsapp: string | null; email: string | null; address: string | null; city: string | null; country: string | null; location_url: string | null; website: string | null; description: string | null; logo_path: string | null; is_partner: boolean; logo_url: string | null };
+export type OfficeInput = Partial<Omit<OfficeProfile, 'id' | 'logo_path' | 'is_partner' | 'logo_url'>> & { name: string };
+export type PendingDeletion = { id: string; kind: 'customer' | 'document'; status: string; remaining: string[]; attempts: number; last_error: string | null; created_at: string };
 export type DocumentLinks = { customer_id?: string | null; booking_id?: string | null; request_id?: string | null };
 
 export interface DataApi {
@@ -33,6 +36,12 @@ export interface DataApi {
   officeId?: string;
   listWorkPermissions(): Promise<WorkPermission[]>;
   setWorkPermission(input: { entity: WorkEntity; recordId: string; granteeId: string; operation: WorkOperation; allow: boolean; ownerId?: string | null }): Promise<void>;
+  getOffice(): Promise<OfficeProfile>;
+  saveOffice(input: OfficeInput): Promise<void>;
+  uploadLogo(file: File): Promise<void>;
+  removeLogo(): Promise<void>;
+  listPendingDeletions(): Promise<PendingDeletion[]>;
+  retryDeletion(id: string): Promise<void>;
   listCustomers(): Promise<Customer[]>;
   saveCustomer(input: CustomerInput): Promise<Customer>;
   deleteCustomer(id: string): Promise<void>;
