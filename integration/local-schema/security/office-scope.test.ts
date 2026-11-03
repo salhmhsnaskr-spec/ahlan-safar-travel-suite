@@ -16,7 +16,7 @@ beforeAll(async () => {
   await db.exec(await readFile(new URL('validation/managed-dependencies.sql', root), 'utf8'));
   const manifest = JSON.parse(await readFile(new URL('manifest.json', root), 'utf8'));
   for (const file of Object.keys(manifest.sha256)) await db.exec(await readFile(new URL(`supabase/migrations/${file}`, root), 'utf8'));
-  await db.exec(await readFile(new URL('../../drizzle/migrations/0011_office_scope_permissions_owner_deletion.sql', root), 'utf8'));
+  for (const m of ['0011_office_scope_permissions_owner_deletion.sql', '0012_revoke_default_table_privileges.sql']) await db.exec(await readFile(new URL('../../drizzle/migrations/' + m, root), 'utf8'));
   await db.exec(`
     INSERT INTO offices(id,name,created_by) VALUES ('${O1}','مكتب 1','${A}'),('${O2}','مكتب 2','${X}');
     INSERT INTO office_members(office_id,user_id,role) VALUES ('${O1}','${A}','admin'),('${O1}','${B}','employee'),('${O1}','${C}','employee'),('${O2}','${X}','admin');
