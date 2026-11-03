@@ -4,6 +4,7 @@ import {
   Bell, Briefcase, Car, Clock, Hotel, Map as MapIcon, Pencil, Plane, Plus, Sparkles, Stamp, Stethoscope, Trash2, UserCheck, AlertCircle, MapPin, Phone, User,
 } from "lucide-react";
 import {
+  useActivity, useMembers, useOffice, useParticipants, useTrips,
   useAddService, useBookings, useUpdateService, useCustomers, useData, useDeletePartner, usePaths, usePartners, useRequests, useServices, useToggleService,
 } from "@/lib/data/context";
 import { EmptyState, Field, Loading, PageHeader, ReadState } from "@/components/kit";
@@ -18,6 +19,7 @@ import {
 } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 import { PerformancePage } from "@/components/pages/performance";
+import { ReportCenter } from "@/components/report-center";
 
 const icons: Record<string, typeof Plane> = { plane: Plane, hotel: Hotel, stamp: Stamp, car: Car, map: MapIcon, stethoscope: Stethoscope, briefcase: Briefcase, sparkles: Sparkles };
 
@@ -220,11 +222,19 @@ export function ReportsPage() {
   const services = useServices();
   const partners = usePartners();
   const [view, setView] = useState('staff');
+  const office = useOffice();
+  const members = useMembers();
+  const activity = useActivity();
+  const trips = useTrips();
+  const participants = useParticipants();
   return (
     <>
       <PageHeader title="التقارير" subtitle="مؤشرات أساسية لأداء المكتب" />
-      <div className="mb-6 flex gap-2 print:hidden"><Button variant={view==='staff'?'default':'outline'} onClick={()=>setView('staff')}>أداء الموظفين</Button><Button variant={view==='office'?'default':'outline'} onClick={()=>setView('office')}>المكتب</Button></div>
-      {view==='staff'?<PerformancePage/>:
+      <div className="mb-6 flex gap-2 print:hidden"><Button variant={view==='staff'?'default':'outline'} onClick={()=>setView('staff')}>أداء الموظفين</Button><Button variant={view==='office'?'default':'outline'} onClick={()=>setView('office')}>المكتب</Button><Button variant={view==='export'?'default':'outline'} onClick={()=>setView('export')}>تصدير Excel / PDF</Button></div>
+      {view==='staff'?<PerformancePage/>:view==='export'?
+      <ReadState queries={[office, requests, bookings, customers, services, partners, members, activity, trips, participants]} title="تعذّر تحميل بيانات التقارير">
+        {office.data && <ReportCenter title="تقرير المكتب" source={{ office: office.data, customers: customers.data ?? [], requests: requests.data ?? [], bookings: bookings.data ?? [], services: services.data ?? [], members: members.data ?? [], activity: activity.data ?? [], trips: trips.data ?? [], participants: participants.data ?? [], partners: partners.data ?? [] }} />}
+      </ReadState>:
       <ReadState queries={[requests, bookings, customers, services, partners]} title="تعذّر تحميل التقارير">
         <ReportContent rs={requests.data ?? []} bookingsAll={bookings.data ?? []} cs={customers.data ?? []} services={services.data ?? []} partners={partners.data ?? []} />
       </ReadState>

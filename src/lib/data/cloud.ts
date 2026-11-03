@@ -164,7 +164,7 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
     listActivity: async (actorId) => {
       let query = supabase.from("activity_log").select("*").eq("office_id", officeId);
       if (actorId) query = query.eq("actor_id", actorId);
-      return must(await query.order("created_at", { ascending: false }).limit(200));
+      return must(await query.order("created_at", { ascending: false }).limit(1000));
     },
     listTeamActivity: async () => must(await supabase.rpc("team_last_activity", { _office: officeId })),
     performance: async () => must(await supabase.rpc("team_performance", { _office: officeId })) as unknown as PerformanceData,
