@@ -1,4 +1,4 @@
-import type { DataApi } from "./api";
+import type { DataApi, OfficeProfile } from "./api";
 import { authorizeWorkApi } from './authorized-api';
 import { customerClosure } from './customer-closure';
 import { workOwner, type WorkPermission } from './work-permissions';
@@ -15,6 +15,7 @@ const DEMO_KEY = "ahlan-safar-demo-v1";
 const DEMO_OFFICE = "demo-office";
 
 type DemoDB = {
+  office?: OfficeProfile;
   permissions?: WorkPermission[];
   activity?: ActivityRow[];
   seq: number;
@@ -207,6 +208,10 @@ function mutateAs<T>(fn: (db: DemoDB) => T, actor: { userId: string; role: 'admi
   return Promise.resolve(result);
 }
 
+function demoOffice(): OfficeProfile {
+  return { id: DEMO_OFFICE, name: "مكتب تجريبي", phone: null, whatsapp: null, email: null, address: null, city: null, country: null, location_url: null, website: null, description: null, logo_path: null, is_partner: false, logo_url: null };
+}
+
 export function createDemoApi(actor: { userId: string; role: 'admin' | 'employee' } = { userId: 'demo-admin', role: 'admin' }): DataApi {
   const mutate = <T,>(fn: (db: DemoDB) => T) => mutateAs(fn, actor);
   const api: DataApi = {
@@ -216,6 +221,22 @@ export function createDemoApi(actor: { userId: string; role: 'admin' | 'employee
     userId: actor.userId,
     officeName: "مكتب تجريبي",
     officeId: DEMO_OFFICE,
+    getOffice: async () => load().office ?? demoOffice(),
+    saveOffice: async (input) => {
+      if (!input.name.trim()) throw new Error("اسم المكتب مطلوب.");
+      if (actor.role !== "admin") throw new Error("إعدادات المكتب متاحة للمدير فقط.");
+      const db = load(); db.office = { ...(db.office ?? demoOffice()), ...input, name: input.name.trim() }; save(db);
+    },
+    uploadLogo: async (file) => {
+      if (actor.role !== "admin") throw new Error("إعدادات المكتب متاحة للمدير فقط.");
+      if (!file.type.startsWith("image/")) throw new Error("الشعار يجب أن يكون صورة.");
+      if (file.size > 300 * 1024) throw new Error("في الوضع التجريبي يجب ألا يتجاوز الشعار 300KB.");
+      const url = await new Promise<string>((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = () => fail(new Error("تعذّرت قراءة الصورة.")); r.readAsDataURL(file); });
+      const db = load(); db.office = { ...(db.office ?? demoOffice()), logo_path: "demo", logo_url: url }; save(db);
+    },
+    removeLogo: async () => { const db = load(); db.office = { ...(db.office ?? demoOffice()), logo_path: null, logo_url: null }; save(db); },
+    listPendingDeletions: async () => [],
+    retryDeletion: async () => {},
     listWorkPermissions: async () => load().permissions ?? [],
     setWorkPermission: async input => {
       const db = load();
@@ -425,7 +446,7 @@ export function createDemoApi(actor: { userId: string; role: 'admin' | 'employee
           db.trips[i] = { ...db.trips[i], ...input, updated_at: now } as UmrahTrip;
           return db.trips[i];
         }
-        const t: UmrahTrip = { planned_start: null, planned_end: null, status: "planned", notes: null, ...input, id: uid(), office_id: DEMO_OFFICE, ...emptyWorkAttribution, created_by: "demo-admin", created_at: now, updated_at: now } as UmrahTrip;
+        const t: UmrahTrip = { planned_start: null, planned_end: null, status: "planned", notes: null, ...input, id: uid(), office_id: DEMO_OFFICE, ...emptyWorkAttribution, created_by: actor.userId, created_at: now, updated_at: now } as UmrahTrip;
         db.trips.push(t);
         return t;
       }),
