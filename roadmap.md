@@ -49,3 +49,9 @@
 - [ ] Batch 5 deep security scan — running; await completion notification before final security sign-off.
 - [ ] Batch 5 review findings — resend cooldown timestamp not advanced on rotation; delivery status admin-assertable; status-aware last-admin regression coverage missing; selected-office mutation scope relies on RLS. No fixes applied pending review.
 - [x] 4 safeguards added to plan.
+# Shared-database rollout (approved 2026-11-03)
+- [x] Office scope, permissions, trips, cascade deletion, owner RPCs, office identity applied (0011); TRUNCATE/default grants closed (0012); signed-out access to protected functions closed (0013). Offline replay 7/7, app tests 144/144.
+- [ ] Signed-in live check of office pages after 0013 — not run: no session available and real office accounts are off-limits for testing.
+- [ ] Backup evidence — user must confirm newest daily backup timestamp (More → Database → Manage → Backups).
+- [ ] File-removal retry run on real storage, PDF/logo checks with real accounts, email sender domain — external/pending.
+- [ ] Publishing — needs separate approval.
