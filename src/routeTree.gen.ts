@@ -52,6 +52,7 @@ import { Route as AuthenticatedAppCustomersIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedAppCustomersIdRouteImport } from './routes/_authenticated/app.customers.$id'
 import { Route as AuthenticatedAppTransactionsIdRouteImport } from './routes/_authenticated/app.transactions.$id'
 import { Route as AuthenticatedAppTransactionsNewRouteImport } from './routes/_authenticated/app.transactions.new'
+import { Route as AuthenticatedOwnerOfficesIdRouteImport } from './routes/_authenticated/owner_.offices.$id'
 import { Route as ApiPublicJobsDeletionRetryRouteImport } from './routes/api/public/jobs/deletion-retry'
 
 const IndexRoute = IndexRouteImport.update({
@@ -280,6 +281,12 @@ const AuthenticatedAppTransactionsNewRoute =
     path: '/transactions/new',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const AuthenticatedOwnerOfficesIdRoute =
+  AuthenticatedOwnerOfficesIdRouteImport.update({
+    id: '/owner_/offices/$id',
+    path: '/owner/offices/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ApiPublicJobsDeletionRetryRoute =
   ApiPublicJobsDeletionRetryRouteImport.update({
     id: '/api/public/jobs/deletion-retry',
@@ -328,6 +335,7 @@ export interface FileRoutesByFullPath {
   '/app/customers/$id': typeof AuthenticatedAppCustomersIdRoute
   '/app/transactions/$id': typeof AuthenticatedAppTransactionsIdRoute
   '/app/transactions/new': typeof AuthenticatedAppTransactionsNewRoute
+  '/owner/offices/$id': typeof AuthenticatedOwnerOfficesIdRoute
   '/api/public/jobs/deletion-retry': typeof ApiPublicJobsDeletionRetryRoute
   '/app/bookings/': typeof AuthenticatedAppBookingsIndexRoute
   '/app/customers/': typeof AuthenticatedAppCustomersIndexRoute
@@ -371,6 +379,7 @@ export interface FileRoutesByTo {
   '/app/customers/$id': typeof AuthenticatedAppCustomersIdRoute
   '/app/transactions/$id': typeof AuthenticatedAppTransactionsIdRoute
   '/app/transactions/new': typeof AuthenticatedAppTransactionsNewRoute
+  '/owner/offices/$id': typeof AuthenticatedOwnerOfficesIdRoute
   '/api/public/jobs/deletion-retry': typeof ApiPublicJobsDeletionRetryRoute
   '/app/bookings': typeof AuthenticatedAppBookingsIndexRoute
   '/app/customers': typeof AuthenticatedAppCustomersIndexRoute
@@ -418,6 +427,7 @@ export interface FileRoutesById {
   '/_authenticated/app/customers/$id': typeof AuthenticatedAppCustomersIdRoute
   '/_authenticated/app/transactions/$id': typeof AuthenticatedAppTransactionsIdRoute
   '/_authenticated/app/transactions/new': typeof AuthenticatedAppTransactionsNewRoute
+  '/_authenticated/owner_/offices/$id': typeof AuthenticatedOwnerOfficesIdRoute
   '/api/public/jobs/deletion-retry': typeof ApiPublicJobsDeletionRetryRoute
   '/_authenticated/app/bookings/': typeof AuthenticatedAppBookingsIndexRoute
   '/_authenticated/app/customers/': typeof AuthenticatedAppCustomersIndexRoute
@@ -465,6 +475,7 @@ export interface FileRouteTypes {
     | '/app/customers/$id'
     | '/app/transactions/$id'
     | '/app/transactions/new'
+    | '/owner/offices/$id'
     | '/api/public/jobs/deletion-retry'
     | '/app/bookings/'
     | '/app/customers/'
@@ -508,6 +519,7 @@ export interface FileRouteTypes {
     | '/app/customers/$id'
     | '/app/transactions/$id'
     | '/app/transactions/new'
+    | '/owner/offices/$id'
     | '/api/public/jobs/deletion-retry'
     | '/app/bookings'
     | '/app/customers'
@@ -554,6 +566,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/customers/$id'
     | '/_authenticated/app/transactions/$id'
     | '/_authenticated/app/transactions/new'
+    | '/_authenticated/owner_/offices/$id'
     | '/api/public/jobs/deletion-retry'
     | '/_authenticated/app/bookings/'
     | '/_authenticated/app/customers/'
@@ -872,6 +885,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppTransactionsNewRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/owner_/offices/$id': {
+      id: '/_authenticated/owner_/offices/$id'
+      path: '/owner/offices/$id'
+      fullPath: '/owner/offices/$id'
+      preLoaderRoute: typeof AuthenticatedOwnerOfficesIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/public/jobs/deletion-retry': {
       id: '/api/public/jobs/deletion-retry'
       path: '/api/public/jobs/deletion-retry'
@@ -931,12 +951,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppRoute: typeof AuthenticatedAppRouteWithChildren
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedOwnerRoute: typeof AuthenticatedOwnerRoute
+  AuthenticatedOwnerOfficesIdRoute: typeof AuthenticatedOwnerOfficesIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppRoute: AuthenticatedAppRouteWithChildren,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedOwnerRoute: AuthenticatedOwnerRoute,
+  AuthenticatedOwnerOfficesIdRoute: AuthenticatedOwnerOfficesIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
