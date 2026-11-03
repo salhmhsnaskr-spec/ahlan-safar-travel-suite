@@ -33,7 +33,7 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
     setWorkPermission: async input =>
       void must(await supabase.rpc("set_work_permission", { _office: officeId, _entity: input.entity, _record: input.recordId, _grantee: input.granteeId, _operation: input.operation, _allow: input.allow })),
     getOffice: async () => {
-      const o = must(await supabase.from("offices").select("id,name,phone,whatsapp,email,address,city,country,location_url,website,description,logo_path,is_partner").eq("id", officeId).single());
+      const o = must(await supabase.from("offices").select("id,name,phone,whatsapp,email,address,city,country,location_url,website,description,logo_path,is_partner").eq("id", officeId).single())!;
       let logo_url: string | null = null;
       if (o.logo_path) logo_url = (await supabase.storage.from("office-logos").createSignedUrl(o.logo_path, 3600)).data?.signedUrl ?? null;
       return { ...o, logo_url } as OfficeProfile;
@@ -45,7 +45,7 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
     uploadLogo: async (file) => {
       if (!/^image\/(png|jpeg|webp|svg\+xml)$/.test(file.type)) throw new Error("الشعار يجب أن يكون صورة PNG أو JPG أو WEBP أو SVG.");
       if (file.size > 2 * 1024 * 1024) throw new Error("حجم الشعار يتجاوز 2MB.");
-      const prev = must(await supabase.from("offices").select("logo_path").eq("id", officeId).single()).logo_path;
+      const prev = must(await supabase.from("offices").select("logo_path").eq("id", officeId).single())!.logo_path;
       const ext = (file.name.match(/\.[A-Za-z0-9]{1,5}$/)?.[0] ?? ".png").toLowerCase();
       const path = `${officeId}/logo-${crypto.randomUUID()}${ext}`;
       const up = await supabase.storage.from("office-logos").upload(path, file, { contentType: file.type, upsert: false });
@@ -55,7 +55,7 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
       if (prev) await supabase.storage.from("office-logos").remove([prev]);
     },
     removeLogo: async () => {
-      const prev = must(await supabase.from("offices").select("logo_path").eq("id", officeId).single()).logo_path;
+      const prev = must(await supabase.from("offices").select("logo_path").eq("id", officeId).single())!.logo_path;
       void must(await supabase.from("offices").update({ logo_path: null }).eq("id", officeId).select("id").single());
       if (prev) await supabase.storage.from("office-logos").remove([prev]);
     },

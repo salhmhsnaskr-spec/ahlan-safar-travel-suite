@@ -16,7 +16,7 @@ export function periodLabel(f: ReportFilters) {
 }
 
 /** Opens a print-ready Arabic page (browser "Save as PDF") with office identity, period and the chosen tables. */
-export function printSheets(sheets: Sheet[], meta: { officeName: string; logoUrl?: string | null; period: string; title: string }) {
+export function printSheets(sheets: Sheet[], meta: { officeName: string; logoUrl?: string | null | undefined; period: string; title: string }) {
   const w = window.open("", "_blank");
   if (!w) { toast.error("اسمح بفتح النوافذ المنبثقة لطباعة التقرير."); return; }
   const tables = sheets.map((s) => `<h2>${esc(s.name)} <small>(${s.rows.length})</small></h2>
