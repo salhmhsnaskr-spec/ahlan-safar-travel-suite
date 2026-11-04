@@ -41,3 +41,29 @@ it("Umrah bookings are not counted as flight requests", () => {
   expect(buildSheet("bookings", s, {}).rows).toHaveLength(1);
   expect(buildSheet("flights", s, {}).rows).toHaveLength(0);
 });
+
+const request = (id: string, service: string, date = "2026-11-01"): ReportSource["requests"][number] => ({ id, office_id: "o", number: 1, customer_id: "c", service_id: service, assigned_to: "u", created_by: "u", updated_by: null, completed_by: null, completed_at: null, cancelled_by: null, cancelled_at: null, created_at: date, updated_at: date, details: null, service_details: {}, source: "direct", referring_partner_id: null, service_date: null, priority: "normal", status: "new", notes: null, booking_ref: null, booked_at: null });
+
+it("Umrah transaction service/status and registration period filter rows and distinct trip totals together", () => {
+  const s = source();
+  s.requests = [request("r1", "umrah"), { ...request("r2", "umrah"), status: "completed" }, request("r3", "flight")];
+  s.trips = ["t1", "t2", "empty"].map((id) => ({ id, office_id: "o", name: id, status: "planned", planned_start: null, planned_end: null, notes: null, created_by: "u", created_at: "2026-11-01", updated_at: "2026-11-01" }));
+  s.participants = [
+    ["p1", "t1", "r1", "2026-11-01"], ["p2", "t1", "r1", "2026-11-02"],
+    ["p3", "t2", "r2", "2026-11-01"], ["p4", "t2", "r3", "2026-11-01"], ["p5", "t2", "r1", "2026-10-01"],
+  ].map(([id = "", trip_id = "", request_id = "", created_at = ""]) => ({ id, trip_id, request_id, created_at, office_id: "o", customer_id: "c", status: "registered", planned_entry: null, planned_exit: null, actual_entry: null, actual_exit: null, notes: null, updated_at: created_at }));
+  const sheet = buildSheet("umrah", s, { serviceId: "umrah", status: "new", from: "2026-11-01", to: "2026-11-02" });
+  expect(sheet.rows).toHaveLength(2);
+  expect(sheet.totals).toContainEqual(["عدد الرحلات", 1]);
+});
+
+it("staff pending work respects period, service and transaction status", () => {
+  const s = source();
+  s.members = [{ user_id: "u", full_name: "موظف", email: null, role: "employee" }];
+  s.requests = [request("in", "visa"), request("old", "visa", "2026-10-01"), request("other", "flight"), { ...request("done", "visa"), status: "completed", completed_by: "u", completed_at: "2026-11-01" }];
+  const sheet = buildSheet("staff", s, { serviceId: "visa", status: "new", from: "2026-11-01" });
+  const row = sheet.rows[0];
+  expect(row?.[sheet.columns.findIndex((c) => c.header === "طلبات مفتوحة مسندة")]).toBe(1);
+  expect(row?.[sheet.columns.findIndex((c) => c.header === "طلبات أنشأها")]).toBe(1);
+  expect(row?.[sheet.columns.findIndex((c) => c.header === "إنجازات")]).toBe(0);
+});
