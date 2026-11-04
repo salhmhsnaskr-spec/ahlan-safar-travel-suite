@@ -121,19 +121,34 @@ export function buildSheet(kind: ReportKind, src: ReportSource, f: ReportFilters
   }
   if (kind === "umrah") {
     const trip = new Map(src.trips.map((t) => [t.id, t]));
+    const requests = new Map(src.requests.map((r) => [r.id, r]));
     const today = new Date().toISOString().slice(0, 10);
-    const rows = src.participants.filter((p) => inPeriod(p.created_at, f) && (!f.employee || ctx.customer.get(p.customer_id)?.assigned_to === f.employee || trip.get(p.trip_id)?.created_by === f.employee))
+    const list = src.participants.filter((p) => {
+      const request = p.request_id ? requests.get(p.request_id) : undefined;
+      return inPeriod(p.created_at, f)
+        && (!f.employee || ctx.customer.get(p.customer_id)?.assigned_to === f.employee || trip.get(p.trip_id)?.created_by === f.employee)
+        && (!f.serviceId || request?.service_id === f.serviceId)
+        && (!f.status || request?.status === f.status);
+    });
+    const rows = list
       .map((p) => { const t = trip.get(p.trip_id); const s = stayDuration(p.actual_entry, p.actual_exit, today); return [...officeVals(src), t?.name ?? "—", t ? tripStatusLabels[t.status] : "—", ...custCells(p.customer_id), pilgrimStatusLabels[p.status], p.planned_entry, p.planned_exit, p.actual_entry, p.actual_exit, s.kind === "none" ? null : s.days, s.kind === "final" ? "نهائية" : s.kind === "so_far" ? "حتى الآن" : "—", ctx.person(t?.created_by), ctx.person(ctx.customer.get(p.customer_id)?.assigned_to), ctx.lastActor("umrah_participants", p.id), day(p.created_at), day(p.updated_at), p.notes]; });
     return { name: "العمرة", columns: [...officeCols, { header: "الرحلة", width: 18 }, { header: "حالة الرحلة", width: 12 }, ...custCols, { header: "حالة المعتمر", width: 14 }, { header: "الدخول المخطط", width: 12, kind: "date" }, { header: "المغادرة المخططة", width: 12, kind: "date" }, { header: "الدخول الفعلي", width: 12, kind: "date" }, { header: "المغادرة الفعلية", width: 12, kind: "date" }, { header: "أيام الإقامة", width: 10, kind: "number" }, { header: "نوع المدة", width: 10 }, ...attrCols], rows,
-      totals: [["عدد المعتمرين", rows.length], ["عدد الرحلات", src.trips.length]] };
+      totals: [["عدد المعتمرين", rows.length], ["عدد الرحلات", new Set(list.map((p) => p.trip_id)).size]] };
   }
   if (kind === "staff") {
     const rows = src.members.filter((m) => !f.employee || m.user_id === f.employee).map((m) => {
+      const requests = src.requests.filter((r) => (!f.serviceId || r.service_id === f.serviceId) && (!f.status || r.status === f.status));
+      const bookings = src.bookings.filter((b) => (!f.serviceId || b.service_id === f.serviceId) && (!f.status || b.status === f.status));
       const mine = <T extends { created_at: string; created_by: string | null }>(l: T[]) => l.filter((x) => x.created_by === m.user_id && inPeriod(x.created_at, f)).length;
-      const done = src.requests.filter((r) => r.completed_by === m.user_id && inPeriod(r.completed_at, f)).length + src.bookings.filter((b) => b.completed_by === m.user_id && inPeriod(b.completed_at, f)).length;
-      const acts = src.activity.filter((a) => a.actor_id === m.user_id && inPeriod(a.created_at, f));
-      const pending = src.requests.filter((r) => r.assigned_to === m.user_id && r.status !== "completed" && r.status !== "cancelled").length;
-      return [...officeVals(src), m.full_name || m.email || UNKNOWN, m.role === "admin" ? "مدير" : "موظف", m.status === "active" || !m.status ? "نشط" : m.status === "suspended" ? "موقوف" : "مُزال", mine(src.customers), mine(src.requests), mine(src.bookings), done, pending, acts.length, day(acts[0]?.created_at ?? src.activity.find((a) => a.actor_id === m.user_id)?.created_at)];
+      const done = requests.filter((r) => r.status === "completed" && r.completed_by === m.user_id && inPeriod(r.completed_at, f)).length + bookings.filter((b) => b.status === "completed" && b.completed_by === m.user_id && inPeriod(b.completed_at, f)).length;
+      const requestIds = new Set(requests.map((r) => r.id));
+      const bookingIds = new Set(bookings.map((b) => b.id));
+      const acts = src.activity.filter((a) => a.office_id === src.office.id && (!a.result || a.result === "success") && a.actor_id === m.user_id && inPeriod(a.created_at, f)
+        && (!f.action || a.action === f.action)
+        && ((!f.serviceId && !f.status) || (a.entity === "requests" && !!a.entity_id && requestIds.has(a.entity_id)) || (a.entity === "bookings" && !!a.entity_id && bookingIds.has(a.entity_id))))
+        .sort((a, b) => b.created_at.localeCompare(a.created_at));
+      const pending = requests.filter((r) => inPeriod(r.created_at, f) && r.assigned_to === m.user_id && r.status !== "completed" && r.status !== "cancelled").length;
+      return [...officeVals(src), m.full_name || m.email || UNKNOWN, m.role === "admin" ? "مدير" : "موظف", m.status === "active" || !m.status ? "نشط" : m.status === "suspended" ? "موقوف" : "مُزال", mine(src.customers), mine(requests), mine(bookings), done, pending, acts.length, day(acts[0]?.created_at)];
     });
     return { name: "أداء الموظفين", columns: [...officeCols, { header: "الموظف", width: 22 }, { header: "الدور", width: 9 }, { header: "الحالة", width: 9 }, { header: "عملاء أنشأهم", width: 11, kind: "number" }, { header: "طلبات أنشأها", width: 11, kind: "number" }, { header: "حجوزات أنشأها", width: 11, kind: "number" }, { header: "إنجازات", width: 10, kind: "number" }, { header: "طلبات مفتوحة مسندة", width: 13, kind: "number" }, { header: "إجراءات في الفترة", width: 12, kind: "number" }, { header: "آخر نشاط", width: 12, kind: "date" }], rows, totals: [["عدد الموظفين", rows.length]] };
   }
