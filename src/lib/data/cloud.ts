@@ -67,7 +67,7 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
     saveCustomer: async ({ id, ...rest }) =>
       id
         ? must(await supabase.from("customers").update(rest).eq("id", id).select().single())
-        : must(await supabase.from("customers").insert({ ...rest, office_id: officeId }).select().single()),
+        : must(await supabase.from("customers").insert({ assigned_to: role === 'employee' ? userId : null, ...rest, office_id: officeId }).select().single()),
     deleteCustomer: async (id) => { incomplete(await cloudDelete({ data: { kind: "customer", targetId: id } })); },
     deleteOffice: async () => {
       assertLocalDeletionEnvironment(import.meta.env['VITE_LOCAL_PERMANENT_DELETION'], import.meta.env['VITE_SUPABASE_URL']);
@@ -78,7 +78,7 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
     saveRequest: async ({ id, ...rest }) =>
       id
         ? must(await supabase.from("requests").update(rest).eq("id", id).select().single())
-        : must(await supabase.from("requests").insert({ ...rest, office_id: officeId }).select().single()),
+        : must(await supabase.from("requests").insert({ assigned_to: role === 'employee' ? userId : null, ...rest, office_id: officeId }).select().single()),
     deleteRequest: async (id) => void must(await supabase.from("requests").delete().eq("id", id)),
     listPartners: async () =>
       must(await supabase.from("partner_offices").select("*").eq("office_id", officeId).order("created_at", { ascending: false })),
@@ -105,14 +105,14 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
     saveBooking: async ({ id, ...rest }) =>
       id
         ? must(await supabase.from("bookings").update(rest).eq("id", id).select().single())
-        : must(await supabase.from("bookings").insert({ ...rest, office_id: officeId }).select().single()),
+        : must(await supabase.from("bookings").insert({ assigned_employee_id: role === 'employee' ? userId : null, ...rest, office_id: officeId }).select().single()),
     deleteBooking: async (id) => void must(await supabase.from("bookings").delete().eq("id", id)),
     listTasks: async () =>
       must(await supabase.from("tasks").select("*").eq("office_id", officeId).order("due_at", { ascending: true, nullsFirst: false })),
     saveTask: async ({ id, ...rest }) =>
       id
         ? must(await supabase.from("tasks").update(rest).eq("id", id).select().single())
-        : must(await supabase.from("tasks").insert({ title: "", ...rest, office_id: officeId }).select().single()),
+        : must(await supabase.from("tasks").insert({ title: "", assigned_to: role === 'employee' ? userId : null, ...rest, office_id: officeId }).select().single()),
     deleteTask: async (id) => void must(await supabase.from("tasks").delete().eq("id", id)),
     listDocuments: async () =>
       must(await supabase.from("documents").select("*").eq("office_id", officeId).order("created_at", { ascending: false })),
