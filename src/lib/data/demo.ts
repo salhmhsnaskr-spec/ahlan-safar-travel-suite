@@ -260,7 +260,7 @@ export function createDemoApi(actor: { userId: string; role: 'admin' | 'employee
         }
         const c: Customer = {
           phone: null, email: null, passport_number: null, nationality: null, notes: null, source: "direct",
-          referring_partner_id: null, assigned_to: "demo-admin", ...input,
+          referring_partner_id: null, assigned_to: actor.role === 'employee' ? actor.userId : null, ...input,
           id: uid(), office_id: DEMO_OFFICE, ...emptyWorkAttribution, created_by: "demo-admin", created_at: now, updated_at: now,
         } as Customer;
         db.customers.push(c);
@@ -305,7 +305,7 @@ export function createDemoApi(actor: { userId: string; role: 'admin' | 'employee
         }
         db.seq += 1;
         const r: TravelRequest = {
-          service_id: null, details: null, source: "direct", referring_partner_id: null, assigned_to: "demo-admin",
+          service_id: null, details: null, source: "direct", referring_partner_id: null, assigned_to: actor.role === 'employee' ? actor.userId : null,
           service_date: null, priority: "normal", status: "new", notes: null, booking_ref: null, booked_at: null, service_details: {}, ...input,
           id: uid(), number: db.seq, office_id: DEMO_OFFICE, ...emptyWorkAttribution, created_by: "demo-admin", created_at: now, updated_at: now,
         } as TravelRequest;
@@ -361,7 +361,14 @@ export function createDemoApi(actor: { userId: string; role: 'admin' | 'employee
         if (s && s.office_id) Object.assign(s, { name, description: description ?? null });
       }),
     listMembers: async () => load().members,
-    performance: async () => buildDemoPerformance(load()),
+    performance: async () => {
+      const result = buildDemoPerformance(load());
+      return actor.role === 'admin' ? result : {
+        members: result.members.filter(m => m.user_id === actor.userId),
+        entries: result.entries.filter(e => e.actor_id === actor.userId),
+        activity: result.activity.filter(a => a.actor_id === actor.userId),
+      };
+    },
     listBookings: async () => load().bookings.slice().sort((a, b) => b.number - a.number),
     saveBooking: (input) =>
       mutate((db) => {
@@ -373,7 +380,7 @@ export function createDemoApi(actor: { userId: string; role: 'admin' | 'employee
         }
         db.bseq += 1;
         const b = {
-          request_id: null, service_id: null, assigned_employee_id: null, service_date: null, status: "new", external_ref: null, provider: null, notes: null,
+          request_id: null, service_id: null, assigned_employee_id: actor.role === 'employee' ? actor.userId : null, service_date: null, status: "new", external_ref: null, provider: null, notes: null,
           ...input, id: uid(), number: db.bseq, office_id: DEMO_OFFICE, ...emptyWorkAttribution, created_by: "demo-admin", created_at: now, updated_at: now,
         } as Booking;
         db.bookings.push(b);
@@ -394,7 +401,7 @@ export function createDemoApi(actor: { userId: string; role: 'admin' | 'employee
           return db.tasks[i]!;
         }
         const t = {
-          title: "", task_type: "other", assigned_to: null, customer_id: null, request_id: null, booking_id: null, service_id: null, due_at: null,
+          title: "", task_type: "other", assigned_to: actor.role === 'employee' ? actor.userId : null, customer_id: null, request_id: null, booking_id: null, service_id: null, due_at: null,
           priority: "medium", status: "new", notes: null, flight_number: null, airport: null, arrival_at: null,
           ...input, id: uid(), office_id: DEMO_OFFICE, ...emptyWorkAttribution, created_by: "demo-admin", created_at: now, updated_at: now,
         } as Task;
