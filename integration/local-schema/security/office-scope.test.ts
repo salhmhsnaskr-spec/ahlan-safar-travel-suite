@@ -17,11 +17,13 @@ beforeAll(async () => {
   const manifest = JSON.parse(await readFile(new URL('manifest.json', root), 'utf8'));
   for (const file of Object.keys(manifest.sha256)) await db.exec(await readFile(new URL(`supabase/migrations/${file}`, root), 'utf8'));
   for (const m of ['0011_office_scope_permissions_owner_deletion.sql', '0012_revoke_default_table_privileges.sql', '0013_revoke_anon_security_definer_execute.sql']) await db.exec(await readFile(new URL('../../drizzle/migrations/' + m, root), 'utf8'));
+  await db.exec(await readFile(new URL('../../src/test/fixtures/work-record-scope.sql', root), 'utf8'));
+  await db.exec(await readFile(new URL('../../src/test/fixtures/assignment-authority.sql', root), 'utf8'));
   await db.exec(`
     INSERT INTO offices(id,name,created_by) VALUES ('${O1}','مكتب 1','${A}'),('${O2}','مكتب 2','${X}');
     INSERT INTO office_members(office_id,user_id,role) VALUES ('${O1}','${A}','admin'),('${O1}','${B}','employee'),('${O1}','${C}','employee'),('${O2}','${X}','admin');
     ALTER TABLE customers DISABLE TRIGGER USER; ALTER TABLE requests DISABLE TRIGGER USER; ALTER TABLE bookings DISABLE TRIGGER USER; ALTER TABLE documents DISABLE TRIGGER USER;
-    INSERT INTO customers(id,office_id,full_name,created_by,assigned_to) VALUES ('${CB}','${O1}','عميل باسم','${B}',NULL),('${CC}','${O1}','عميل زميل','${B}','${C}'),('${CX}','${O2}','عميل مكتب آخر','${X}',NULL);
+    INSERT INTO customers(id,office_id,full_name,created_by,assigned_to) VALUES ('${CB}','${O1}','عميل باسم','${B}','${B}'),('${CC}','${O1}','عميل زميل','${B}','${C}'),('${CX}','${O2}','عميل مكتب آخر','${X}',NULL);
     INSERT INTO requests(id,office_id,customer_id,created_by,assigned_to) VALUES ('${RB}','${O1}','${CB}','${C}','${C}');
     INSERT INTO bookings(id,office_id,customer_id,request_id,created_by) VALUES ('${BB}','${O1}','${CB}','${RB}','${C}');
     INSERT INTO documents(id,office_id,customer_id,booking_id,file_name,storage_path,uploaded_by) VALUES ('${DB}','${O1}','${CB}','${BB}','a.pdf','${O1}/a.pdf','${C}');
@@ -43,7 +45,7 @@ it('employee reads all of their office and nothing of another office', async () 
   expect(seen.map(r => r['id'])).toEqual([CB, CC]);
 });
 
-it('employee edits own (creator, unassigned) work but not a colleague-assigned record without permission', async () => {
+it('employee edits assigned work but not a colleague-assigned record without permission', async () => {
   await as(B, async () => {
     expect((await rows(`UPDATE customers SET notes='x' WHERE id='${CB}' RETURNING id`)).length).toBe(1);
     expect((await rows(`UPDATE customers SET notes='x' WHERE id='${CC}' RETURNING id`)).length).toBe(0);
@@ -59,7 +61,7 @@ it('edit permission from the record owner does not grant delete, and employees c
     await db.exec(`SELECT set_config('request.jwt.claim.sub','${B}',true)`);
     expect((await rows(`UPDATE customers SET notes='ok' WHERE id='${CC}' RETURNING id`)).length).toBe(1);
     expect((await rows(`DELETE FROM customers WHERE id='${CC}' RETURNING id`)).length).toBe(0);
-    await expect(db.exec(`UPDATE customers SET assigned_to='${B}' WHERE id='${CB}'`)).rejects.toThrow('إعادة الإسناد');
+    await expect(db.exec(`UPDATE customers SET assigned_to='${C}' WHERE id='${CB}'`)).rejects.toThrow('إعادة الإسناد');
   } finally { await db.exec('ROLLBACK'); }
 });
 
@@ -71,7 +73,8 @@ it('only admins change roles; employees cannot promote themselves', async () => 
 
 it('customer cascade: owner employee removes customer, colleague request/booking/document, and records the file path', async () => {
   await as(B, async () => {
-    const job = (await rows(`SELECT begin_customer_deletion('${CB}') AS j`))[0]!['j'];
+    const job = (await rows(`SELECT begin_customer_deletion('${CB}') AS j`))[0]?.['j'];
+    if (!job) throw new Error('missing deletion job');
     expect(await rows(`SELECT count(*)::int n FROM customers WHERE id='${CB}'`)).toEqual([{ n: 0 }]);
     expect(await rows(`SELECT count(*)::int n FROM requests WHERE id='${RB}'`)).toEqual([{ n: 0 }]);
     expect(await rows(`SELECT count(*)::int n FROM documents WHERE id='${DB}'`)).toEqual([{ n: 0 }]);
@@ -92,9 +95,30 @@ it('employee creates a trip they manage; colleagues cannot edit it', async () =>
   await db.exec('BEGIN');
   try {
     await db.exec(`SELECT set_config('request.jwt.claim.sub','${B}',true); SET LOCAL ROLE authenticated;`);
-    const t = (await rows(`INSERT INTO umrah_trips(office_id,name) VALUES ('${O1}','رحلة') RETURNING id, created_by`))[0]!;
+    const t = (await rows(`INSERT INTO umrah_trips(office_id,name) VALUES ('${O1}','رحلة') RETURNING id, created_by`))[0];
+    if (!t) throw new Error('missing trip');
     expect(t['created_by']).toBe(B);
     await db.exec(`SELECT set_config('request.jwt.claim.sub','${C}',true)`);
     expect((await rows(`UPDATE umrah_trips SET name='x' WHERE id='${t['id']}' RETURNING id`)).length).toBe(0);
+  } finally { await db.exec('ROLLBACK'); }
+});
+
+it('creator attribution alone grants no edit or deletion of unassigned work', async () => {
+  await as(A, async () => { await db.exec(`UPDATE customers SET assigned_to=NULL WHERE id='${CB}'`); });
+  // The admin transaction above rolls back; change assignment in this transaction before switching actor.
+  await db.exec('BEGIN');
+  try {
+    await db.exec(`UPDATE customers SET assigned_to=NULL WHERE id='${CB}'; SELECT set_config('request.jwt.claim.sub','${B}',true); SET LOCAL ROLE authenticated;`);
+    expect(await rows(`SELECT work_allowed('${O1}','customers','${CB}','edit') allowed`)).toEqual([{ allowed: false }]);
+    expect(await rows(`SELECT work_allowed('${O1}','customers','${CB}','delete') allowed`)).toEqual([{ allowed: false }]);
+  } finally { await db.exec('ROLLBACK'); }
+});
+
+it('document authority follows valid booking/request/customer assignments, never another-office links', async () => {
+  expect(await rows(`SELECT work_owner('documents','${DB}') owner`)).toEqual([{ owner: C }]);
+  await db.exec('BEGIN');
+  try {
+    await db.exec(`ALTER TABLE documents DISABLE TRIGGER USER; UPDATE documents SET customer_id='${CX}' WHERE id='${DB}'`);
+    expect(await rows(`SELECT work_owner('documents','${DB}') owner`)).toEqual([{ owner: null }]);
   } finally { await db.exec('ROLLBACK'); }
 });

@@ -6,9 +6,11 @@ export type WorkPermission = { office_id: string; entity: WorkEntity; record_id:
 export type WorkRecord = { id: string; office_id: string; assigned_to?: string | null; assigned_employee_id?: string | null; created_by?: string | null };
 export type WorkActor = { userId: string; officeId: string; role: AppRole; active: boolean };
 
-/** Current assignee manages the work; unassigned work belongs to whoever created it (mirrors public.work_owner). */
+/** Assignment is authority; creator attribution is used only for records without an assignment field (trips). */
 export function workOwner(record: WorkRecord): string | null {
-  return record.assigned_employee_id ?? record.assigned_to ?? record.created_by ?? null;
+  if ('assigned_employee_id' in record) return record.assigned_employee_id ?? null;
+  if ('assigned_to' in record) return record.assigned_to ?? null;
+  return record.created_by ?? null;
 }
 
 export function canReadWork(actor: WorkActor, record: WorkRecord): boolean {

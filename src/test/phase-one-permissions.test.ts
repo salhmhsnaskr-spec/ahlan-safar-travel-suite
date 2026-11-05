@@ -10,9 +10,9 @@ it('reads colleague work but never another office', () => {
   expect(canReadWork(actor, row)).toBe(true);
   expect(canReadWork(actor, { ...row, office_id: 'two' })).toBe(false);
 });
-it('current assignee wins over creator; unassigned work belongs to its creator; unknown owner only to admin', () => {
+it('assignment defines authority; creator alone cannot manage unassigned work; admin can', () => {
   expect(canManageWork(actor, 'customers', row, 'edit', [])).toBe(false);
-  expect(canManageWork(actor, 'customers', { ...row, assigned_to: null }, 'delete', [])).toBe(true);
+  expect(canManageWork(actor, 'customers', { ...row, assigned_to: null }, 'delete', [])).toBe(false);
   expect(canManageWork(actor, 'customers', { ...row, assigned_to: null, created_by: null }, 'edit', [])).toBe(false);
   expect(canManageWork({ ...actor, role: 'admin' }, 'customers', { ...row, assigned_to: null, created_by: null }, 'delete', [])).toBe(true);
 });
@@ -66,4 +66,26 @@ it('closure refuses shared paths and conflicting customer links before cleanup',
   const data = { requests: [], bookings: [], tasks: [], participants: [], documents: [{ id: 'linked', office_id: 'one', customer_id: 'customer', storage_path: 'one/file' }, { id: 'shared', office_id: 'one', customer_id: 'other', storage_path: 'one/file' }] };
   expect(() => customerClosure('one', 'customer', data)).toThrow('ملف مشترك');
   expect(() => customerClosure('one', 'customer', { ...data, documents: [], tasks: [{ id: 'bad', office_id: 'two', customer_id: 'customer' }] })).toThrow('علاقات');
+});
+
+it('employee-created work is explicitly assigned to them, but explicitly unassigned work is not theirs', async () => {
+  const employee = createDemoApi({ userId: 'demo-emp-1', role: 'employee' });
+  const created = await employee.saveCustomer({ full_name: 'عميل اختبار' });
+  expect(created.assigned_to).toBe(employee.userId);
+  await employee.saveCustomer({ id: created.id, full_name: 'عميل معدّل' });
+  const unassigned = await employee.saveCustomer({ full_name: 'بلا مسؤول', assigned_to: null });
+  expect(unassigned.created_by).toBe(employee.userId);
+  await expect(employee.saveCustomer({ id: unassigned.id, full_name: 'غير مسموح' })).rejects.toThrow();
+});
+
+it('demo performance mirrors cloud actor-scoped employee reports', async () => {
+  const employee = createDemoApi({ userId: 'demo-emp-1', role: 'employee' });
+  const own = (await employee.listCustomers()).find(c => c.assigned_to === employee.userId);
+  if (!own) throw new Error('fixture missing');
+  await employee.saveCustomer({ id: own.id, full_name: 'اختبار الأداء' });
+  const report = await employee.performance();
+  expect(report.members.map(m => m.user_id)).toEqual([employee.userId]);
+  expect(report.entries.length).toBeGreaterThan(0);
+  expect(report.entries.every(e => e.actor_id === employee.userId)).toBe(true);
+  expect(report.activity.every(a => a.actor_id === employee.userId)).toBe(true);
 });
