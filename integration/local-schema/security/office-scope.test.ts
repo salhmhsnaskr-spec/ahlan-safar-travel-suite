@@ -17,8 +17,7 @@ beforeAll(async () => {
   const manifest = JSON.parse(await readFile(new URL('manifest.json', root), 'utf8'));
   for (const file of Object.keys(manifest.sha256)) await db.exec(await readFile(new URL(`supabase/migrations/${file}`, root), 'utf8'));
   for (const m of ['0011_office_scope_permissions_owner_deletion.sql', '0012_revoke_default_table_privileges.sql', '0013_revoke_anon_security_definer_execute.sql']) await db.exec(await readFile(new URL('../../drizzle/migrations/' + m, root), 'utf8'));
-  await db.exec(await readFile(new URL('../../src/test/fixtures/work-record-scope.sql', root), 'utf8'));
-  await db.exec(await readFile(new URL('../../src/test/fixtures/assignment-authority.sql', root), 'utf8'));
+  for (const m of ['0014_verify_work_record_office_authorization.sql', '0015_restore_staff_performance_actor_scope.sql', '0016_assignment_based_work_authority.sql']) await db.exec(await readFile(new URL('../../drizzle/migrations/' + m, root), 'utf8'));
   await db.exec(`
     INSERT INTO offices(id,name,created_by) VALUES ('${O1}','مكتب 1','${A}'),('${O2}','مكتب 2','${X}');
     INSERT INTO office_members(office_id,user_id,role) VALUES ('${O1}','${A}','admin'),('${O1}','${B}','employee'),('${O1}','${C}','employee'),('${O2}','${X}','admin');

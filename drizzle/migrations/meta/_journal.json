@@ -113,6 +113,13 @@
       "when": 1793837386531,
       "tag": "0015_restore_staff_performance_actor_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793924326713,
+      "tag": "0016_assignment_based_work_authority",
+      "breakpoints": true
     }
   ]
 }
