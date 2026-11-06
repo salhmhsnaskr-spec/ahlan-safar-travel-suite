@@ -50,6 +50,7 @@
 - [ ] Batch 5 review findings — resend cooldown timestamp not advanced on rotation; delivery status admin-assertable; status-aware last-admin regression coverage missing; selected-office mutation scope relies on RLS. No fixes applied pending review.
 - [x] 4 safeguards added to plan.
 # Shared-database rollout (approved 2026-11-03)
+- [ ] 2026-11-06 continuation: apply verified assignment authority in shared database, harden existing cleanup worker safely, verify focused regressions and record actual versus pending results; no real customer writes/deletion or publishing.
 - [ ] 2026-11-05 continuation: restore staff-report actor scope in shared database, validate existing regression fixtures, complete safe local improvements and record deletion rollout blockers; no real-data testing or publishing.
 - [ ] 2026-11-04 renewed approval: Storage backup waived (no important files); fix record-office authorization and report filters, validate offline then apply safe permission correction; preserve customer data and do not publish. Database export/snapshot inventory remains unverified and cannot be retained by agent tools.
 - [ ] Renewed comprehensive request: inspect actual schema/code, complete permission/deletion/dynamic-form/identity/owner/report gaps without rebuilding; test only demo or clearly test-owned data. Impactful shared changes await backup/restore evidence; do not create a backend or publish.
