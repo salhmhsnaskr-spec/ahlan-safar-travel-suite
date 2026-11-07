@@ -13,7 +13,7 @@ export const extractPassport = createServerFn({ method: "POST" })
       .eq("id", data.customerId).eq("office_id", data.officeId).maybeSingle();
     if (customer.error || !customer.data) throw new Error("المعتمر غير متاح داخل هذا المكتب.");
     const permission = await context.supabase.rpc("work_allowed", {
-      _office: data.officeId, _entity: "customers", _record: data.customerId, _operation: "edit",
+      _office: data.officeId, _entity: "customers", _id: data.customerId, _op: "edit",
     });
     if (permission.error || permission.data !== true) throw new Error("تحتاج إذن تعديل بيانات هذا المعتمر.");
     validatePassportImage(data.image);

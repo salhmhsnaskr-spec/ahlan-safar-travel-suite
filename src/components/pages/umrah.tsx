@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatDate, requestCode, type UmrahParticipant, type UmrahTrip } from "@/lib/domain";
 import { pilgrimStatusLabels, stayDuration, stayLabel, tripStatusLabels, validateParticipantDates } from "@/lib/umrah";
 import { useWorkAccess, WorkPermissionControl } from '@/components/work-permission-control';
+import { PassportReview } from '@/components/passport-review';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -161,10 +162,12 @@ function ParticipantDialog({ initial, onClose }: { initial: Partial<UmrahPartici
   const all = useParticipants().data ?? [];
   const save = useSaveParticipant();
   const [f, setF] = useState(blankP);
+  const [passportBusy, setPassportBusy] = useState(false);
   const [err, setErr] = useState("");
   useEffect(() => {
     if (!initial) return;
     setErr("");
+    setPassportBusy(false);
     setF({ ...blankP, ...Object.fromEntries(Object.entries(initial).filter(([k, v]) => k in blankP && v != null)) } as typeof blankP);
   }, [initial]);
   const taken = new Set(all.filter((x) => x.trip_id === initial?.trip_id && x.id !== initial?.id).map((x) => x.customer_id));
@@ -172,8 +175,9 @@ function ParticipantDialog({ initial, onClose }: { initial: Partial<UmrahPartici
   const custRequests = requests.filter((r) => r.customer_id === f.customer_id && r.service_id && umrahIds.has(r.service_id));
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((s) => ({ ...s, [k]: e.target.value }));
   return (
-    <FormDialog open={!!initial} onOpenChange={(o) => !o && onClose()} title={initial?.id ? "تعديل بيانات المعتمر في الرحلة" : "إضافة معتمر إلى الرحلة"} pending={save.isPending}
+    <FormDialog open={!!initial} onOpenChange={(o) => !o && !passportBusy && onClose()} title={initial?.id ? "تعديل بيانات المعتمر في الرحلة" : "إضافة معتمر إلى الرحلة"} pending={save.isPending || passportBusy}
       onSubmit={() => {
+        if (passportBusy) return;
         if (!initial?.trip_id) return setErr('اختر الرحلة.');
         if (!f.customer_id) return setErr("اختر المعتمر.");
         if (taken.has(f.customer_id)) return setErr("هذا المعتمر مضاف مسبقًا إلى هذه الرحلة.");
@@ -184,11 +188,12 @@ function ParticipantDialog({ initial, onClose }: { initial: Partial<UmrahPartici
           { onSuccess: onClose });
       }}>
       <Field label="المعتمر (من عملاء المكتب) *" className="sm:col-span-2">
-        <NativeSelect aria-label="المعتمر" value={f.customer_id} disabled={!!initial?.id} onChange={(e) => setF((s) => ({ ...s, customer_id: e.target.value, request_id: "" }))}>
+        <NativeSelect aria-label="المعتمر" value={f.customer_id} disabled={!!initial?.id || passportBusy} onChange={(e) => setF((s) => ({ ...s, customer_id: e.target.value, request_id: "" }))}>
           <option value="">— اختر —</option>
           {customers.filter((c) => !taken.has(c.id)).map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
         </NativeSelect>
       </Field>
+      {initial && customers.filter(c => c.id === f.customer_id).map(c => <PassportReview key={`${initial.id ?? 'new'}:${c.id}`} customer={c} onBusy={setPassportBusy} />)}
       <Field label="طلب العمرة المرتبط (اختياري)" className="sm:col-span-2">
         <NativeSelect aria-label="طلب العمرة المرتبط" value={f.request_id} onChange={set("request_id")}>
           <option value="">— بدون ربط —</option>
