@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate, requestCode, type UmrahParticipant, type UmrahTrip } from "@/lib/domain";
-import { pilgrimStatusLabels, stayDuration, stayLabel, tripStatusLabels, validateParticipantDates } from "@/lib/umrah";
+import { pilgrimStatusLabels, remainingLabel, remainingStay, stayDuration, stayLabel, tripStatusLabels, validateParticipantDates } from "@/lib/umrah";
+const remainingTone = { ok: "bg-success/12 text-success", warning: "bg-warning/15 text-warning", critical: "bg-danger/12 text-danger", overstay: "bg-danger text-danger-foreground" } as const;
 import { useWorkAccess, WorkPermissionControl } from '@/components/work-permission-control';
 import { PassportReview } from '@/components/passport-review';
 
@@ -136,6 +137,10 @@ function TripDetail({ trip, onEdit, onDeleted }: { trip: UmrahTrip; onEdit: () =
                   <p className="text-xs text-muted-foreground">
                     {pilgrimStatusLabels[x.status]} · الدخول المخطط: {x.planned_entry ? formatDate(x.planned_entry) : "—"} · المغادرة المخططة: {x.planned_exit ? formatDate(x.planned_exit) : "—"} · الدخول الفعلي: {x.actual_entry ? formatDate(x.actual_entry) : "—"} · المغادرة الفعلية: {x.actual_exit ? formatDate(x.actual_exit) : "—"} · <b>{stayLabel(stay)}</b>
                   </p>
+                  {(() => { const r = remainingStay(x.actual_entry, x.actual_exit, today()); return r && (
+                    <span className={"mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium " + remainingTone[r.level]}>
+                      {remainingLabel(r)} · آخر يوم: {formatDate(r.lastDay)}
+                    </span>); })()}
                 </div>
                 <div className="flex gap-1">
                   <Button size="sm" variant="ghost" disabled={!can('edit')} aria-label="تعديل المعتمر" onClick={() => setEdit(x)}><Pencil /></Button>

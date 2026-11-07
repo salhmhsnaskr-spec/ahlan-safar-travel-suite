@@ -30,6 +30,30 @@ export function stayLabel(s: Stay) {
   return s.reason === "invalid" ? "تواريخ غير صحيحة" : s.reason === "future_entry" ? "لم يصل بعد" : "—";
 }
 
+/** Maximum Umrah stay in Saudi Arabia (days, inclusive count). */
+export const UMRAH_MAX_DAYS = 90;
+/** Warn when this many days or fewer remain. */
+export const UMRAH_WARN_DAYS = 7;
+
+export type Remaining = { level: "ok" | "warning" | "critical" | "overstay"; remaining: number; lastDay: string };
+
+/** Days remaining for a pilgrim still inside (actual entry, no actual exit). Day 90 is the last allowed day. */
+export function remainingStay(entry: string | null | undefined, exit: string | null | undefined, today: string): Remaining | null {
+  if (exit) return null;
+  const s = stayDuration(entry, null, today);
+  if (s.kind !== "so_far") return null;
+  const remaining = UMRAH_MAX_DAYS - s.days;
+  const lastDay = new Date(parse(entry)! + (UMRAH_MAX_DAYS - 1) * DAY).toISOString().slice(0, 10);
+  const level = remaining < 0 ? "overstay" : remaining <= 2 ? "critical" : remaining <= UMRAH_WARN_DAYS ? "warning" : "ok";
+  return { level, remaining, lastDay };
+}
+
+export function remainingLabel(r: Remaining) {
+  if (r.level === "overstay") return `تجاوز المدة بـ ${-r.remaining} يوم`;
+  if (r.remaining === 0) return "اليوم آخر يوم مسموح";
+  return `متبقي ${r.remaining} يوم من ${UMRAH_MAX_DAYS}`;
+}
+
 /** Returns an Arabic error message when actual/planned dates are inconsistent, else null. */
 export function validateParticipantDates(p: { planned_entry?: string | null; planned_exit?: string | null; actual_entry?: string | null; actual_exit?: string | null }) {
   if (p.actual_exit && !p.actual_entry) return "لا يمكن تسجيل المغادرة الفعلية قبل تسجيل الدخول الفعلي.";

@@ -91,7 +91,7 @@ export function requestCode(n: number) {
 
 export type AppNotification = {
   id: string;
-  kind: "new" | "upcoming" | "waiting" | "approval";
+  kind: "new" | "upcoming" | "waiting" | "approval" | "stay";
   title: string;
   body: string;
   date: string;
@@ -118,6 +118,29 @@ export function deriveNotifications(requests: TravelRequest[], customers: Custom
     }
   }
   return out.sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
+/** Stay alerts for pilgrims still in Saudi Arabia with ≤ UMRAH_WARN_DAYS remaining (or overstayed). */
+export function deriveStayNotifications(
+  participants: { id: string; customer_id: string; status: string; actual_entry: string | null; actual_exit: string | null }[],
+  customers: Customer[],
+  today: string,
+): AppNotification[] {
+  const names = new Map(customers.map((c) => [c.id, c.full_name]));
+  const out: AppNotification[] = [];
+  for (const p of participants) {
+    if (p.status === "cancelled" || p.status === "departed") continue;
+    const r = remainingStay(p.actual_entry, p.actual_exit, today);
+    if (!r || r.level === "ok") continue;
+    const who = names.get(p.customer_id) ?? "معتمر";
+    out.push({
+      id: p.id + "s", kind: "stay",
+      title: r.level === "overstay" ? `تجاوز مدة الإقامة: ${who}` : `قرب انتهاء الإقامة: ${who}`,
+      body: `${remainingLabel(r)} — آخر يوم مسموح ${formatDate(r.lastDay)}`,
+      date: today, requestId: "",
+    });
+  }
+  return out;
 }
 
 export const statusBar: Record<RequestStatus, string> = {
