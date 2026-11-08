@@ -15,13 +15,13 @@ describe("existing service type field mapping", () => {
   });
 
   it("custom services get generic description fields only", () => {
-    expect(fieldsFor({ code: "custom" }).map((f) => f.key)).toEqual(["service_description", "service_location", "requested_date", "quantity"]);
+    expect(fieldsFor({ code: "custom" }).map((f) => f.key)).toEqual(["service_description", "service_location", "requested_date", "quantity", "reminder_days"]);
   });
 });
 describe("security approval and visit visa", () => {
   it("security approval has the agreed fields and approval statuses", () => {
     const f = fieldsFor({ code: "security_approval" });
-    expect(f.map((x) => x.key)).toEqual(["country", "ref_number", "submitted_date", "authority", "approval_status", "decision_date", "linked_request_id"]);
+    expect(f.map((x) => x.key)).toEqual(["country", "ref_number", "submitted_date", "authority", "approval_status", "decision_date", "linked_request_id", "reminder_days"]);
     expect(f.find((x) => x.key === "approval_status")?.options).toEqual(["جديد", "قيد الإجراء", "موافَق عليه", "مرفوض", "ملغى"]);
   });
   it("visit visa reuses visa fields without a visa-type choice", () => {
