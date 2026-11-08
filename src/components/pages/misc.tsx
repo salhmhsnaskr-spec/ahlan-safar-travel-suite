@@ -157,8 +157,8 @@ export function PartnersPage() {
   );
 }
 
-const kindIcon = { new: Bell, upcoming: Clock, waiting: UserCheck, approval: AlertCircle };
-const kindTone = { new: "bg-info/12 text-info", upcoming: "bg-warning/15 text-warning", waiting: "bg-primary/12 text-primary", approval: "bg-violet/12 text-violet" };
+const kindIcon = { new: Bell, upcoming: Clock, waiting: UserCheck, approval: AlertCircle, stay: AlertCircle };
+const kindTone = { new: "bg-info/12 text-info", upcoming: "bg-warning/15 text-warning", waiting: "bg-primary/12 text-primary", approval: "bg-violet/12 text-violet", stay: "bg-danger/12 text-danger" };
 
 export function NotificationsPage() {
   const p = usePaths();

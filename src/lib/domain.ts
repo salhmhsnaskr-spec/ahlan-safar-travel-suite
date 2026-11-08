@@ -1,3 +1,4 @@
+import { remainingLabel, remainingStay } from "@/lib/umrah";
 import type { Tables } from "@/integrations/supabase/types";
 
 export type Customer = Tables<"customers">;
