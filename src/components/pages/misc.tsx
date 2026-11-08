@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  customerSourceLabels, deriveNotifications, formatDate, isOpenStatus, requestSourceLabels, statusBar, statusLabels, statusOrder, type Partner,
+  customerSourceLabels, deriveNotifications, deriveStayNotifications, formatDate, isOpenStatus, requestSourceLabels, statusBar, statusLabels, statusOrder, type Partner,
 } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 import { PerformancePage } from "@/components/pages/performance";
@@ -164,18 +164,19 @@ export function NotificationsPage() {
   const p = usePaths();
   const requests = useRequests();
   const customers = useCustomers();
+  const participants = useParticipants();
   return (
     <>
-      <PageHeader title="الإشعارات" subtitle="تنبيهات تلقائية حسب حالة الطلبات ومواعيد الخدمات" />
-      <ReadState queries={[requests, customers]} title="تعذّر تحميل الإشعارات">
-        <NotificationItems requests={requests.data ?? []} customers={customers.data ?? []} paths={p} />
+      <PageHeader title="الإشعارات" subtitle="تنبيهات تلقائية حسب حالة الطلبات ومواعيد الخدمات وقرب انتهاء إقامة المعتمرين" />
+      <ReadState queries={[requests, customers, participants]} title="تعذّر تحميل الإشعارات">
+        <NotificationItems requests={requests.data ?? []} customers={customers.data ?? []} participants={participants.data ?? []} paths={p} />
       </ReadState>
     </>
   );
 }
 
-function NotificationItems({ requests, customers, paths: p }: { requests: NonNullable<ReturnType<typeof useRequests>["data"]>; customers: NonNullable<ReturnType<typeof useCustomers>["data"]>; paths: ReturnType<typeof usePaths> }) {
-  const items = deriveNotifications(requests, customers);
+function NotificationItems({ requests, customers, participants, paths: p }: { requests: NonNullable<ReturnType<typeof useRequests>["data"]>; customers: NonNullable<ReturnType<typeof useCustomers>["data"]>; participants: NonNullable<ReturnType<typeof useParticipants>["data"]>; paths: ReturnType<typeof usePaths> }) {
+  const items = [...deriveStayNotifications(participants, customers, new Date().toISOString().slice(0, 10)), ...deriveNotifications(requests, customers)];
   return (
     <>
       {items.length === 0 ? <EmptyState title="لا توجد إشعارات" body="كل شيء تحت السيطرة" /> : (
@@ -184,7 +185,7 @@ function NotificationItems({ requests, customers, paths: p }: { requests: NonNul
             const Icon = kindIcon[n.kind];
             return (
               <li key={n.id}>
-                <Link to={p.requests} className="flex items-start gap-3 rounded-xl border bg-card p-4 hover:shadow-sm">
+                <Link to={n.kind === "stay" ? p.umrah : p.requests} className="flex items-start gap-3 rounded-xl border bg-card p-4 hover:shadow-sm">
                   <span className={cn("grid size-10 shrink-0 place-items-center rounded-full", kindTone[n.kind])}><Icon className="size-4.5" /></span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold">{n.title}</span>

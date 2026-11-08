@@ -1,4 +1,5 @@
 import { remainingLabel, remainingStay } from "@/lib/umrah";
+import { reminderDays } from "@/lib/transaction";
 import type { Tables } from "@/integrations/supabase/types";
 
 export type Customer = Tables<"customers">;
@@ -114,8 +115,11 @@ export function deriveNotifications(requests: TravelRequest[], customers: Custom
       out.push({ id: r.id + "a", kind: "approval", title: `موافقة مطلوبة ${code}`, body: `طلب ${who} بانتظار الموافقة`, date: r.updated_at, requestId: r.id });
     if (r.service_date && isOpenStatus(r.status)) {
       const diff = (new Date(r.service_date).getTime() - now) / 86400000;
-      if (diff >= -1 && diff <= 3)
-        out.push({ id: r.id + "u", kind: "upcoming", title: `موعد خدمة قريب ${code}`, body: `خدمة ${who} بتاريخ ${formatDate(r.service_date)}`, date: r.service_date, requestId: r.id });
+      const lead = reminderDays((r as { service_details?: Record<string, string> | null }).service_details);
+      if (diff >= -1 && diff <= lead) {
+        const left = Math.max(0, Math.ceil(diff));
+        out.push({ id: r.id + "u", kind: "upcoming", title: `موعد خدمة قريب ${code}`, body: `خدمة ${who} بتاريخ ${formatDate(r.service_date)} — ${left === 0 ? "الموعد اليوم" : `متبقي ${left} يوم`}؛ يُرجى تنبيه العميل`, date: r.service_date, requestId: r.id });
+      }
     }
   }
   return out.sort((a, b) => (a.date < b.date ? 1 : -1));

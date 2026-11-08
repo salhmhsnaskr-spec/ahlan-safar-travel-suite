@@ -33,7 +33,7 @@ export function stayLabel(s: Stay) {
 /** Maximum Umrah stay in Saudi Arabia (days, inclusive count). */
 export const UMRAH_MAX_DAYS = 90;
 /** Warn when this many days or fewer remain. */
-export const UMRAH_WARN_DAYS = 7;
+export const UMRAH_WARN_DAYS = 5;
 
 export type Remaining = { level: "ok" | "warning" | "critical" | "overstay"; remaining: number; lastDay: string };
 
