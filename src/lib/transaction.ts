@@ -114,7 +114,17 @@ export const serviceFields: Record<string, TxField[]> = {
   ],
 };
 
-export const fieldsFor = (service: Pick<Service, "code"> | undefined) => (service ? serviceFields[service.code] ?? serviceFields["custom"]! : []);
+/** Default number of days before a service date (or Umrah stay end) to alert the office. */
+export const DEFAULT_REMINDER_DAYS = 5;
+export const reminderField: TxField = { key: "reminder_days", label: `التنبيه قبل الموعد بـ (أيام) — الافتراضي ${DEFAULT_REMINDER_DAYS}`, type: "number" };
+
+/** Reminder lead time from saved details; falls back to the default for missing/invalid values. */
+export function reminderDays(d: ServiceDetails | null | undefined) {
+  const n = Number(d?.["reminder_days"]);
+  return Number.isInteger(n) && n >= 0 && n <= 365 && d?.["reminder_days"] ? n : DEFAULT_REMINDER_DAYS;
+}
+
+export const fieldsFor = (service: Pick<Service, "code"> | undefined) => (service ? [...(serviceFields[service.code] ?? serviceFields["custom"]!), reminderField] : []);
 
 /** Fields relevant to the current values: conditional fields appear only when their trigger matches. */
 export function visibleFields(fields: TxField[], d: ServiceDetails) {
