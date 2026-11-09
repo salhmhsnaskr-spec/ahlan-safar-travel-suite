@@ -9,7 +9,24 @@ import {
 /** Platform support line; the link carries no customer or office data. */
 export const SUPPORT_WHATSAPP_URL = "https://wa.me/967716091944";
 import { Logo } from "@/components/brand";
-import { useData, useOffice, usePaths } from "@/lib/data/context";
+import { useCustomers, useData, useOffice, useParticipants, usePaths, useRequests } from "@/lib/data/context";
+import { deriveAllNotifications } from "@/lib/domain";
+
+/** Alert count for the current office; null while loading or after a failed read so no false "0" is shown. */
+function useAlertCount(): number | null {
+  const r = useRequests(), c = useCustomers(), pt = useParticipants();
+  if (!r.data || !c.data || !pt.data || r.isError || c.isError || pt.isError) return null;
+  return deriveAllNotifications(r.data, c.data, pt.data, new Date().toISOString().slice(0, 10)).length;
+}
+
+function AlertBadge({ count, className }: { count: number | null; className?: string }) {
+  if (!count) return null;
+  return (
+    <span data-testid="alert-badge" aria-label={`${count} تنبيه`} className={cn("grid min-w-5 place-items-center rounded-full bg-danger px-1.5 text-[11px] font-bold leading-5 text-danger-foreground", className)}>
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { canManageOffice } from "@/lib/staff";
@@ -26,6 +43,7 @@ export function AppShell({ children, footer }: { children: ReactNode; footer?: R
   }).data === true;
   const office = useOffice().data;
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const alerts = useAlertCount();
 
   const items: NavItem[] = [
     { to: p.home, label: "لوحة التحكم", icon: LayoutDashboard, exact: true },
@@ -62,7 +80,8 @@ export function AppShell({ children, footer }: { children: ReactNode; footer?: R
             )}
           >
             <Icon className="size-4.5" />
-            {it.label}
+            <span className="flex-1">{it.label}</span>
+            {it.to === p.notifications && <AlertBadge count={alerts} />}
           </Link>
         );
       })}
@@ -115,7 +134,7 @@ export function AppShell({ children, footer }: { children: ReactNode; footer?: R
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b bg-background/85 px-4 backdrop-blur lg:hidden">
           <Button variant="ghost" size="icon" onClick={() => setOpen(true)} aria-label="القائمة"><Menu /></Button>
           <Logo />
-          <Link to={p.notifications} className="p-2"><Bell className="size-5" /></Link>
+          <Link to={p.notifications} className="relative p-2" aria-label="الإشعارات"><Bell className="size-5" /><AlertBadge count={alerts} className="absolute -end-0.5 -top-0.5" /></Link>
         </header>
         <main className="mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-10">{children}</main>
       </div>

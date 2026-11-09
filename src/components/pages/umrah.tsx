@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useSearch } from "@tanstack/react-router";
 import { Pencil, Plus, Trash2, UserPlus, Users } from "lucide-react";
 import {
   useCustomers, useDeleteParticipant, useDeleteTrip, useParticipants, usePaths, useRequests, useSaveParticipant, useSaveTrip, useServices, useTrips,
@@ -33,7 +33,9 @@ export function UmrahPage() {
 function UmrahContent() {
   const trips = useTrips().data ?? [];
   const participants = useParticipants().data ?? [];
-  const [selected, setSelected] = useState<string | null>(null);
+  const search = useSearch({ strict: false }) as { trip?: string; pilgrim?: string };
+  const [selected, setSelected] = useState<string | null>(search.trip ?? null);
+  useEffect(() => { if (search.trip) setSelected(search.trip); }, [search.trip]);
   const [editTrip, setEditTrip] = useState<Partial<UmrahTrip> | null>(null);
   const trip = trips.find((t) => t.id === selected) ?? null;
   return (
@@ -60,7 +62,10 @@ function UmrahContent() {
           })}
         </div>
       )}
-      {trip && <TripDetail trip={trip} onEdit={() => setEditTrip(trip)} onDeleted={() => setSelected(null)} />}
+      {search.trip && search.trip === selected && !trip && (
+        <p role="alert" className="mt-6 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm">لم يُعثر على الرحلة المرتبطة بهذا التنبيه في مكتبك؛ ربما حُذفت.</p>
+      )}
+      {trip && <TripDetail trip={trip} highlight={search.trip === trip.id ? search.pilgrim : undefined} onEdit={() => setEditTrip(trip)} onDeleted={() => setSelected(null)} />}
       <TripDialog initial={editTrip} onClose={() => setEditTrip(null)} onSaved={(id) => setSelected(id)} />
     </>
   );
@@ -95,7 +100,10 @@ function TripDialog({ initial, onClose, onSaved }: { initial: Partial<UmrahTrip>
   );
 }
 
-function TripDetail({ trip, onEdit, onDeleted }: { trip: UmrahTrip; onEdit: () => void; onDeleted: () => void }) {
+function TripDetail({ trip, highlight, onEdit, onDeleted }: { trip: UmrahTrip; highlight?: string | undefined; onEdit: () => void; onDeleted: () => void }) {
+  useEffect(() => {
+    if (highlight) document.getElementById(`pilgrim-${highlight}`)?.scrollIntoView({ block: "center" });
+  }, [highlight]);
   const allowed = useWorkAccess();
   const p = usePaths();
   const list = (useParticipants().data ?? []).filter((x) => x.trip_id === trip.id);
@@ -130,7 +138,8 @@ function TripDetail({ trip, onEdit, onDeleted }: { trip: UmrahTrip; onEdit: () =
             const record = { id: x.id, office_id: x.office_id, assigned_to: cust?.assigned_to ?? null, created_by: cust?.created_by ?? null };
             const can = (op: 'edit' | 'delete') => allowed('umrah_participants', record, op) || allowed('umrah_trips', tripRecord, op);
             return (
-              <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-sm">
+              <li key={x.id} id={`pilgrim-${x.id}`} data-highlighted={x.id === highlight ? "true" : undefined}
+                className={"flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-sm " + (x.id === highlight ? "bg-warning/10 ring-2 ring-inset ring-warning" : "")}>
                 <div className="min-w-0">
                   <Link to={p.customer} params={{ id: x.customer_id }} className="font-medium text-primary">{name(x.customer_id)}</Link>
                   {cust?.phone && <p className="text-xs text-muted-foreground" dir="ltr">{cust.phone}</p>}
