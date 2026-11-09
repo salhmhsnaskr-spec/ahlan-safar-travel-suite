@@ -17,3 +17,29 @@ describe("advance reminders", () => {
     for (const code of ["umrah", "flight", "visa", "hotel", "anything"]) expect(fieldsFor({ code }).some((f) => f.key === "reminder_days")).toBe(true);
   });
 });
+
+import { deriveAllNotifications } from "@/lib/domain";
+
+describe("alert targets", () => {
+  const iso = (d: number) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
+  const customers = [{ id: "c1", full_name: "معتمر أ" }, { id: "c2", full_name: "عميل ب" }] as never[];
+  const req = (id: string, days: number, details: Record<string, string> = {}) =>
+    ({ id, number: 7, customer_id: "c2", status: "in_progress", service_date: iso(days), service_details: details, created_at: iso(0), updated_at: iso(0) }) as never;
+
+  it("a service alert opens its own transaction, using the 5-day default", () => {
+    const out = deriveAllNotifications([req("r-in", 4), req("r-out", 6)], customers, [], iso(0));
+    expect(out.map((n) => n.requestId)).toEqual(["r-in"]);
+  });
+  it("a custom reminder of 10 days raises the alert at 8 days", () => {
+    expect(deriveAllNotifications([req("r10", 8, { reminder_days: "10" })], customers, [], iso(0))).toHaveLength(1);
+  });
+  it("a stay alert opens the pilgrim's trip and row; departed pilgrims raise none", () => {
+    const base = { customer_id: "c1", actual_entry: iso(-87), actual_exit: null };
+    const out = deriveAllNotifications([], customers, [
+      { ...base, id: "p1", trip_id: "t1", status: "arrived" },
+      { ...base, id: "p2", trip_id: "t1", status: "departed" },
+    ], iso(0));
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ kind: "stay", tripId: "t1", participantId: "p1" });
+  });
+});
