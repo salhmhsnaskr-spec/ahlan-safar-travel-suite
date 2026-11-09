@@ -98,7 +98,20 @@ export type AppNotification = {
   body: string;
   date: string;
   requestId: string;
+  /** Stay alerts only: the trip and participant row to open. */
+  tripId?: string;
+  participantId?: string;
 };
+
+/** Every in-app alert for one office's already-scoped data; shared by the notifications page and the menu badge. */
+export function deriveAllNotifications(
+  requests: TravelRequest[],
+  customers: Customer[],
+  participants: Parameters<typeof deriveStayNotifications>[0],
+  today: string,
+): AppNotification[] {
+  return [...deriveStayNotifications(participants, customers, today), ...deriveNotifications(requests, customers)];
+}
 
 export function deriveNotifications(requests: TravelRequest[], customers: Customer[]): AppNotification[] {
   const names = new Map(customers.map((c) => [c.id, c.full_name]));
@@ -127,7 +140,7 @@ export function deriveNotifications(requests: TravelRequest[], customers: Custom
 
 /** Stay alerts for pilgrims still in Saudi Arabia with ≤ UMRAH_WARN_DAYS remaining (or overstayed). */
 export function deriveStayNotifications(
-  participants: { id: string; customer_id: string; status: string; actual_entry: string | null; actual_exit: string | null }[],
+  participants: { id: string; trip_id: string; customer_id: string; status: string; actual_entry: string | null; actual_exit: string | null }[],
   customers: Customer[],
   today: string,
 ): AppNotification[] {
@@ -142,7 +155,7 @@ export function deriveStayNotifications(
       id: p.id + "s", kind: "stay",
       title: r.level === "overstay" ? `تجاوز مدة الإقامة: ${who}` : `قرب انتهاء الإقامة: ${who}`,
       body: `${remainingLabel(r)} — آخر يوم مسموح ${formatDate(r.lastDay)}`,
-      date: today, requestId: "",
+      date: today, requestId: "", tripId: p.trip_id, participantId: p.id,
     });
   }
   return out;

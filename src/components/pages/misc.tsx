@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  customerSourceLabels, deriveNotifications, deriveStayNotifications, formatDate, isOpenStatus, requestSourceLabels, statusBar, statusLabels, statusOrder, type Partner,
+  customerSourceLabels, deriveAllNotifications, formatDate, isOpenStatus, requestSourceLabels, statusBar, statusLabels, statusOrder, type Partner,
 } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 import { PerformancePage } from "@/components/pages/performance";
@@ -176,7 +176,7 @@ export function NotificationsPage() {
 }
 
 function NotificationItems({ requests, customers, participants, paths: p }: { requests: NonNullable<ReturnType<typeof useRequests>["data"]>; customers: NonNullable<ReturnType<typeof useCustomers>["data"]>; participants: NonNullable<ReturnType<typeof useParticipants>["data"]>; paths: ReturnType<typeof usePaths> }) {
-  const items = [...deriveStayNotifications(participants, customers, new Date().toISOString().slice(0, 10)), ...deriveNotifications(requests, customers)];
+  const items = deriveAllNotifications(requests, customers, participants, new Date().toISOString().slice(0, 10));
   return (
     <>
       {items.length === 0 ? <EmptyState title="لا توجد إشعارات" body="كل شيء تحت السيطرة" /> : (
@@ -185,7 +185,11 @@ function NotificationItems({ requests, customers, participants, paths: p }: { re
             const Icon = kindIcon[n.kind];
             return (
               <li key={n.id}>
-                <Link to={n.kind === "stay" ? p.umrah : p.requests} className="flex items-start gap-3 rounded-xl border bg-card p-4 hover:shadow-sm">
+                <Link
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  {...((n.kind === "stay" ? { to: p.umrah, search: { trip: n.tripId, pilgrim: n.participantId } } : { to: p.transaction, params: { id: n.requestId } }) as any)}
+                  data-alert-kind={n.kind}
+                  className="flex items-start gap-3 rounded-xl border bg-card p-4 hover:shadow-sm">
                   <span className={cn("grid size-10 shrink-0 place-items-center rounded-full", kindTone[n.kind])}><Icon className="size-4.5" /></span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold">{n.title}</span>
