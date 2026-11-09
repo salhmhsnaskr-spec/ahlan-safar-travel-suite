@@ -100,7 +100,7 @@ function TripDialog({ initial, onClose, onSaved }: { initial: Partial<UmrahTrip>
   );
 }
 
-function TripDetail({ trip, highlight, onEdit, onDeleted }: { trip: UmrahTrip; highlight?: string; onEdit: () => void; onDeleted: () => void }) {
+function TripDetail({ trip, highlight, onEdit, onDeleted }: { trip: UmrahTrip; highlight?: string | undefined; onEdit: () => void; onDeleted: () => void }) {
   useEffect(() => {
     if (highlight) document.getElementById(`pilgrim-${highlight}`)?.scrollIntoView({ block: "center" });
   }, [highlight]);
