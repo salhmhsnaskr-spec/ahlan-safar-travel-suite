@@ -138,9 +138,9 @@ export function deriveNotifications(requests: TravelRequest[], customers: Custom
   return out.sort((a, b) => (a.date < b.date ? 1 : -1));
 }
 
-/** Stay alerts for pilgrims still in Saudi Arabia with ≤ UMRAH_WARN_DAYS remaining (or overstayed). */
+/** Stay alerts for pilgrims still in Saudi Arabia within their own alert lead (default UMRAH_WARN_DAYS) or overstayed. */
 export function deriveStayNotifications(
-  participants: { id: string; trip_id: string; customer_id: string; status: string; actual_entry: string | null; actual_exit: string | null }[],
+  participants: { id: string; trip_id: string; customer_id: string; status: string; actual_entry: string | null; actual_exit: string | null; reminder_days?: number | null }[],
   customers: Customer[],
   today: string,
 ): AppNotification[] {
@@ -148,7 +148,7 @@ export function deriveStayNotifications(
   const out: AppNotification[] = [];
   for (const p of participants) {
     if (p.status === "cancelled" || p.status === "departed") continue;
-    const r = remainingStay(p.actual_entry, p.actual_exit, today);
+    const r = remainingStay(p.actual_entry, p.actual_exit, today, p.reminder_days);
     if (!r || r.level === "ok") continue;
     const who = names.get(p.customer_id) ?? "معتمر";
     out.push({
