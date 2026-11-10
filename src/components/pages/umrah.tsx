@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate, requestCode, type UmrahParticipant, type UmrahTrip } from "@/lib/domain";
-import { pilgrimStatusLabels, remainingLabel, remainingStay, stayDuration, stayLabel, tripStatusLabels, validateParticipantDates } from "@/lib/umrah";
+import { pilgrimStatusLabels, remainingLabel, remainingStay, stayDuration, stayLabel, stayReminderDays, tripStatusLabels, UMRAH_MAX_DAYS, UMRAH_WARN_DAYS, validateParticipantDates } from "@/lib/umrah";
 const remainingTone = { ok: "bg-success/12 text-success", warning: "bg-warning/15 text-warning", critical: "bg-danger/12 text-danger", overstay: "bg-danger text-danger-foreground" } as const;
 import { useWorkAccess, WorkPermissionControl } from '@/components/work-permission-control';
 import { PassportReview } from '@/components/passport-review';
@@ -146,9 +146,9 @@ function TripDetail({ trip, highlight, onEdit, onDeleted }: { trip: UmrahTrip; h
                   <p className="text-xs text-muted-foreground">
                     {pilgrimStatusLabels[x.status]} · الدخول المخطط: {x.planned_entry ? formatDate(x.planned_entry) : "—"} · المغادرة المخططة: {x.planned_exit ? formatDate(x.planned_exit) : "—"} · الدخول الفعلي: {x.actual_entry ? formatDate(x.actual_entry) : "—"} · المغادرة الفعلية: {x.actual_exit ? formatDate(x.actual_exit) : "—"} · <b>{stayLabel(stay)}</b>
                   </p>
-                  {(() => { const r = remainingStay(x.actual_entry, x.actual_exit, today()); return r && (
+                  {(() => { const r = remainingStay(x.actual_entry, x.actual_exit, today(), x.reminder_days); return r && (
                     <span className={"mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium " + remainingTone[r.level]}>
-                      {remainingLabel(r)} · آخر يوم: {formatDate(r.lastDay)}
+                      {remainingLabel(r)} · آخر يوم: {formatDate(r.lastDay)} · التنبيه قبل {stayReminderDays(x.reminder_days)} يوم
                     </span>); })()}
                 </div>
                 <div className="flex gap-1">
@@ -167,7 +167,7 @@ function TripDetail({ trip, highlight, onEdit, onDeleted }: { trip: UmrahTrip; h
   );
 }
 
-const blankP = { customer_id: "", request_id: "", status: "registered" as UmrahParticipant["status"], planned_entry: "", planned_exit: "", actual_entry: "", actual_exit: "", notes: "" };
+const blankP = { customer_id: "", request_id: "", status: "registered" as UmrahParticipant["status"], planned_entry: "", planned_exit: "", actual_entry: "", actual_exit: "", notes: "", reminder_days: String(UMRAH_WARN_DAYS) };
 
 function ParticipantDialog({ initial, onClose }: { initial: Partial<UmrahParticipant> | null; onClose: () => void }) {
   const customers = useCustomers().data ?? [];
@@ -182,7 +182,7 @@ function ParticipantDialog({ initial, onClose }: { initial: Partial<UmrahPartici
     if (!initial) return;
     setErr("");
     setPassportBusy(false);
-    setF({ ...blankP, ...Object.fromEntries(Object.entries(initial).filter(([k, v]) => k in blankP && v != null)) } as typeof blankP);
+    setF({ ...blankP, ...Object.fromEntries(Object.entries(initial).filter(([k, v]) => k in blankP && v != null)), reminder_days: String(stayReminderDays(initial.reminder_days)) } as typeof blankP);
   }, [initial]);
   const taken = new Set(all.filter((x) => x.trip_id === initial?.trip_id && x.id !== initial?.id).map((x) => x.customer_id));
   const umrahIds = new Set(services.filter((s) => s.code === "umrah").map((s) => s.id));
@@ -198,7 +198,9 @@ function ParticipantDialog({ initial, onClose }: { initial: Partial<UmrahPartici
         const dates = { planned_entry: f.planned_entry || null, planned_exit: f.planned_exit || null, actual_entry: f.actual_entry || null, actual_exit: f.actual_exit || null };
         const v = validateParticipantDates(dates);
         if (v) return setErr(v);
-        save.mutate({ id: initial.id, trip_id: initial.trip_id, customer_id: f.customer_id, request_id: f.request_id || null, status: f.status, notes: f.notes.trim() || null, ...dates },
+        const lead = f.reminder_days.trim() === "" ? UMRAH_WARN_DAYS : Number(f.reminder_days);
+        if (!Number.isInteger(lead) || lead < 0 || lead >= UMRAH_MAX_DAYS) return setErr(`مهلة التنبيه يجب أن تكون عددًا صحيحًا من 0 إلى ${UMRAH_MAX_DAYS - 1} يومًا.`);
+        save.mutate({ id: initial.id, trip_id: initial.trip_id, customer_id: f.customer_id, request_id: f.request_id || null, status: f.status, notes: f.notes.trim() || null, reminder_days: lead, ...dates },
           { onSuccess: onClose });
       }}>
       <Field label="المعتمر (من عملاء المكتب) *" className="sm:col-span-2">
@@ -223,6 +225,9 @@ function ParticipantDialog({ initial, onClose }: { initial: Partial<UmrahPartici
       <Field label="المغادرة المخططة"><Input aria-label="المغادرة المخططة" type="date" value={f.planned_exit} onChange={set("planned_exit")} /></Field>
       <Field label="الدخول الفعلي إلى السعودية"><Input aria-label="الدخول الفعلي" type="date" value={f.actual_entry} onChange={set("actual_entry")} /></Field>
       <Field label="المغادرة الفعلية"><Input aria-label="المغادرة الفعلية" type="date" value={f.actual_exit} onChange={set("actual_exit")} /></Field>
+      <Field label={`التنبيه قبل انتهاء الإقامة بـ (أيام) — الافتراضي ${UMRAH_WARN_DAYS}`} className="sm:col-span-2">
+        <Input aria-label="مهلة تنبيه الإقامة" type="number" min={0} max={UMRAH_MAX_DAYS - 1} step={1} inputMode="numeric" value={f.reminder_days} onChange={set("reminder_days")} />
+      </Field>
       <p className="text-sm sm:col-span-2">مدة الإقامة: <b>{stayLabel(stayDuration(f.actual_entry || null, f.actual_exit || null, today()))}</b></p>
       <Field label="ملاحظات" className="sm:col-span-2"><Textarea aria-label="ملاحظات المعتمر" rows={2} value={f.notes} onChange={set("notes")} /></Field>
       {err && <p role="alert" className="text-sm text-danger sm:col-span-2">{err}</p>}

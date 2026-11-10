@@ -32,19 +32,27 @@ export function stayLabel(s: Stay) {
 
 /** Maximum Umrah stay in Saudi Arabia (days, inclusive count). */
 export const UMRAH_MAX_DAYS = 90;
-/** Warn when this many days or fewer remain. */
+/** Default alert lead: warn when this many days or fewer remain. */
 export const UMRAH_WARN_DAYS = 5;
+
+/** A pilgrim's own alert lead (0–89 days); missing or invalid values fall back to UMRAH_WARN_DAYS. */
+export function stayReminderDays(v: number | string | null | undefined) {
+  if (v === null || v === undefined || v === "") return UMRAH_WARN_DAYS;
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 0 && n < UMRAH_MAX_DAYS ? n : UMRAH_WARN_DAYS;
+}
 
 export type Remaining = { level: "ok" | "warning" | "critical" | "overstay"; remaining: number; lastDay: string };
 
 /** Days remaining for a pilgrim still inside (actual entry, no actual exit). Day 90 is the last allowed day. */
-export function remainingStay(entry: string | null | undefined, exit: string | null | undefined, today: string): Remaining | null {
+export function remainingStay(entry: string | null | undefined, exit: string | null | undefined, today: string, reminderDays?: number | string | null): Remaining | null {
   if (exit) return null;
   const s = stayDuration(entry, null, today);
   if (s.kind !== "so_far") return null;
   const remaining = UMRAH_MAX_DAYS - s.days;
   const lastDay = new Date(parse(entry)! + (UMRAH_MAX_DAYS - 1) * DAY).toISOString().slice(0, 10);
-  const level = remaining < 0 ? "overstay" : remaining <= 2 ? "critical" : remaining <= UMRAH_WARN_DAYS ? "warning" : "ok";
+  const warn = stayReminderDays(reminderDays);
+  const level = remaining < 0 ? "overstay" : remaining <= Math.min(2, warn) ? "critical" : remaining <= warn ? "warning" : "ok";
   return { level, remaining, lastDay };
 }
 

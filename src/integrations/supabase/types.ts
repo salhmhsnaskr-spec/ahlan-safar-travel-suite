@@ -895,6 +895,7 @@ export type Database = {
           office_id: string
           planned_entry: string | null
           planned_exit: string | null
+          reminder_days: number | null
           request_id: string | null
           status: Database["public"]["Enums"]["umrah_pilgrim_status"]
           trip_id: string
@@ -910,6 +911,7 @@ export type Database = {
           office_id: string
           planned_entry?: string | null
           planned_exit?: string | null
+          reminder_days?: number | null
           request_id?: string | null
           status?: Database["public"]["Enums"]["umrah_pilgrim_status"]
           trip_id: string
@@ -925,6 +927,7 @@ export type Database = {
           office_id?: string
           planned_entry?: string | null
           planned_exit?: string | null
+          reminder_days?: number | null
           request_id?: string | null
           status?: Database["public"]["Enums"]["umrah_pilgrim_status"]
           trip_id?: string

@@ -51,7 +51,7 @@ it("Umrah transaction service/status and registration period filter rows and dis
   s.participants = [
     ["p1", "t1", "r1", "2026-11-01"], ["p2", "t1", "r1", "2026-11-02"],
     ["p3", "t2", "r2", "2026-11-01"], ["p4", "t2", "r3", "2026-11-01"], ["p5", "t2", "r1", "2026-10-01"],
-  ].map(([id = "", trip_id = "", request_id = "", created_at = ""]) => ({ id, trip_id, request_id, created_at, office_id: "o", customer_id: "c", status: "registered", planned_entry: null, planned_exit: null, actual_entry: null, actual_exit: null, notes: null, updated_at: created_at }));
+  ].map(([id = "", trip_id = "", request_id = "", created_at = ""]) => ({ id, trip_id, request_id, created_at, office_id: "o", customer_id: "c", status: "registered", planned_entry: null, planned_exit: null, actual_entry: null, actual_exit: null, notes: null, reminder_days: null, updated_at: created_at }));
   const sheet = buildSheet("umrah", s, { serviceId: "umrah", status: "new", from: "2026-11-01", to: "2026-11-02" });
   expect(sheet.rows).toHaveLength(2);
   expect(sheet.totals).toContainEqual(["عدد الرحلات", 1]);

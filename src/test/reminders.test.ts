@@ -43,3 +43,31 @@ describe("alert targets", () => {
     expect(out[0]).toMatchObject({ kind: "stay", tripId: "t1", participantId: "p1" });
   });
 });
+
+import { stayReminderDays } from "@/lib/umrah";
+
+describe("per-pilgrim stay alert lead", () => {
+  // entry 2026-01-01 → last allowed day 2026-03-31
+  it("defaults to 5 days when the pilgrim has no lead set", () => {
+    expect(stayReminderDays(null)).toBe(5);
+    expect(remainingStay("2026-01-01", null, "2026-03-26", null)?.level).toBe("warning"); // 5 left
+    expect(remainingStay("2026-01-01", null, "2026-03-25", null)?.level).toBe("ok"); // 6 left
+  });
+  it("a 10-day lead turns the counter amber at 10 days left, not 11", () => {
+    expect(remainingStay("2026-01-01", null, "2026-03-21", 10)?.level).toBe("warning"); // 10 left
+    expect(remainingStay("2026-01-01", null, "2026-03-20", 10)?.level).toBe("ok"); // 11 left
+  });
+  it("rejects out-of-range leads back to 5", () => {
+    expect(stayReminderDays(90)).toBe(5);
+    expect(stayReminderDays(-1)).toBe(5);
+    expect(stayReminderDays(89)).toBe(89);
+  });
+  it("the alert list and badge follow each pilgrim's own lead", () => {
+    const iso = (d: number) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
+    const customers = [{ id: "c1", full_name: "أ" }] as never[];
+    // entered 81 days ago → 8 days remain (90 - 82)
+    const p = { customer_id: "c1", trip_id: "t", status: "arrived", actual_entry: iso(-81), actual_exit: null };
+    const out = deriveAllNotifications([], customers, [{ ...p, id: "def", reminder_days: null }, { ...p, id: "ten", reminder_days: 10 }], iso(0));
+    expect(out.map((n) => n.participantId)).toEqual(["ten"]);
+  });
+});

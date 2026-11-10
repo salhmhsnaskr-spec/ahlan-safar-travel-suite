@@ -120,6 +120,13 @@
       "when": 1793924326713,
       "tag": "0016_assignment_based_work_authority",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794269933817,
+      "tag": "0017_umrah_participant_reminder_days",
+      "breakpoints": true
     }
   ]
 }
