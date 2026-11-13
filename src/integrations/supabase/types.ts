@@ -179,6 +179,7 @@ export type Database = {
           nationality: string | null
           notes: string | null
           office_id: string
+          passport_expiry: string | null
           passport_number: string | null
           phone: string | null
           referring_partner_id: string | null
@@ -196,6 +197,7 @@ export type Database = {
           nationality?: string | null
           notes?: string | null
           office_id: string
+          passport_expiry?: string | null
           passport_number?: string | null
           phone?: string | null
           referring_partner_id?: string | null
@@ -213,6 +215,7 @@ export type Database = {
           nationality?: string | null
           notes?: string | null
           office_id?: string
+          passport_expiry?: string | null
           passport_number?: string | null
           phone?: string | null
           referring_partner_id?: string | null
@@ -302,6 +305,7 @@ export type Database = {
           request_id: string | null
           size_bytes: number | null
           storage_path: string
+          uploaded_at: string | null
           uploaded_by: string | null
         }
         Insert: {
@@ -315,6 +319,7 @@ export type Database = {
           request_id?: string | null
           size_bytes?: number | null
           storage_path: string
+          uploaded_at?: string | null
           uploaded_by?: string | null
         }
         Update: {
@@ -328,6 +333,7 @@ export type Database = {
           request_id?: string | null
           size_bytes?: number | null
           storage_path?: string
+          uploaded_at?: string | null
           uploaded_by?: string | null
         }
         Relationships: [
@@ -900,6 +906,7 @@ export type Database = {
           status: Database["public"]["Enums"]["umrah_pilgrim_status"]
           trip_id: string
           updated_at: string
+          visa_expiry: string | null
         }
         Insert: {
           actual_entry?: string | null
@@ -916,6 +923,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["umrah_pilgrim_status"]
           trip_id: string
           updated_at?: string
+          visa_expiry?: string | null
         }
         Update: {
           actual_entry?: string | null
@@ -932,6 +940,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["umrah_pilgrim_status"]
           trip_id?: string
           updated_at?: string
+          visa_expiry?: string | null
         }
         Relationships: [
           {
@@ -1073,6 +1082,7 @@ export type Database = {
       audit_safe_values: { Args: { _row: Json }; Returns: Json }
       begin_customer_deletion: { Args: { _customer: string }; Returns: string }
       begin_document_deletion: { Args: { _document: string }; Returns: string }
+      confirm_document_upload: { Args: { _document: string }; Returns: boolean }
       create_invitation: {
         Args: {
           _email: string
@@ -1091,6 +1101,7 @@ export type Database = {
         }
         Returns: string
       }
+      document_file_allowed: { Args: { _name: string }; Returns: boolean }
       invitation_preview: { Args: { _token: string }; Returns: Json }
       is_office_admin: { Args: { _office: string }; Returns: boolean }
       is_office_member: { Args: { _office: string }; Returns: boolean }
@@ -1108,6 +1119,7 @@ export type Database = {
       platform_stats: { Args: never; Returns: Json }
       resend_invitation: { Args: { _id: string }; Returns: Json }
       revoke_invitation: { Args: { _id: string }; Returns: undefined }
+      seed_office_services: { Args: { _office: string }; Returns: undefined }
       set_member_role: {
         Args: {
           _office: string
