@@ -71,7 +71,7 @@ function seed(): DemoDB {
   const cust = (full_name: string, nationality: string, source: Customer["source"], partnerId: string | null, assigned: string, d: number): Customer => ({
     id: uid(), office_id: DEMO_OFFICE, full_name, nationality, source, referring_partner_id: partnerId, assigned_to: assigned,
     phone: "+966 50 " + Math.floor(100 + Math.random() * 899) + " " + Math.floor(1000 + Math.random() * 8999),
-    email: null, passport_number: null, notes: null, ...emptyWorkAttribution, created_by: "demo-admin", created_at: iso(d), updated_at: iso(d),
+    email: null, passport_number: null, passport_expiry: null, notes: null, ...emptyWorkAttribution, created_by: "demo-admin", created_at: iso(d), updated_at: iso(d),
   });
   const customers = [
     cust("محمد عبدالله القحطاني", "سعودي", "direct", null, "demo-emp-1", -20),

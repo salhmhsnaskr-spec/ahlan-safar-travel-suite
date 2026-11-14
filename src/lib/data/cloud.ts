@@ -163,7 +163,7 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
         if (m.includes("row-level") || m.includes("policy")) throw new Error("نوع الملف غير مسموح أو لا تملك صلاحية الرفع." + retained);
         throw new Error(up.error.message + retained);
       }
-      const confirmed = await supabase.rpc("confirm_document_upload", { _document: row.id });
+      const confirmed = await supabase.rpc("confirm_document_upload", { _document: (row as { id: string }).id });
       if (confirmed.error || confirmed.data !== true) throw new Error("رُفع الملف لكن لم يتأكد وصوله إلى التخزين. ستظهر الوثيقة بعلامة «لم يكتمل الرفع»؛ احذفها وأعد الرفع.");
     },
     documentUrl: async (doc, opts) => {
