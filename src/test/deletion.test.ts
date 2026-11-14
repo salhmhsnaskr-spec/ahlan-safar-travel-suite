@@ -32,7 +32,8 @@ describe("local deletion rules (mock transport, not real Storage/RLS)", () => {
     expect(() => assertDocumentDeletion("admin", "admin", "other")).not.toThrow();
   });
   it("does not upload a file when metadata insert fails", async () => {
-    chain.insert.mockResolvedValue({ data: null, error: { message: "insert denied" } });
+    chain.insert.mockReturnValue(chain);
+    chain.single.mockResolvedValue({ data: null, error: { message: "insert denied" } });
     const file = { name: "test.pdf", size: 1, type: "application/pdf", arrayBuffer: async () => new ArrayBuffer(1) } as File;
     await expect(api().uploadDocument(file, {})).rejects.toThrow("insert denied");
     expect(fake.storageFrom).not.toHaveBeenCalled();

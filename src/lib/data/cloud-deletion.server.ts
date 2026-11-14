@@ -31,8 +31,8 @@ export async function processDeletionJob(jobId: string): Promise<DeletionOutcome
       const slash = path.lastIndexOf('/');
       const folder = path.slice(0, slash), name = path.slice(slash + 1);
       const listed = await supabaseAdmin.storage.from('documents').list(folder, { search: name, limit: 100 });
-      if (listed.error) { still.push(path); error = listed.error.message; continue; }
-      if ((listed.data ?? []).some(o => o.name === name)) { still.push(path); error = 'ملفات لم يتأكد حذفها'; }
+      if (listed.error || !Array.isArray(listed.data)) { still.push(path); error = listed.error?.message ?? 'ملفات لم يتأكد حذفها'; continue; }
+      if (listed.data.some(o => o.name === name)) { still.push(path); error = 'ملفات لم يتأكد حذفها'; }
     }
     remaining = [...still, ...remaining.slice(100)];
   }
