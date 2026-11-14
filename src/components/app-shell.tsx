@@ -9,14 +9,14 @@ import {
 /** Platform support line; the link carries no customer or office data. */
 export const SUPPORT_WHATSAPP_URL = "https://wa.me/967716091944";
 import { Logo } from "@/components/brand";
-import { useCustomers, useData, useOffice, useParticipants, usePaths, useRequests } from "@/lib/data/context";
+import { useCustomers, useData, useMembers, useOffice, useParticipants, usePaths, useRequests, useTasks } from "@/lib/data/context";
 import { deriveAllNotifications } from "@/lib/domain";
 
 /** Alert count for the current office; null while loading or after a failed read so no false "0" is shown. */
 function useAlertCount(): number | null {
-  const r = useRequests(), c = useCustomers(), pt = useParticipants();
-  if (!r.data || !c.data || !pt.data || r.isError || c.isError || pt.isError) return null;
-  return deriveAllNotifications(r.data, c.data, pt.data, new Date().toISOString().slice(0, 10)).length;
+  const r = useRequests(), c = useCustomers(), pt = useParticipants(), t = useTasks(), m = useMembers();
+  if (!r.data || !c.data || !pt.data || !t.data || r.isError || c.isError || pt.isError || t.isError) return null;
+  return deriveAllNotifications(r.data, c.data, pt.data, new Date().toISOString().slice(0, 10), { tasks: t.data, members: m.data ?? [] }).length;
 }
 
 function AlertBadge({ count, className }: { count: number | null; className?: string }) {
