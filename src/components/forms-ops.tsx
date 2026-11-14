@@ -93,6 +93,7 @@ export function BookingDialog({ open, onOpenChange, initial }: DialogProps<Booki
       <Field label="المرجع الخارجي"><Input aria-label="المرجع الخارجي" dir="ltr" className="text-end" value={f.external_ref} onChange={set("external_ref")} /></Field>
       <Field label="مزود الخدمة / الجهة المنفذة"><Input aria-label="مزود الخدمة" value={f.provider} onChange={set("provider")} /></Field>
       <Field label="ملاحظات" className="sm:col-span-2"><Textarea aria-label="ملاحظات" rows={2} value={f.notes} onChange={set("notes")} /></Field>
+      {err && <p role="alert" className="text-sm text-danger sm:col-span-2">{err}</p>}
     </FormDialog>
   );
 }
