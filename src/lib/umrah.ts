@@ -42,31 +42,42 @@ export function stayReminderDays(v: number | string | null | undefined) {
   return Number.isInteger(n) && n >= 0 && n < UMRAH_MAX_DAYS ? n : UMRAH_WARN_DAYS;
 }
 
-export type Remaining = { level: "ok" | "warning" | "critical" | "overstay"; remaining: number; lastDay: string };
+export type Remaining = { level: "ok" | "warning" | "critical" | "overstay"; remaining: number; lastDay: string; byVisa: boolean };
 
-/** Days remaining for a pilgrim still inside (actual entry, no actual exit). Day 90 is the last allowed day. */
-export function remainingStay(entry: string | null | undefined, exit: string | null | undefined, today: string, reminderDays?: number | string | null): Remaining | null {
+/** Pilgrims whose stay no longer needs a counter. */
+export const stayClosed = (status: string) => status === "cancelled" || status === "departed";
+
+/**
+ * Days remaining for a pilgrim still inside (actual entry, no actual exit). The last allowed day is the 90th day
+ * of stay, or the visa/residence expiry date when that is recorded and earlier.
+ */
+export function remainingStay(entry: string | null | undefined, exit: string | null | undefined, today: string, reminderDays?: number | string | null, visaExpiry?: string | null): Remaining | null {
   if (exit) return null;
   const s = stayDuration(entry, null, today);
   if (s.kind !== "so_far") return null;
-  const remaining = UMRAH_MAX_DAYS - s.days;
-  const lastDay = new Date(parse(entry)! + (UMRAH_MAX_DAYS - 1) * DAY).toISOString().slice(0, 10);
+  const ninety = parse(entry)! + (UMRAH_MAX_DAYS - 1) * DAY;
+  const visa = parse(visaExpiry);
+  const byVisa = visa !== null && visa < ninety;
+  const last = byVisa ? visa : ninety;
+  const remaining = Math.round((last - parse(today)!) / DAY);
+  const lastDay = new Date(last).toISOString().slice(0, 10);
   const warn = stayReminderDays(reminderDays);
   const level = remaining < 0 ? "overstay" : remaining <= Math.min(2, warn) ? "critical" : remaining <= warn ? "warning" : "ok";
-  return { level, remaining, lastDay };
+  return { level, remaining, lastDay, byVisa };
 }
 
 export function remainingLabel(r: Remaining) {
   if (r.level === "overstay") return `تجاوز المدة بـ ${-r.remaining} يوم`;
   if (r.remaining === 0) return "اليوم آخر يوم مسموح";
-  return `متبقي ${r.remaining} يوم من ${UMRAH_MAX_DAYS}`;
+  return r.byVisa ? `متبقي ${r.remaining} يوم حتى انتهاء التأشيرة` : `متبقي ${r.remaining} يوم من ${UMRAH_MAX_DAYS}`;
 }
 
 /** Returns an Arabic error message when actual/planned dates are inconsistent, else null. */
-export function validateParticipantDates(p: { planned_entry?: string | null; planned_exit?: string | null; actual_entry?: string | null; actual_exit?: string | null }) {
+export function validateParticipantDates(p: { planned_entry?: string | null; planned_exit?: string | null; actual_entry?: string | null; actual_exit?: string | null; visa_expiry?: string | null }) {
   if (p.actual_exit && !p.actual_entry) return "لا يمكن تسجيل المغادرة الفعلية قبل تسجيل الدخول الفعلي.";
   if (p.actual_entry && p.actual_exit && p.actual_exit < p.actual_entry) return "تاريخ المغادرة الفعلي قبل تاريخ الدخول.";
   if (p.planned_entry && p.planned_exit && p.planned_exit < p.planned_entry) return "تاريخ المغادرة المخطط قبل تاريخ الدخول المخطط.";
+  if (p.visa_expiry && p.actual_entry && p.visa_expiry < p.actual_entry) return "تاريخ انتهاء التأشيرة قبل تاريخ الدخول الفعلي.";
   return null;
 }
 

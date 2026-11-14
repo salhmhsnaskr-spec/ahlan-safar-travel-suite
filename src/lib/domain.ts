@@ -93,7 +93,7 @@ export function requestCode(n: number) {
 
 export type AppNotification = {
   id: string;
-  kind: "new" | "upcoming" | "waiting" | "approval" | "stay";
+  kind: "new" | "upcoming" | "waiting" | "approval" | "stay" | "task" | "passport";
   title: string;
   body: string;
   date: string;
@@ -101,7 +101,13 @@ export type AppNotification = {
   /** Stay alerts only: the trip and participant row to open. */
   tripId?: string;
   participantId?: string;
+  /** Task alerts open the tasks page; passport alerts open the customer. */
+  taskId?: string;
+  customerId?: string;
 };
+
+/** Passport alert lead in days. */
+export const PASSPORT_WARN_DAYS = 30;
 
 /** Every in-app alert for one office's already-scoped data; shared by the notifications page and the menu badge. */
 export function deriveAllNotifications(
@@ -109,11 +115,61 @@ export function deriveAllNotifications(
   customers: Customer[],
   participants: Parameters<typeof deriveStayNotifications>[0],
   today: string,
+  extra: { tasks?: Task[]; members?: Member[]; now?: number } = {},
 ): AppNotification[] {
-  return [...deriveStayNotifications(participants, customers, today), ...deriveNotifications(requests, customers)];
+  return [
+    ...deriveStayNotifications(participants, customers, today),
+    ...deriveTaskNotifications(extra.tasks ?? [], customers, extra.members ?? [], extra.now ?? Date.now()),
+    ...derivePassportNotifications(customers, today),
+    ...deriveNotifications(requests, customers, extra.members ?? []),
+  ];
 }
 
-export function deriveNotifications(requests: TravelRequest[], customers: Customer[]): AppNotification[] {
+const memberLabel = (members: Member[], id: string | null | undefined) => {
+  const m = id ? members.find((x) => x.user_id === id) : undefined;
+  return m ? m.full_name || m.email || null : null;
+};
+
+/** Open tasks that are overdue or due within the next 24 hours. */
+export function deriveTaskNotifications(tasks: Task[], customers: Customer[], members: Member[], now: number): AppNotification[] {
+  const names = new Map(customers.map((c) => [c.id, c.full_name]));
+  const out: AppNotification[] = [];
+  for (const t of tasks) {
+    if (!isOpenTask(t.status) || !t.due_at) continue;
+    const due = new Date(t.due_at).getTime();
+    if (Number.isNaN(due) || due > now + 86_400_000) continue;
+    const who = memberLabel(members, t.assigned_to);
+    const cust = t.customer_id ? names.get(t.customer_id) : undefined;
+    out.push({
+      id: t.id + "t", kind: "task",
+      title: due < now ? `مهمة متأخرة: ${t.title}` : `مهمة مستحقة اليوم: ${t.title}`,
+      body: [cust && `العميل: ${cust}`, `الموعد ${formatDateTime(t.due_at)}`, `المسؤول: ${who ?? "غير محدد"}`].filter(Boolean).join(" · "),
+      date: t.due_at, requestId: t.request_id ?? "", taskId: t.id,
+    });
+  }
+  return out;
+}
+
+/** Customers whose recorded passport expiry is within PASSPORT_WARN_DAYS, or expired in the last 30 days. */
+export function derivePassportNotifications(customers: Customer[], today: string): AppNotification[] {
+  const t = Date.parse(today);
+  const out: AppNotification[] = [];
+  for (const c of customers) {
+    const exp = (c as { passport_expiry?: string | null }).passport_expiry;
+    if (!exp) continue;
+    const left = Math.round((Date.parse(exp) - t) / 86_400_000);
+    if (Number.isNaN(left) || left > PASSPORT_WARN_DAYS || left < -30) continue;
+    out.push({
+      id: c.id + "p", kind: "passport",
+      title: left < 0 ? `جواز منتهي: ${c.full_name}` : `جواز ينتهي قريبًا: ${c.full_name}`,
+      body: `تاريخ انتهاء الجواز ${formatDate(exp)} — ${left < 0 ? `انتهى منذ ${-left} يوم` : left === 0 ? "ينتهي اليوم" : `متبقي ${left} يوم`}`,
+      date: exp, requestId: "", customerId: c.id,
+    });
+  }
+  return out;
+}
+
+export function deriveNotifications(requests: TravelRequest[], customers: Customer[], members: Member[] = []): AppNotification[] {
   const names = new Map(customers.map((c) => [c.id, c.full_name]));
   const now = Date.now();
   const out: AppNotification[] = [];
@@ -131,7 +187,7 @@ export function deriveNotifications(requests: TravelRequest[], customers: Custom
       const lead = reminderDays((r as { service_details?: Record<string, string> | null }).service_details);
       if (diff >= -1 && diff <= lead) {
         const left = Math.max(0, Math.ceil(diff));
-        out.push({ id: r.id + "u", kind: "upcoming", title: `موعد خدمة قريب ${code}`, body: `خدمة ${who} بتاريخ ${formatDate(r.service_date)} — ${left === 0 ? "الموعد اليوم" : `متبقي ${left} يوم`}؛ يُرجى تنبيه العميل`, date: r.service_date, requestId: r.id });
+        out.push({ id: r.id + "u", kind: "upcoming", title: `موعد خدمة قريب ${code}`, body: `خدمة ${who} بتاريخ ${formatDate(r.service_date)} — ${left === 0 ? "الموعد اليوم" : `متبقي ${left} يوم`} · المسؤول: ${memberLabel(members, r.assigned_to) ?? "غير محدد"}؛ يُرجى تنبيه العميل`, date: r.service_date, requestId: r.id });
       }
     }
   }
@@ -140,7 +196,7 @@ export function deriveNotifications(requests: TravelRequest[], customers: Custom
 
 /** Stay alerts for pilgrims still in Saudi Arabia within their own alert lead (default UMRAH_WARN_DAYS) or overstayed. */
 export function deriveStayNotifications(
-  participants: { id: string; trip_id: string; customer_id: string; status: string; actual_entry: string | null; actual_exit: string | null; reminder_days?: number | null }[],
+  participants: { id: string; trip_id: string; customer_id: string; status: string; actual_entry: string | null; actual_exit: string | null; reminder_days?: number | null; visa_expiry?: string | null }[],
   customers: Customer[],
   today: string,
 ): AppNotification[] {
@@ -148,7 +204,7 @@ export function deriveStayNotifications(
   const out: AppNotification[] = [];
   for (const p of participants) {
     if (p.status === "cancelled" || p.status === "departed") continue;
-    const r = remainingStay(p.actual_entry, p.actual_exit, today, p.reminder_days);
+    const r = remainingStay(p.actual_entry, p.actual_exit, today, p.reminder_days, p.visa_expiry);
     if (!r || r.level === "ok") continue;
     const who = names.get(p.customer_id) ?? "معتمر";
     out.push({

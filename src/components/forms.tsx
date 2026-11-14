@@ -9,7 +9,7 @@ import {
   type Customer, type Partner, type TravelRequest,
 } from "@/lib/domain";
 import { ServiceDetailFields } from "@/components/service-fields";
-import { cleanDetails, deriveServiceDate, fieldsFor, missingRequired, type ServiceDetails } from "@/lib/transaction";
+import { cleanDetails, deriveServiceDate, fieldsFor, findDuplicateCustomer, missingRequired, type ServiceDetails } from "@/lib/transaction";
 import { useCustomers, useMembers, usePartners, useSaveCustomer, useSavePartner, useSaveRequest, useServices } from "@/lib/data/context";
 
 type DialogProps<T> = { open: boolean; onOpenChange: (o: boolean) => void; initial?: Partial<T> | null };
@@ -36,27 +36,33 @@ export function FormDialog({ open, onOpenChange, title, children, onSubmit, pend
   );
 }
 
-const blankCustomer = { full_name: "", phone: "", email: "", passport_number: "", nationality: "", notes: "", source: "direct" as Customer["source"], referring_partner_id: "", assigned_to: "" };
+const blankCustomer = { full_name: "", phone: "", email: "", passport_number: "", passport_expiry: "", nationality: "", notes: "", source: "direct" as Customer["source"], referring_partner_id: "", assigned_to: "" };
 
 export function CustomerDialog({ open, onOpenChange, initial }: DialogProps<Customer>) {
   const [f, setF] = useState(blankCustomer);
+  const [dupNote, setDupNote] = useState<{ id: string; text: string; block: boolean } | null>(null);
   const partners = usePartners().data ?? [];
   const members = useMembers().data ?? [];
+  const others = (useCustomers().data ?? []).filter((c) => c.id !== initial?.id);
   const save = useSaveCustomer();
   useEffect(() => {
-    if (open) setF({ ...blankCustomer, ...Object.fromEntries(Object.entries(initial ?? {}).map(([k, v]) => [k, v ?? ""])) } as typeof blankCustomer);
+    if (open) { setDupNote(null); setF({ ...blankCustomer, ...Object.fromEntries(Object.entries(initial ?? {}).map(([k, v]) => [k, v ?? ""])) } as typeof blankCustomer); }
   }, [open, initial]);
-  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((s) => ({ ...s, [k]: e.target.value }));
+  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => { setDupNote(null); setF((s) => ({ ...s, [k]: e.target.value })); };
 
   return (
     <FormDialog
       open={open} onOpenChange={onOpenChange} title={initial?.id ? "تعديل العميل" : "إضافة عميل"} pending={save.isPending}
       onSubmit={() => {
         if (!f.full_name.trim()) return;
+        const samePassport = f.passport_number.trim() ? findDuplicateCustomer(others, { passport_number: f.passport_number }) : undefined;
+        if (samePassport) return setDupNote({ id: samePassport.id, block: true, text: `رقم الجواز مسجّل للعميل «${samePassport.full_name}». لا يمكن حفظ عميل مكرر بنفس الجواز.` });
+        const similar = findDuplicateCustomer(others, { phone: f.phone, email: f.email });
+        if (similar && dupNote?.id !== similar.id) return setDupNote({ id: similar.id, block: false, text: `يوجد عميل بنفس الهاتف أو البريد: «${similar.full_name}». تأكد أنه شخص مختلف (مثل فرد من العائلة) ثم اضغط «حفظ» مرة أخرى.` });
         save.mutate(
           {
-            id: initial?.id, full_name: f.full_name.trim(), phone: f.phone || null, email: f.email || null,
-            passport_number: f.passport_number || null, nationality: f.nationality || null, notes: f.notes || null,
+            id: initial?.id, full_name: f.full_name.trim(), phone: f.phone.trim() || null, email: f.email.trim() || null,
+            passport_number: f.passport_number.trim() || null, passport_expiry: f.passport_expiry || null, nationality: f.nationality || null, notes: f.notes || null,
             source: f.source, referring_partner_id: f.source === "partner" ? f.referring_partner_id || null : null,
             assigned_to: f.assigned_to || null,
           },
@@ -68,6 +74,7 @@ export function CustomerDialog({ open, onOpenChange, initial }: DialogProps<Cust
       <Field label="رقم الهاتف"><Input dir="ltr" className="text-end" value={f.phone} onChange={set("phone")} /></Field>
       <Field label="البريد الإلكتروني"><Input dir="ltr" type="email" className="text-end" value={f.email} onChange={set("email")} /></Field>
       <Field label="رقم الجواز"><Input dir="ltr" className="text-end" value={f.passport_number} onChange={set("passport_number")} /></Field>
+      <Field label="انتهاء الجواز"><Input aria-label="انتهاء الجواز" type="date" value={f.passport_expiry} onChange={set("passport_expiry")} /></Field>
       <Field label="الجنسية"><Input value={f.nationality} onChange={set("nationality")} /></Field>
       <Field label="مصدر العميل">
         <NativeSelect value={f.source} onChange={set("source")}>
@@ -89,6 +96,7 @@ export function CustomerDialog({ open, onOpenChange, initial }: DialogProps<Cust
         </NativeSelect>
       </Field>
       <Field label="ملاحظات" className="sm:col-span-2"><Textarea rows={3} value={f.notes} onChange={set("notes")} /></Field>
+      {dupNote && <p role="alert" className={"rounded-lg p-3 text-sm sm:col-span-2 " + (dupNote.block ? "bg-danger/10 text-danger" : "bg-warning/15 text-warning")}>{dupNote.text}</p>}
     </FormDialog>
   );
 }

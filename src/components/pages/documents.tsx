@@ -11,6 +11,29 @@ import { formatBytes, formatDate, type DocumentRow } from "@/lib/domain";
 import type { DocumentLinks } from "@/lib/data/api";
 import { documentWorkOwner } from '@/lib/data/derived-owner';
 import { useWorkAccess, WorkPermissionControl } from '@/components/work-permission-control';
+import { DOCUMENT_ACCEPT, isPreviewable } from '@/lib/files';
+
+/** A cloud row whose file never reached storage (upload interrupted). */
+const unfinished = (d: DocumentRow) => d.uploaded_at === null;
+
+/** Open in a new tab when the browser can show the type; otherwise download. The tab is opened synchronously so popup blockers allow it. */
+async function openDocument(api: ReturnType<typeof useData>, d: DocumentRow, download: boolean) {
+  const view = !download && api.mode !== "demo" && isPreviewable(d.file_name);
+  const tab = view ? window.open("", "_blank") : null;
+  try {
+    const url = await api.documentUrl(d, { download: !view });
+    if (tab) { tab.location.href = url; return; }
+    const a = document.createElement("a");
+    a.href = url; a.rel = "noopener"; a.download = d.file_name; document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) {
+    tab?.close();
+    toast.error(download ? "تعذّر تنزيل الوثيقة" : "تعذّر فتح الوثيقة", { description: (e as Error).message });
+  }
+}
+
+function UnfinishedBadge() {
+  return <span className="ms-2 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning">لم يكتمل الرفع</span>;
+}
 
 function useDocumentWork() {
   const api = useData();
@@ -34,21 +57,12 @@ export function DocumentsPanel({ links, filter }: { links: DocumentLinks; filter
   const [toDelete, setToDelete] = useState<DocumentRow | null>(null);
   const list = (data ?? []).filter(filter);
 
-  async function download(d: DocumentRow) {
-    try {
-      const url = await api.documentUrl(d);
-      const a = document.createElement("a");
-      a.href = url; a.download = d.file_name; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove();
-    } catch (e) {
-      toast.error("تعذّر تنزيل الوثيقة", { description: (e as Error).message });
-    }
-  }
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{list.length} وثيقة · الحد الأقصى {api.mode === "demo" ? "1MB" : "20MB"} للملف</p>
-        <input ref={input} type="file" className="hidden" aria-label="اختيار ملف" onChange={(e) => {
+        <input ref={input} type="file" accept={DOCUMENT_ACCEPT} className="hidden" aria-label="اختيار ملف" onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) upload.mutate({ file: f, links });
           e.target.value = "";
@@ -64,10 +78,11 @@ export function DocumentsPanel({ links, filter }: { links: DocumentLinks; filter
               <li key={d.id} className="flex items-center gap-3 px-4 py-3">
                 <FileText className="size-5 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium" dir="auto">{d.file_name}</p>
+                  <p className="truncate text-sm font-medium" dir="auto">{d.file_name}{unfinished(d) && <UnfinishedBadge />}</p>
                   <p className="text-xs text-muted-foreground">{formatBytes(d.size_bytes)} · {formatDate(d.created_at)} · {members.get(d.uploaded_by ?? "") ?? "—"}</p>
                 </div>
-                <Button size="icon" variant="ghost" aria-label="تنزيل" onClick={() => download(d)}><Download /></Button>
+                <Button size="icon" variant="ghost" aria-label="فتح" disabled={unfinished(d)} onClick={() => openDocument(api, d, false)}><ExternalLink /></Button>
+                <Button size="icon" variant="ghost" aria-label="تنزيل" disabled={unfinished(d)} onClick={() => openDocument(api, d, true)}><Download /></Button>
                 {canDelete && <Button size="icon" variant="ghost" aria-label="حذف الوثيقة" className="text-danger" onClick={() => setToDelete(d)}><Trash2 /></Button>}
                 {record && <WorkPermissionControl entity="documents" record={record} label="الوثيقة" />}
               </li>
@@ -128,16 +143,6 @@ export function DocumentsPage() {
   });
   const upBookings = bookings.filter((b) => !upCust || b.customer_id === upCust);
 
-  async function open(d: DocumentRow, dl: boolean) {
-    try {
-      const url = await api.documentUrl(d);
-      const a = document.createElement("a");
-      a.href = url; a.rel = "noopener"; if (dl) a.download = d.file_name; else a.target = "_blank";
-      document.body.appendChild(a); a.click(); a.remove();
-    } catch (e) {
-      toast.error("تعذّر فتح الوثيقة", { description: (e as Error).message });
-    }
-  }
 
   return (
     <div className="min-w-0">
@@ -158,7 +163,7 @@ export function DocumentsPage() {
             </NativeSelect>
           </Field>
           <div className="flex items-end">
-            <input ref={input} type="file" className="hidden" aria-label="اختيار ملف" onChange={(e) => {
+            <input ref={input} type="file" accept={DOCUMENT_ACCEPT} className="hidden" aria-label="اختيار ملف" onChange={(e) => {
               const f = e.target.files?.[0];
               const b = upBook ? bookMap.get(upBook) : undefined;
               if (f) upload.mutate({ file: f, links: { customer_id: upCust || b?.customer_id || null, booking_id: upBook || null } });
@@ -167,7 +172,7 @@ export function DocumentsPage() {
             <Button className="w-full" disabled={upload.isPending} onClick={() => input.current?.click()}><Upload /> {upload.isPending ? "جارٍ الرفع…" : "اختيار ملف ورفعه"}</Button>
           </div>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">الحد الأقصى {api.mode === "demo" ? "1MB" : "20MB"} للملف</p>
+        <p className="mt-2 text-xs text-muted-foreground">الحد الأقصى {api.mode === "demo" ? "1MB" : "20MB"} للملف · المسموح: PDF، الصور، Word، Excel، CSV والنصوص</p>
       </div>
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -209,7 +214,7 @@ export function DocumentsPage() {
                 <li key={d.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
                   <FileText className="size-5 shrink-0 text-primary" />
                   <div className="min-w-0 flex-1 basis-48">
-                    <p className="truncate text-sm font-medium" dir="auto">{d.file_name}</p>
+                    <p className="truncate text-sm font-medium" dir="auto">{d.file_name}{unfinished(d) && <UnfinishedBadge />}</p>
                     <p className="text-xs text-muted-foreground break-words">
                       {kindLabels[docKind(d)]} · {formatBytes(d.size_bytes)} · {formatDate(d.created_at)} · {members.get(d.uploaded_by ?? "") ?? "—"}
                     </p>
@@ -225,8 +230,8 @@ export function DocumentsPage() {
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center">
-                    <Button size="icon" variant="ghost" aria-label="فتح" onClick={() => open(d, false)}><ExternalLink /></Button>
-                    <Button size="icon" variant="ghost" aria-label="تنزيل" onClick={() => open(d, true)}><Download /></Button>
+                    <Button size="icon" variant="ghost" aria-label="فتح" disabled={unfinished(d)} onClick={() => openDocument(api, d, false)}><ExternalLink /></Button>
+                    <Button size="icon" variant="ghost" aria-label="تنزيل" disabled={unfinished(d)} onClick={() => openDocument(api, d, true)}><Download /></Button>
                     {canDelete && <Button size="icon" variant="ghost" aria-label="حذف الوثيقة" className="text-danger" onClick={() => setToDelete(d)}><Trash2 /></Button>}
                     {record && <WorkPermissionControl entity="documents" record={record} label="الوثيقة" />}
                   </div>

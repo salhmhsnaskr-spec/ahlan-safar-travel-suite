@@ -27,13 +27,15 @@ const blankBooking = {
 
 export function BookingDialog({ open, onOpenChange, initial }: DialogProps<Booking>) {
   const [f, setF] = useState(blankBooking);
+  const [err, setErr] = useState("");
+  const allBookings = useBookings().data ?? [];
   const customers = useCustomers().data ?? [];
   const requests = useRequests().data ?? [];
   const members = useMembers().data ?? [];
   const services = (useServices().data ?? []).filter((s) => s.is_active || s.id === initial?.service_id);
   const save = useSaveBooking();
-  useEffect(() => { if (open) setF(fill(blankBooking, initial)); }, [open, initial]);
-  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((s) => ({ ...s, [k]: e.target.value }));
+  useEffect(() => { if (open) { setErr(""); setF(fill(blankBooking, initial)); } }, [open, initial]);
+  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => { setErr(""); setF((s) => ({ ...s, [k]: e.target.value })); };
   const customerRequests = requests.filter((r) => r.customer_id === f.customer_id);
 
   return (
@@ -41,6 +43,10 @@ export function BookingDialog({ open, onOpenChange, initial }: DialogProps<Booki
       open={open} onOpenChange={onOpenChange} title={initial?.id ? "تعديل الحجز" : "حجز جديد"} pending={save.isPending}
       onSubmit={() => {
         if (!f.customer_id || !f.service_id) return;
+        const ref = f.external_ref.trim().toLowerCase();
+        const dup = ref && f.status !== "cancelled" && allBookings.find((b) => b.id !== initial?.id && b.status !== "cancelled" && b.customer_id === f.customer_id
+          && (b.request_id ?? "") === f.request_id && (b.external_ref ?? "").trim().toLowerCase() === ref);
+        if (dup) return setErr(`يوجد حجز مفتوح ${bookingCode(dup.number)} لنفس العميل والمعاملة بنفس المرجع الخارجي.`);
         save.mutate(
           {
             id: initial?.id, customer_id: f.customer_id, request_id: f.request_id || null, service_id: f.service_id,
@@ -87,6 +93,7 @@ export function BookingDialog({ open, onOpenChange, initial }: DialogProps<Booki
       <Field label="المرجع الخارجي"><Input aria-label="المرجع الخارجي" dir="ltr" className="text-end" value={f.external_ref} onChange={set("external_ref")} /></Field>
       <Field label="مزود الخدمة / الجهة المنفذة"><Input aria-label="مزود الخدمة" value={f.provider} onChange={set("provider")} /></Field>
       <Field label="ملاحظات" className="sm:col-span-2"><Textarea aria-label="ملاحظات" rows={2} value={f.notes} onChange={set("notes")} /></Field>
+      {err && <p role="alert" className="text-sm text-danger sm:col-span-2">{err}</p>}
     </FormDialog>
   );
 }

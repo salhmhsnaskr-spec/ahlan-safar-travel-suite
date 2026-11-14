@@ -65,7 +65,7 @@ export interface DataApi {
   deleteTask(id: string): Promise<void>;
   listDocuments(): Promise<DocumentRow[]>;
   uploadDocument(file: File, links: DocumentLinks): Promise<void>;
-  documentUrl(doc: DocumentRow): Promise<string>;
+  documentUrl(doc: DocumentRow, opts?: { download?: boolean }): Promise<string>;
   deleteDocument(doc: DocumentRow): Promise<void>;
   listActivity(actorId?: string): Promise<ActivityRow[]>;
   listTeamActivity(): Promise<TeamActivity[]>;

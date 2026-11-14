@@ -8,6 +8,14 @@ import { cloudDelete, retryCloudDeletion, type DeletionOutcome } from './cloud-d
 import type { OfficeProfile, PendingDeletion } from './api';
 import type { WorkPermission } from './work-permissions';
 import { authorizeWorkApi } from './authorized-api';
+import { assertAllowedDocument } from '@/lib/files';
+
+function friendly(error: { code?: string; message: string }): never {
+  if (error.code === '23505' && /passport/.test(error.message)) throw new Error('يوجد عميل آخر في مكتبك بنفس رقم الجواز. افتح سجله بدل إنشاء عميل مكرر.');
+  if (error.code === '23505' && /bookings_open_ref/.test(error.message)) throw new Error('يوجد حجز مفتوح لنفس العميل والمعاملة بنفس المرجع الخارجي.');
+  throw new Error(error.message);
+}
+const one = <T,>(res: { data: T | null; error: { code?: string; message: string } | null }): T => { if (res.error) friendly(res.error); return res.data as T; };
 
 /** Database rows are already gone; report files that Storage has not yet confirmed as removed. */
 function incomplete(r: DeletionOutcome) {
@@ -66,8 +74,8 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
       must(await supabase.from("customers").select("*").eq("office_id", officeId).order("created_at", { ascending: false })),
     saveCustomer: async ({ id, ...rest }) =>
       id
-        ? must(await supabase.from("customers").update(rest).eq("id", id).select().single())
-        : must(await supabase.from("customers").insert({ assigned_to: role === 'employee' ? userId : null, ...rest, office_id: officeId }).select().single()),
+        ? one(await supabase.from("customers").update(rest).eq("id", id).select().single())
+        : one(await supabase.from("customers").insert({ assigned_to: role === 'employee' ? userId : null, ...rest, office_id: officeId }).select().single()),
     deleteCustomer: async (id) => { incomplete(await cloudDelete({ data: { kind: "customer", targetId: id } })); },
     deleteOffice: async () => {
       assertLocalDeletionEnvironment(import.meta.env['VITE_LOCAL_PERMANENT_DELETION'], import.meta.env['VITE_SUPABASE_URL']);
@@ -104,8 +112,8 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
       must(await supabase.from("bookings").select("*").eq("office_id", officeId).order("number", { ascending: false })),
     saveBooking: async ({ id, ...rest }) =>
       id
-        ? must(await supabase.from("bookings").update(rest).eq("id", id).select().single())
-        : must(await supabase.from("bookings").insert({ assigned_employee_id: role === 'employee' ? userId : null, ...rest, office_id: officeId }).select().single()),
+        ? one(await supabase.from("bookings").update(rest).eq("id", id).select().single())
+        : one(await supabase.from("bookings").insert({ assigned_employee_id: role === 'employee' ? userId : null, ...rest, office_id: officeId }).select().single()),
     deleteBooking: async (id) => void must(await supabase.from("bookings").delete().eq("id", id)),
     listTasks: async () =>
       must(await supabase.from("tasks").select("*").eq("office_id", officeId).order("due_at", { ascending: true, nullsFirst: false })),
@@ -119,7 +127,7 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
     uploadDocument: async (file, links) => {
       const MAX = 20 * 1024 * 1024;
       if (file.size > MAX) throw new Error(`حجم الملف ${(file.size / 1024 / 1024).toFixed(1)}MB يتجاوز الحد المسموح (20MB). اضغط الملف أو قسّمه ثم أعد المحاولة.`);
-      if (file.size === 0) throw new Error("الملف فارغ، اختر ملفًا آخر.");
+      assertAllowedDocument(file);
       const ext = (file.name.match(/\.[A-Za-z0-9]{1,8}$/)?.[0] ?? "").toLowerCase();
       const base = file.name.slice(0, file.name.length - ext.length).replace(/[^\w\-]+/g, "_").replace(/^_+|_+$/g, "").slice(-60);
       const path = `${officeId}/${crypto.randomUUID()}-${base || "file"}${ext}`;
@@ -134,10 +142,10 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
       const opts = { contentType: body.type, upsert: false };
       // Persist cleanup metadata BEFORE Storage: a failed request never loses the
       // path of a possibly uploaded object (including an ambiguous network error).
-      must(await supabase.from("documents").insert({
+      const row = must(await supabase.from("documents").insert({
         office_id: officeId, storage_path: path, file_name: file.name, size_bytes: file.size, mime_type: file.type || null,
         uploaded_by: userId, customer_id: links.customer_id ?? null, booking_id: links.booking_id ?? null, request_id: links.request_id ?? null,
-      }));
+      }).select("id").single());
       let up = await supabase.storage.from("documents").upload(path, body, opts);
       if (up.error && /failed to fetch|network|load failed/i.test(up.error.message)) {
         await new Promise((r) => setTimeout(r, 1200));
@@ -152,12 +160,15 @@ export function createCloudApi(officeId: string, officeName: string, role: AppRo
         if (m.includes("row-level security") || m.includes("unauthorized")) throw new Error("ليست لديك صلاحية رفع ملفات لهذا المكتب." + retained);
         if (m.includes("jwt") || m.includes("exp claim")) throw new Error("انتهت جلستك، سجّل الدخول من جديد ثم أعد المحاولة." + retained);
         if (/failed to fetch|network|load failed/.test(m)) throw new Error("انقطع الاتصال أثناء رفع الملف." + retained);
+        if (m.includes("row-level") || m.includes("policy")) throw new Error("نوع الملف غير مسموح أو لا تملك صلاحية الرفع." + retained);
         throw new Error(up.error.message + retained);
       }
+      const confirmed = await supabase.rpc("confirm_document_upload", { _document: (row as unknown as { id: string }).id });
+      if (confirmed.error || confirmed.data !== true) throw new Error("رُفع الملف لكن لم يتأكد وصوله إلى التخزين. ستظهر الوثيقة بعلامة «لم يكتمل الرفع»؛ احذفها وأعد الرفع.");
     },
-    documentUrl: async (doc) => {
-      const r = await supabase.storage.from("documents").createSignedUrl(doc.storage_path, 60, { download: doc.file_name });
-      if (r.error) throw new Error(r.error.message);
+    documentUrl: async (doc, opts) => {
+      const r = await supabase.storage.from("documents").createSignedUrl(doc.storage_path, 300, opts?.download ? { download: doc.file_name } : undefined);
+      if (r.error) throw new Error(/not found/i.test(r.error.message) ? "الملف غير موجود في التخزين؛ ربما لم يكتمل رفعه. احذف الوثيقة وأعد رفعها." : "تعذّر تجهيز رابط الملف: " + r.error.message);
       return r.data.signedUrl;
     },
     deleteDocument: async (doc) => { incomplete(await cloudDelete({ data: { kind: "document", targetId: doc.id } })); },

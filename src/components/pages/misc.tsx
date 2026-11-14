@@ -1,10 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  Bell, Briefcase, Car, Clock, Hotel, Map as MapIcon, Pencil, Plane, Plus, Sparkles, Stamp, Stethoscope, Trash2, UserCheck, AlertCircle, MapPin, Phone, User,
+  Bell, Briefcase, Car, Clock, ListTodo, IdCard, Hotel, Map as MapIcon, Pencil, Plane, Plus, Sparkles, Stamp, Stethoscope, Trash2, UserCheck, AlertCircle, MapPin, Phone, User,
 } from "lucide-react";
 import {
-  useActivity, useMembers, useOffice, useParticipants, useTrips,
+  useActivity, useMembers, useOffice, useParticipants, useTasks, useTrips,
   useAddService, useBookings, useUpdateService, useCustomers, useData, useDeletePartner, usePaths, usePartners, useRequests, useServices, useToggleService,
 } from "@/lib/data/context";
 import { EmptyState, Field, Loading, PageHeader, ReadState } from "@/components/kit";
@@ -39,7 +39,7 @@ export function ServicesPage() {
   if (api.role !== "admin") return <p role="alert">هذه الصفحة للمدير فقط.</p>;
   return (
     <>
-      <PageHeader title="الخدمات" subtitle="الخدمات الأساسية متاحة لكل المكاتب، ويمكنك إضافة خدمات خاصة بمكتبك." actions={<Button onClick={() => { setEditId(null); setName(""); setDesc(""); setOpen(true); }}><Plus /> خدمة جديدة</Button>} />
+      <PageHeader title="الخدمات" subtitle="الخدمات الأساسية (طيران، تأشيرة، عمرة، زيارة، موافقة أمنية، استقبال، طبية) تُضاف تلقائيًا لكل مكتب بحقولها الخاصة، ويمكنك إضافة خدمات خاصة بمكتبك." actions={<Button onClick={() => { setEditId(null); setName(""); setDesc(""); setOpen(true); }}><Plus /> خدمة جديدة</Button>} />
       {isLoading ? <Loading /> : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {(data ?? []).map((s) => {
@@ -157,26 +157,28 @@ export function PartnersPage() {
   );
 }
 
-const kindIcon = { new: Bell, upcoming: Clock, waiting: UserCheck, approval: AlertCircle, stay: AlertCircle };
-const kindTone = { new: "bg-info/12 text-info", upcoming: "bg-warning/15 text-warning", waiting: "bg-primary/12 text-primary", approval: "bg-violet/12 text-violet", stay: "bg-danger/12 text-danger" };
+const kindIcon = { new: Bell, upcoming: Clock, waiting: UserCheck, approval: AlertCircle, stay: AlertCircle, task: ListTodo, passport: IdCard };
+const kindTone = { new: "bg-info/12 text-info", upcoming: "bg-warning/15 text-warning", waiting: "bg-primary/12 text-primary", approval: "bg-violet/12 text-violet", stay: "bg-danger/12 text-danger", task: "bg-danger/12 text-danger", passport: "bg-warning/15 text-warning" };
 
 export function NotificationsPage() {
   const p = usePaths();
   const requests = useRequests();
   const customers = useCustomers();
   const participants = useParticipants();
+  const tasks = useTasks();
+  const members = useMembers().data ?? [];
   return (
     <>
-      <PageHeader title="الإشعارات" subtitle="تنبيهات تلقائية حسب حالة الطلبات ومواعيد الخدمات وقرب انتهاء إقامة المعتمرين" />
-      <ReadState queries={[requests, customers, participants]} title="تعذّر تحميل الإشعارات">
-        <NotificationItems requests={requests.data ?? []} customers={customers.data ?? []} participants={participants.data ?? []} paths={p} />
+      <PageHeader title="الإشعارات" subtitle="تنبيهات تلقائية: الطلبات، مواعيد الخدمات، المهام المتأخرة، انتهاء الجوازات وإقامة المعتمرين" />
+      <ReadState queries={[requests, customers, participants, tasks]} title="تعذّر تحميل الإشعارات">
+        <NotificationItems requests={requests.data ?? []} customers={customers.data ?? []} participants={participants.data ?? []} tasks={tasks.data ?? []} members={members} paths={p} />
       </ReadState>
     </>
   );
 }
 
-function NotificationItems({ requests, customers, participants, paths: p }: { requests: NonNullable<ReturnType<typeof useRequests>["data"]>; customers: NonNullable<ReturnType<typeof useCustomers>["data"]>; participants: NonNullable<ReturnType<typeof useParticipants>["data"]>; paths: ReturnType<typeof usePaths> }) {
-  const items = deriveAllNotifications(requests, customers, participants, new Date().toISOString().slice(0, 10));
+function NotificationItems({ requests, customers, participants, tasks, members, paths: p }: { requests: NonNullable<ReturnType<typeof useRequests>["data"]>; customers: NonNullable<ReturnType<typeof useCustomers>["data"]>; participants: NonNullable<ReturnType<typeof useParticipants>["data"]>; tasks: NonNullable<ReturnType<typeof useTasks>["data"]>; members: NonNullable<ReturnType<typeof useMembers>["data"]>; paths: ReturnType<typeof usePaths> }) {
+  const items = deriveAllNotifications(requests, customers, participants, new Date().toISOString().slice(0, 10), { tasks, members });
   return (
     <>
       {items.length === 0 ? <EmptyState title="لا توجد إشعارات" body="كل شيء تحت السيطرة" /> : (
@@ -187,7 +189,10 @@ function NotificationItems({ requests, customers, participants, paths: p }: { re
               <li key={n.id}>
                 <Link
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  {...((n.kind === "stay" ? { to: p.umrah, search: { trip: n.tripId, pilgrim: n.participantId } } : { to: p.transaction, params: { id: n.requestId } }) as any)}
+                  {...((n.kind === "stay" ? { to: p.umrah, search: { trip: n.tripId, pilgrim: n.participantId } }
+                    : n.kind === "task" ? { to: p.tasks }
+                    : n.kind === "passport" ? { to: p.customer, params: { id: n.customerId } }
+                    : { to: p.transaction, params: { id: n.requestId } }) as any)}
                   data-alert-kind={n.kind}
                   className="flex items-start gap-3 rounded-xl border bg-card p-4 hover:shadow-sm">
                   <span className={cn("grid size-10 shrink-0 place-items-center rounded-full", kindTone[n.kind])}><Icon className="size-4.5" /></span>

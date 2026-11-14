@@ -23,7 +23,7 @@ it("unknown service codes fall back to generic custom fields", () => {
 
 const src = (): ReportSource => ({
   office: { id: "o", name: "مكتب", is_partner: true },
-  customers: [{ id: "c1", office_id: "o", full_name: "أحمد", phone: "00967712345678", email: null, passport_number: null, nationality: null, notes: "مهم", source: "direct", referring_partner_id: null, assigned_to: "u2", created_by: null, updated_by: null, created_at: "2026-11-01T10:00:00Z", updated_at: "2026-11-02T10:00:00Z" }],
+  customers: [{ id: "c1", office_id: "o", full_name: "أحمد", phone: "00967712345678", email: null, passport_number: null, passport_expiry: null, nationality: null, notes: "مهم", source: "direct", referring_partner_id: null, assigned_to: "u2", created_by: null, updated_by: null, created_at: "2026-11-01T10:00:00Z", updated_at: "2026-11-02T10:00:00Z" }],
   requests: [], bookings: [], services: [], trips: [], participants: [], partners: [],
   members: [{ user_id: "u2", role: "employee", full_name: "سارة", email: null }],
   activity: [{ id: "a", office_id: "o", actor_id: "u2", actor_name: "سارة", entity: "customers", entity_id: "c1", action: "updated", summary: null, created_at: "2026-11-02T10:00:00Z", old_values: null, new_values: null, result: "success", changed_fields: null }],
