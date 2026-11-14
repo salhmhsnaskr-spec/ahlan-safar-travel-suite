@@ -18,7 +18,7 @@ const unfinished = (d: DocumentRow) => d.uploaded_at === null;
 
 /** Open in a new tab when the browser can show the type; otherwise download. The tab is opened synchronously so popup blockers allow it. */
 async function openDocument(api: ReturnType<typeof useData>, d: DocumentRow, download: boolean) {
-  const view = !download && isPreviewable(d.file_name);
+  const view = !download && api.mode !== "demo" && isPreviewable(d.file_name);
   const tab = view ? window.open("", "_blank") : null;
   try {
     const url = await api.documentUrl(d, { download: !view });

@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useActivity, useData, useMembers, usePaths } from "@/lib/data/context";
+import { useActivity, useCustomers, useData, useMembers, usePaths } from "@/lib/data/context";
 import { EmptyState, NativeSelect, PageHeader, ReadState } from "@/components/kit";
 import { activityActionLabels, activityEntityLabels, bookingStatusLabels, formatDateTime, statusLabels, taskStatusLabels } from "@/lib/domain";
 import { auditObject } from "@/lib/attribution";
@@ -16,6 +16,7 @@ export function ActivityPage({ actorId, embedded = false }: { actorId?: string; 
   const activity = useActivity(actorId);
   const memberQuery = useMembers();
   const members = new Map((memberQuery.data ?? []).map((m) => [m.user_id, m]));
+  const customerNames = new Map((useCustomers().data ?? []).map((c) => [c.id, c.full_name]));
   const [entity, setEntity] = useState("");
   const list = (activity.data ?? []).filter((a) => (!entity || a.entity === entity) && (api.role === "admin" || a.actor_id === api.userId));
   return (
@@ -29,9 +30,12 @@ export function ActivityPage({ actorId, embedded = false }: { actorId?: string; 
       {list.length === 0 ? <EmptyState title="لا يوجد نشاط بعد" /> : (
         <ol className="divide-y rounded-xl border bg-card">
           {list.map((a) => {
-            const [label, extra] = (a.summary ?? "").split("|");
+            const [rawLabel, extra] = (a.summary ?? "").split("|");
             const old = auditObject(a.old_values);
             const next = auditObject(a.new_values);
+            // Audit rows deliberately store no names; show the current customer name when the record still exists.
+            const custId = a.entity === "customers" ? a.entity_id : a.entity === "umrah_participants" ? String(next['customer_id'] ?? old['customer_id'] ?? "") : "";
+            const label = (custId && customerNames.get(custId)) || rawLabel;
             const member = members.get(a.actor_id ?? "");
             const actorName = a.actor_name || member?.full_name || member?.email || (a.actor_id ? "هوية محفوظة دون اسم" : "غير منسوب");
             const actorStatus = member?.status === "removed" ? " · موظف سابق" : member?.status === "suspended" ? " · موقوف" : "";
