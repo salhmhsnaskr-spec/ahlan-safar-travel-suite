@@ -1,3 +1,4 @@
+import { assertAllowedDocument } from '@/lib/files';
 import type { DataApi, OfficeProfile } from "./api";
 import { authorizeWorkApi } from './authorized-api';
 import { customerClosure } from './customer-closure';
@@ -410,6 +411,7 @@ export function createDemoApi(actor: { userId: string; role: 'admin' | 'employee
       }),
     listDocuments: async () => (load().documents ?? []).slice().sort((a, b) => (a.created_at < b.created_at ? 1 : -1)),
     uploadDocument: async (file, links) => {
+      assertAllowedDocument(file);
       if (file.size > 1024 * 1024) throw new Error("في الوضع التجريبي الحد الأقصى للملف 1MB");
       const data_url = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(file); });
       await mutate((db) => {
@@ -417,7 +419,7 @@ export function createDemoApi(actor: { userId: string; role: 'admin' | 'employee
         db.documents.push({
           id: uid(), office_id: DEMO_OFFICE, storage_path: "demo/" + uid(), file_name: file.name, size_bytes: file.size, mime_type: file.type || null,
           uploaded_by: actor.userId, customer_id: links.customer_id ?? null, booking_id: links.booking_id ?? null, request_id: links.request_id ?? null,
-          created_at: new Date().toISOString(), data_url,
+          created_at: new Date().toISOString(), uploaded_at: new Date().toISOString(), data_url,
         });
       });
     },

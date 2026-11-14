@@ -1,6 +1,5 @@
 import { supabaseAdmin } from '@/integrations/supabase/client.server';
 import type { DeletionOutcome } from './cloud-deletion.functions';
-import { assertStorageAbsent } from './storage-absence';
 
 /** Bounded legacy cleanup; optimistic fencing prevents stale results from overwriting a newer retry. */
 export async function processDeletionJob(jobId: string): Promise<DeletionOutcome> {
@@ -28,10 +27,12 @@ export async function processDeletionJob(jobId: string): Promise<DeletionOutcome
       if (Date.now() >= deadline) { still.push(...removable.slice(i)); break; }
       const path = removable[i];
       if (!path) continue;
-      const check = await supabaseAdmin.storage.from('documents').exists(path);
-      // Only a definite "not found" counts as removed; any other failure keeps the path for retry.
-      try { assertStorageAbsent(check); }
-      catch { still.push(path); error = check.error?.message ?? 'ملفات لم يتأكد حذفها'; }
+      // Verify by listing the folder: a HEAD check on a missing object returns an ambiguous 400.
+      const slash = path.lastIndexOf('/');
+      const folder = path.slice(0, slash), name = path.slice(slash + 1);
+      const listed = await supabaseAdmin.storage.from('documents').list(folder, { search: name, limit: 100 });
+      if (listed.error) { still.push(path); error = listed.error.message; continue; }
+      if ((listed.data ?? []).some(o => o.name === name)) { still.push(path); error = 'ملفات لم يتأكد حذفها'; }
     }
     remaining = [...still, ...remaining.slice(100)];
   }
